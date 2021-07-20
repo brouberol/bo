@@ -18,6 +18,7 @@ pub struct Editor {
     terminal: Terminal,
     cursor_position: Position,
     document: Document,
+    message: String,
 }
 
 fn die(e: &io::Error) {
@@ -38,6 +39,7 @@ impl Editor {
             terminal: Terminal::default().expect("Failed to initialize terminal"),
             cursor_position: Position::default(),
             document,
+            message: "".to_string(),
         }
     }
 
@@ -95,10 +97,20 @@ impl Editor {
         Terminal::set_cursor_position(&Position::default());
         if !self.should_quit {
             self.draw_rows();
+            self.draw_message_bar();
             Terminal::set_cursor_position(&self.cursor_position);
         }
         Terminal::show_cursor();
         Terminal::flush()
+    }
+
+    fn draw_message_bar(&self) {
+        Terminal::clear_current_line();
+        print!("{}\r", self.message);
+    }
+
+    fn display_message(&mut self, message: String) {
+        self.message = message;
     }
 
     fn display_welcome_message(&self) {

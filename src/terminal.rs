@@ -25,7 +25,7 @@ impl Terminal {
         println!("{:?}", size);
         Ok(Self {
             size: Size {
-                height: size.1,
+                height: size.1.saturating_sub(1), // to leave space for the message bar
                 width: size.0,
             },
             _stdout: stdout().into_raw_mode()?,
