@@ -51,6 +51,7 @@ impl Editor {
                 die(&error);
             }
             if self.should_quit {
+                Terminal::clear_screen();
                 break;
             }
         }
