@@ -71,13 +71,14 @@ impl Editor {
         let term_width = size.width.saturating_sub(1) as usize;
         let Position { mut x, mut y } = self.cursor_position;
         match key {
-            Key::Up => y = y.saturating_sub(1),
+            Key::Up => y = y.saturating_sub(1), // cannot be < 0
             Key::Down => {
-                if y < term_height {
+                if y < term_height && y < self.document.num_rows() {
+                    // don't scroll past the last line
                     y = y.saturating_add(1);
                 }
             }
-            Key::Left => x = x.saturating_sub(1),
+            Key::Left => x = x.saturating_sub(1), // cannot be < 0
             Key::Right => {
                 if x < term_width {
                     x = x.saturating_add(1);

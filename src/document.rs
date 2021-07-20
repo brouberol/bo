@@ -26,4 +26,8 @@ impl Document {
     pub fn is_empty(&self) -> bool {
         self.rows.len() == 0
     }
+
+    pub fn num_rows(&self) -> usize {
+        self.rows.len()
+    }
 }
