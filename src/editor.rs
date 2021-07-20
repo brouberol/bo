@@ -21,6 +21,7 @@ pub struct Editor {
     terminal: Terminal,
     cursor_position: Position,
     document: Document,
+    offset: Position,
     message: String,
 }
 
@@ -42,6 +43,7 @@ impl Editor {
             terminal: Terminal::default().expect("Failed to initialize terminal"),
             cursor_position: Position::default(),
             document,
+            offset: Position::default(),
             message: "".to_string(),
         }
     }
@@ -68,6 +70,7 @@ impl Editor {
             Key::Up | Key::Down | Key::Left | Key::Right => self.move_cursor(pressed_key),
             _ => (),
         }
+        self.scroll();
         Ok(())
     }
 
@@ -93,6 +96,22 @@ impl Editor {
             _ => (),
         }
         self.cursor_position = Position { x, y };
+    }
+
+    fn scroll(&mut self) {
+        let y = self.cursor_position.y;
+        let term_height = self.terminal.size().height as usize;
+        if y == 0 && self.offset.y > 0 {
+            self.offset.y = self.offset.y.saturating_sub(1);
+        } else if y + 1 >= term_height {
+            self.offset.y = self.offset.y.saturating_add(1);
+        }
+        self.display_message(format!(
+            "y={}, offset.y={}, total.y={}",
+            y,
+            self.offset.y,
+            self.offset.y.saturating_add(y)
+        ))
     }
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
@@ -145,9 +164,12 @@ impl Editor {
 
     fn draw_rows(&self) {
         let term_height = self.terminal.size().height;
-        for terminal_row_idx in 0..term_height - 1 {
+        for terminal_row_idx in 0..term_height {
             Terminal::clear_current_line();
-            if let Some(row) = self.document.get_row(terminal_row_idx as usize) {
+            if let Some(row) = self
+                .document
+                .get_row(terminal_row_idx as usize + self.offset.y)
+            {
                 self.draw_row(&row);
             } else if terminal_row_idx == term_height / 2 && self.document.is_empty() {
                 self.display_welcome_message();
@@ -158,8 +180,8 @@ impl Editor {
     }
 
     fn draw_row(&self, row: &Row) {
-        let row_visible_start = 0;
-        let row_visible_end = self.terminal.size().width as usize;
+        let row_visible_start = self.offset.x;
+        let row_visible_end = self.offset.y + self.terminal.size().width as usize;
         let rendered_row = row.render(row_visible_start, row_visible_end);
         println!("{}\r", rendered_row);
     }
