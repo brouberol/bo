@@ -30,7 +30,7 @@ impl Editor {
         let args: Vec<String> = env::args().collect();
         let document: Document = match args.len() {
             1 => Document::default(),
-            2 => Document::open(&args[1]).unwrap(),
+            2 => Document::open(&args[1]).unwrap_or_default(),
             _ => panic!("Can't (yet) open multiple files."),
         };
         Self {
