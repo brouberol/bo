@@ -74,7 +74,7 @@ impl Editor {
         match key {
             Key::Up => y = y.saturating_sub(1), // cannot be < 0
             Key::Down => {
-                if y < term_height && y < self.document.num_rows() {
+                if y < term_height && y < self.document.len() {
                     // don't scroll past the last line
                     y = y.saturating_add(1);
                 }
