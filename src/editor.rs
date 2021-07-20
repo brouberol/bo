@@ -1,4 +1,5 @@
 use crate::{Document, Row, Terminal};
+use std::env;
 use std::io::{self, stdout};
 use termion::event::Key;
 use termion::raw::IntoRawMode;
@@ -26,11 +27,17 @@ fn die(e: &io::Error) {
 
 impl Editor {
     pub fn default() -> Self {
+        let args: Vec<String> = env::args().collect();
+        let document: Document = match args.len() {
+            1 => Document::default(),
+            2 => Document::open(&args[1]).unwrap(),
+            _ => panic!("Can't (yet) open multiple files."),
+        };
         Self {
             should_quit: false,
             terminal: Terminal::default().expect("Failed to initialize terminal"),
             cursor_position: Position::default(),
-            document: Document::open(),
+            document,
         }
     }
 
