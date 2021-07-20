@@ -1,21 +1,13 @@
 use crate::Terminal;
 use std::io::{self, stdout};
-use termion::raw::IntoRawMode;
 use termion::event::Key;
+use termion::raw::IntoRawMode;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct Position {
     pub x: usize,
     pub y: usize,
-}
-
-impl Position {
-
-    #[must_use]
-    pub fn default() -> Self {
-        Self {x: 0, y: 0}
-    }
 }
 
 pub struct Editor {
@@ -53,7 +45,6 @@ impl Editor {
             }
         }
     }
-    
     fn process_keypress(&mut self) -> Result<(), std::io::Error> {
         let pressed_key = Terminal::read_key()?;
         match pressed_key {
@@ -68,14 +59,14 @@ impl Editor {
         let size = self.terminal.size();
         let term_height = size.height.saturating_sub(1) as usize;
         let term_width = size.width.saturating_sub(1) as usize;
-        let Position{mut x, mut y} = self.cursor_position;
+        let Position { mut x, mut y } = self.cursor_position;
         match key {
             Key::Up => y = y.saturating_sub(1),
             Key::Down => {
                 if y < term_height {
                     y = y.saturating_add(1);
                 }
-            },
+            }
             Key::Left => x = x.saturating_sub(1),
             Key::Right => {
                 if x < term_width {
@@ -84,13 +75,13 @@ impl Editor {
             }
             _ => (),
         }
-        self.cursor_position = Position{x, y};
+        self.cursor_position = Position { x, y };
     }
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
         Terminal::hide_cursor();
         Terminal::set_cursor_position(&Position{x: 0, y: 0});
-        if ! self.should_quit {
+        if !self.should_quit {
             self.draw_rows();
             Terminal::set_cursor_position(&self.cursor_position);
         }
@@ -104,16 +95,15 @@ impl Editor {
         let padding_len = (term_width - welcome_msg.chars().count() - 2) / 2; // -2 because of the starting '~ '
         let padding = String::from(" ").repeat(padding_len);
         let mut padded_welcome_message = format!("~ {}{}{}", padding, welcome_msg, padding);
-        padded_welcome_message.truncate(term_width);  // make it fit on screen
+        padded_welcome_message.truncate(term_width); // make it fit on screen
         println!("{}\r", padded_welcome_message);
     }
-    
     fn draw_rows(&self) {
         let term_height = self.terminal.size().height;
         for row_idx in 0..term_height - 1 {
             Terminal::clear_current_line();
             if row_idx == term_height / 2 {
-               self.display_welcome_message();
+                self.display_welcome_message();
             } else {
                 println!("~\r");
             }
