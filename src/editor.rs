@@ -4,6 +4,7 @@ use termion::event::Key;
 use termion::raw::IntoRawMode;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const PKG: &str = env!("CARGO_PKG_NAME");
 
 #[derive(Default)]
 pub struct Position {
@@ -93,7 +94,7 @@ impl Editor {
 
     fn display_welcome_message(&self) {
         let term_width = self.terminal.size().width as usize;
-        let welcome_msg = format!("Bo v{}", VERSION);
+        let welcome_msg = format!("{} v{}", PKG, VERSION);
         let padding_len = (term_width - welcome_msg.chars().count() - 2) / 2; // -2 because of the starting '~ '
         let padding = String::from(" ").repeat(padding_len);
         let mut padded_welcome_message = format!("~ {}{}{}", padding, welcome_msg, padding);
