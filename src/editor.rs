@@ -1,10 +1,11 @@
-use crate::Terminal;
+use crate::{Document, Row, Terminal};
 use std::io::{self, stdout};
 use termion::event::Key;
 use termion::raw::IntoRawMode;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[derive(Default)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
@@ -14,6 +15,7 @@ pub struct Editor {
     should_quit: bool,
     terminal: Terminal,
     cursor_position: Position,
+    document: Document,
 }
 
 fn die(e: &io::Error) {
@@ -22,12 +24,12 @@ fn die(e: &io::Error) {
 }
 
 impl Editor {
-
     pub fn default() -> Self {
         Self {
             should_quit: false,
             terminal: Terminal::default().expect("Failed to initialize terminal"),
             cursor_position: Position::default(),
+            document: Document::open(),
         }
     }
 
@@ -80,7 +82,7 @@ impl Editor {
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
         Terminal::hide_cursor();
-        Terminal::set_cursor_position(&Position{x: 0, y: 0});
+        Terminal::set_cursor_position(&Position::default());
         if !self.should_quit {
             self.draw_rows();
             Terminal::set_cursor_position(&self.cursor_position);
@@ -98,15 +100,25 @@ impl Editor {
         padded_welcome_message.truncate(term_width); // make it fit on screen
         println!("{}\r", padded_welcome_message);
     }
+
     fn draw_rows(&self) {
         let term_height = self.terminal.size().height;
-        for row_idx in 0..term_height - 1 {
+        for terminal_row_idx in 0..term_height - 1 {
             Terminal::clear_current_line();
-            if row_idx == term_height / 2 {
+            if let Some(row) = self.document.get_row(terminal_row_idx as usize) {
+                self.draw_row(&row);
+            } else if terminal_row_idx == term_height / 2 && self.document.is_empty() {
                 self.display_welcome_message();
             } else {
                 println!("~\r");
             }
         }
+    }
+
+    fn draw_row(&self, row: &Row) {
+        let row_visible_start = 0;
+        let row_visible_end = self.terminal.size().width as usize;
+        let rendered_row = row.render(row_visible_start, row_visible_end);
+        println!("{}\r", rendered_row);
     }
 }
