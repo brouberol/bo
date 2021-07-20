@@ -106,6 +106,8 @@ impl Editor {
         } else if y + 1 >= term_height {
             self.offset.y = self.offset.y.saturating_add(1);
         }
+
+        #[cfg(debug_assertions)]
         self.display_message(format!(
             "y={}, offset.y={}, total.y={}",
             y,
