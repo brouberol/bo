@@ -4,17 +4,24 @@ use std::fs;
 #[derive(Default)]
 pub struct Document {
     rows: Vec<Row>,
+    pub filename: String,
 }
 
 impl Document {
-    #[must_use]
+    /// # Errors
+    ///
+    /// Returns an error if a file bearing the provided filename
+    /// cannot be open.
     pub fn open(filename: &str) -> Result<Self, std::io::Error> {
         let file_contents = fs::read_to_string(filename)?;
         let mut rows = Vec::new();
         for line in file_contents.lines() {
             rows.push(Row::from(line));
         }
-        Ok(Self { rows })
+        Ok(Self {
+            rows,
+            filename: filename.to_string().clone(),
+        })
     }
 
     #[must_use]

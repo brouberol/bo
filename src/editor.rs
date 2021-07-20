@@ -1,9 +1,12 @@
 use crate::{Document, Row, Terminal};
 use std::env;
 use std::io::{self, stdout};
+use termion::color;
 use termion::event::Key;
 use termion::raw::IntoRawMode;
 
+const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
+const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
 
@@ -97,11 +100,28 @@ impl Editor {
         Terminal::set_cursor_position(&Position::default());
         if !self.should_quit {
             self.draw_rows();
+            self.draw_status_bar();
             self.draw_message_bar();
             Terminal::set_cursor_position(&self.cursor_position);
         }
         Terminal::show_cursor();
         Terminal::flush()
+    }
+
+    fn generate_status(&self) -> String {
+        let left_status = format!("[{}]", self.document.filename);
+        let right_status = format!("{}:{}", self.cursor_position.x, self.cursor_position.y);
+        let spaces = " "
+            .repeat(self.terminal.size().width as usize - left_status.len() - right_status.len());
+        format!("{}{}{}\r", left_status, spaces, right_status)
+    }
+
+    fn draw_status_bar(&self) {
+        Terminal::set_bg_color(STATUS_BG_COLOR);
+        Terminal::set_fg_color(STATUS_FG_COLOR);
+        println!("{}", self.generate_status());
+        Terminal::reset_fg_color();
+        Terminal::reset_bg_color();
     }
 
     fn draw_message_bar(&self) {

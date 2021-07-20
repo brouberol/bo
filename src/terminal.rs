@@ -1,6 +1,7 @@
 use crate::Position;
 
 use std::io::{self, stdout, Write};
+use termion::color;
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::{IntoRawMode, RawTerminal};
@@ -25,7 +26,7 @@ impl Terminal {
         println!("{:?}", size);
         Ok(Self {
             size: Size {
-                height: size.1.saturating_sub(1), // to leave space for the message bar
+                height: size.1.saturating_sub(2), // to leave space for the status and message bars
                 width: size.0,
             },
             _stdout: stdout().into_raw_mode()?,
@@ -79,5 +80,20 @@ impl Terminal {
 
     pub fn show_cursor() {
         print!("{}", termion::cursor::Show);
+    }
+
+    pub fn set_bg_color(color: color::Rgb) {
+        print!("{}", color::Bg(color));
+    }
+
+    pub fn reset_bg_color() {
+        print!("{}", color::Bg(color::Reset));
+    }
+
+    pub fn set_fg_color(color: color::Rgb) {
+        print!("{}", color::Fg(color));
+    }
+    pub fn reset_fg_color() {
+        print!("{}", color::Fg(color::Reset));
     }
 }
