@@ -66,9 +66,18 @@ impl Editor {
         }
     }
 
+    fn enter_insert_mode(&mut self) {
+        self.mode = Mode::Insert;
+    }
+
+    fn enter_normal_mode(&mut self) {
+        self.mode = Mode::Normal;
+    }
+
     fn process_normal_command(&mut self, key: Key) {
         match key {
             Key::Char('h' | 'j' | 'k' | 'l') => self.move_cursor(key),
+            Key::Char('i') => self.enter_insert_mode(),
             _ => (),
         }
     }
@@ -77,12 +86,12 @@ impl Editor {
         let pressed_key = Terminal::read_key()?;
         match self.mode {
             Mode::Normal => self.process_normal_command(pressed_key),
-            _ => (),
-        }
-        match pressed_key {
-            Key::Ctrl('q') => self.should_quit = true,
-            Key::Up | Key::Down | Key::Left | Key::Right => self.move_cursor(pressed_key),
-            _ => (),
+            Mode::Insert => match pressed_key {
+                Key::Ctrl('q') => self.should_quit = true,
+                Key::Up | Key::Down | Key::Left | Key::Right => self.move_cursor(pressed_key),
+                Key::Esc => self.enter_normal_mode(),
+                _ => (),
+            },
         }
         self.scroll();
         Ok(())
