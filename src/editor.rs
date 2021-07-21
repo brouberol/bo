@@ -101,6 +101,10 @@ impl Editor {
     fn process_received_command(&mut self) {
         let command = self.command_buffer.clone();
         let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
+        if command.chars().all(char::is_numeric) && !command.is_empty() {
+            let line_index = command.parse::<usize>().unwrap();
+            self.goto_line(line_index);
+        }
         match command {
             "q" => {
                 self.should_quit = true;
@@ -144,7 +148,56 @@ impl Editor {
             }
             self.scroll();
         }
+        log(format!(
+            "{:?} Offset= {:?}",
+            self.cursor_position, self.offset
+        ));
         Ok(())
+    }
+
+    fn goto_line(&mut self, line_index: usize) {
+        /*
+            We want to move to the line `line_index`. If that line index is
+            out of the vie, we need to adjust offset to make sure that we end up
+            at the middle of the terminal. If the line is within the same view,
+            we just move the cursor.
+        */
+        let max_line_index = self.document.len().saturating_sub(1); // last line index in the document
+        let line_index = cmp::min(max_line_index, line_index); // we can't go after the last line
+        let line_index = line_index.saturating_sub(1); // line numbers are 1-based
+        let line_index = cmp::max(0, line_index); // line 0 is line 1, for the same reason
+        let term_height = self.terminal.size().height as usize;
+        let middle_of_screen_line_index = term_height / 2 - 1; // index of the row in the middle of the terminal
+
+        if line_index < (term_height / 2) {
+            // move to the first "half-view" of the document
+            self.offset.y = 0;
+            self.cursor_position = Position {
+                x: START_X,
+                y: line_index,
+            };
+        } else if line_index > self.document.len() - (term_height / 2) {
+            // move to the last "half view" of the document
+            self.offset.y = max_line_index - term_height;
+            self.cursor_position = Position {
+                x: START_X,
+                y: line_index - self.offset.y,
+            };
+        } else if self.offset.y <= line_index && line_index < self.offset.y + term_height {
+            // move around in the same view
+            self.cursor_position = Position {
+                x: START_X,
+                y: line_index - self.offset.y,
+            };
+        } else {
+            // move to another view in the document, and position the cursor at the
+            // middle of the terminal/view.
+            self.offset.y = line_index - middle_of_screen_line_index;
+            self.cursor_position = Position {
+                x: START_X,
+                y: middle_of_screen_line_index,
+            };
+        }
     }
 
     fn move_cursor(&mut self, key: Key) {
