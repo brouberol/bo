@@ -10,6 +10,11 @@ const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
 
+enum Mode {
+    Insert,
+    Normal,
+}
+
 #[derive(Default)]
 pub struct Position {
     pub x: usize,
@@ -23,6 +28,7 @@ pub struct Editor {
     document: Document,
     offset: Position,
     message: String,
+    mode: Mode,
 }
 
 fn die(e: &io::Error) {
@@ -45,6 +51,7 @@ impl Editor {
             document,
             offset: Position::default(),
             message: "".to_string(),
+            mode: Mode::Normal,
         }
     }
 
@@ -63,8 +70,20 @@ impl Editor {
             }
         }
     }
+
+    fn process_normal_command(&mut self, key: Key) {
+        match key {
+            Key::Char('h' | 'j' | 'k' | 'l') => self.move_cursor(key),
+            _ => (),
+        }
+    }
+
     fn process_keypress(&mut self) -> Result<(), std::io::Error> {
         let pressed_key = Terminal::read_key()?;
+        match self.mode {
+            Mode::Normal => self.process_normal_command(pressed_key),
+            _ => (),
+        }
         match pressed_key {
             Key::Ctrl('q') => self.should_quit = true,
             Key::Up | Key::Down | Key::Left | Key::Right => self.move_cursor(pressed_key),
@@ -80,15 +99,15 @@ impl Editor {
         let term_width = size.width.saturating_sub(1) as usize;
         let Position { mut x, mut y } = self.cursor_position;
         match key {
-            Key::Up => y = y.saturating_sub(1), // cannot be < 0
-            Key::Down => {
+            Key::Up | Key::Char('k') => y = y.saturating_sub(1), // cannot be < 0
+            Key::Down | Key::Char('j') => {
                 if y < term_height && y < self.document.len() {
                     // don't scroll past the last line
                     y = y.saturating_add(1);
                 }
             }
-            Key::Left => x = x.saturating_sub(1), // cannot be < 0
-            Key::Right => {
+            Key::Left | Key::Char('h') => x = x.saturating_sub(1), // cannot be < 0
+            Key::Right | Key::Char('l') => {
                 if x < term_width {
                     x = x.saturating_add(1);
                 }
