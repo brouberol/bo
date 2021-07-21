@@ -16,17 +16,10 @@ const COMMAND_PREFIX: char = ':';
 const LINE_NUMBER_OFFSET: u8 = 4;
 const START_X: usize = LINE_NUMBER_OFFSET as usize + 1;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
-}
-
-impl Position {
-    #[must_use]
-    pub fn default() -> Self {
-        Self { x: START_X, y: 0 }
-    }
 }
 
 #[derive(Debug)]
@@ -49,17 +42,22 @@ fn die(e: &io::Error) {
 impl Editor {
     pub fn default() -> Self {
         let args: Vec<String> = env::args().collect();
+
         let document: Document = match args.len() {
             1 => Document::default(),
             2 => Document::open(&args[1]).unwrap_or_default(),
             _ => panic!("Can't (yet) open multiple files."),
         };
+        let start_position: Position = match args.len() {
+            2 => Position { x: START_X, y: 0 },
+            _ => Position::default(),
+        };
         Self {
             should_quit: false,
             terminal: Terminal::default().expect("Failed to initialize terminal"),
-            cursor_position: Position::default(),
+            cursor_position: start_position,
             document,
-            offset: Position { x: 0, y: 0 },
+            offset: Position::default(),
             message: "".to_string(),
             mode: Mode::Normal,
             command_buffer: "".to_string(),
