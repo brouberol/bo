@@ -107,7 +107,6 @@ impl Editor {
             }
             _ => (),
         }
-        self.stop_receiving_command();
     }
 
     fn process_normal_command(&mut self, key: Key) {
@@ -125,7 +124,10 @@ impl Editor {
             // accumulate the command in the command buffer
             match pressed_key {
                 Key::Esc => self.stop_receiving_command(),
-                Key::Char('\n') => self.process_received_command(),
+                Key::Char('\n') => {
+                    self.process_received_command();
+                    self.stop_receiving_command();
+                }
                 Key::Char(c) => self.command_buffer.push(c), // accumulate keystrokes into the buffer
                 Key::Backspace => self
                     .command_buffer
