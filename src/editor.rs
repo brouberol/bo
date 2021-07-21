@@ -123,8 +123,6 @@ impl Editor {
             }
         } else {
             match self.mode {
-                Key::Ctrl('q') => self.should_quit = true,
-                Key::Up | Key::Down | Key::Left | Key::Right => self.move_cursor(pressed_key),
                 Mode::Normal => self.process_normal_command(pressed_key),
                 Mode::Insert => match pressed_key {
                     Key::Esc => self.enter_normal_mode(),
