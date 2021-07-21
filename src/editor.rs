@@ -24,6 +24,7 @@ pub struct Editor {
     offset: Position,
     message: String,
     mode: Mode,
+    command_buffer: String,
 }
 
 fn die(e: &io::Error) {
@@ -47,6 +48,7 @@ impl Editor {
             offset: Position::default(),
             message: "".to_string(),
             mode: Mode::Normal,
+            command_buffer: "".to_string(),
         }
     }
 
@@ -74,26 +76,63 @@ impl Editor {
         self.mode = Mode::Normal;
     }
 
+    fn start_receiving_command(&mut self) {
+        self.command_buffer.push(':');
+    }
+
+    fn stop_receiving_command(&mut self) {
+        self.command_buffer = "".to_string();
+    }
+
+    fn is_receiving_command(&self) -> bool {
+        !self.command_buffer.is_empty()
+    }
+
+    fn process_received_command(&mut self) {
+        let command = self.command_buffer.strip_prefix(':').unwrap_or_default();
+        match command {
+            "q" => {
+                self.should_quit = true;
+            }
+            _ => (),
+        }
+        self.stop_receiving_command();
+    }
+
     fn process_normal_command(&mut self, key: Key) {
         match key {
             Key::Char('h' | 'j' | 'k' | 'l') => self.move_cursor(key),
             Key::Char('i') => self.enter_insert_mode(),
+            Key::Char(':') => self.start_receiving_command(),
             _ => (),
         }
     }
 
     fn process_keypress(&mut self) -> Result<(), std::io::Error> {
         let pressed_key = Terminal::read_key()?;
-        match self.mode {
-            Mode::Normal => self.process_normal_command(pressed_key),
-            Mode::Insert => match pressed_key {
+        if self.is_receiving_command() {
+            // accumulate the command in the command buffer
+            match pressed_key {
+                Key::Esc => self.stop_receiving_command(),
+                Key::Char('\n') => self.process_received_command(),
+                Key::Char(c) => self.command_buffer.push(c), // accumulate keystrokes into the buffer
+                Key::Backspace => self
+                    .command_buffer
+                    .truncate(self.command_buffer.len().saturating_sub(1)),
+                _ => (),
+            }
+        } else {
+            match self.mode {
                 Key::Ctrl('q') => self.should_quit = true,
                 Key::Up | Key::Down | Key::Left | Key::Right => self.move_cursor(pressed_key),
-                Key::Esc => self.enter_normal_mode(),
-                _ => (),
-            },
+                Mode::Normal => self.process_normal_command(pressed_key),
+                Mode::Insert => match pressed_key {
+                    Key::Esc => self.enter_normal_mode(),
+                    _ => (),
+                },
+            }
+            self.scroll();
         }
-        self.scroll();
         Ok(())
     }
 
@@ -170,7 +209,11 @@ impl Editor {
 
     fn draw_message_bar(&self) {
         Terminal::clear_current_line();
-        print!("{}\r", self.message);
+        if self.is_receiving_command() {
+            print!("{}\r", self.command_buffer)
+        } else {
+            print!("{}\r", self.message);
+        }
     }
 
     fn display_message(&mut self, message: String) {
