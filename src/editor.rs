@@ -9,6 +9,7 @@ const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
+const COMMAND_PREFIX: char = ':';
 const LINE_NUMBER_OFFSET: u8 = 4;
 const START_X: usize = LINE_NUMBER_OFFSET as usize + 1;
 
@@ -86,7 +87,7 @@ impl Editor {
     }
 
     fn start_receiving_command(&mut self) {
-        self.command_buffer.push(':');
+        self.command_buffer.push(COMMAND_PREFIX);
     }
 
     fn stop_receiving_command(&mut self) {
@@ -98,7 +99,8 @@ impl Editor {
     }
 
     fn process_received_command(&mut self) {
-        let command = self.command_buffer.strip_prefix(':').unwrap_or_default();
+        let command = self.command_buffer.clone();
+        let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
         match command {
             "q" => {
                 self.should_quit = true;
