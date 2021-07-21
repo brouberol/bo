@@ -1,5 +1,6 @@
 use crate::{Document, Row, Terminal};
 use std::env;
+use std::fmt;
 use std::io::{self, stdout};
 use termion::color;
 use termion::event::Key;
@@ -13,6 +14,15 @@ const PKG: &str = env!("CARGO_PKG_NAME");
 enum Mode {
     Insert,
     Normal,
+}
+
+impl fmt::Display for Mode {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Mode::Insert => write!(f, "Insert"),
+            Mode::Normal => write!(f, "Normal"),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -149,7 +159,7 @@ impl Editor {
     }
 
     fn generate_status(&self) -> String {
-        let left_status = format!("[{}]", self.document.filename);
+        let left_status = format!("[{}] {}", self.document.filename, self.mode);
         let right_status = format!("{}:{}", self.cursor_position.x, self.cursor_position.y);
         let spaces = " "
             .repeat(self.terminal.size().width as usize - left_status.len() - right_status.len());
