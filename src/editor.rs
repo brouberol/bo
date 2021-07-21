@@ -1,6 +1,5 @@
-use crate::{Document, Row, Terminal};
+use crate::{Document, Mode, Row, Terminal};
 use std::env;
-use std::fmt;
 use std::io::{self, stdout};
 use termion::color;
 use termion::event::Key;
@@ -10,20 +9,6 @@ const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
-
-enum Mode {
-    Insert,
-    Normal,
-}
-
-impl fmt::Display for Mode {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Mode::Insert => write!(f, "Insert"),
-            Mode::Normal => write!(f, "Normal"),
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct Position {
