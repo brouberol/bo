@@ -15,3 +15,7 @@ pub fn log(s: String) {
         eprintln!("Couldn't write to file: {}", e);
     }
 }
+
+pub fn zfill(s: String, fill_by: String, size: usize) -> String {
+    format!("{}{}", fill_by.repeat(size - s.len()), s)
+}

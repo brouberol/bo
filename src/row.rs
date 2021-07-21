@@ -1,3 +1,4 @@
+use crate::utils;
 use std::cmp;
 
 pub struct Row {
@@ -14,9 +15,11 @@ impl From<&str> for Row {
 
 impl Row {
     #[must_use]
-    pub fn render(&self, start: usize, end: usize) -> String {
+    pub fn render(&self, start: usize, end: usize, index: usize, x_offset: usize) -> String {
         let end = cmp::min(end, self.string.len()); // either stop at terminal end or string end
         let start = cmp::min(start, end);
-        self.string.get(start..end).unwrap_or_default().to_string()
+        let visible = self.string.get(start..end).unwrap_or_default().to_string();
+        let prefix = utils::zfill(index.to_string(), " ".to_string(), x_offset);
+        format!("{} {}", prefix, visible)
     }
 }

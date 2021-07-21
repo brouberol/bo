@@ -9,13 +9,22 @@ const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
+const LINE_NUMBER_OFFSET: u8 = 4;
+const START_X: usize = LINE_NUMBER_OFFSET as usize + 1;
 
-#[derive(Default)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
 }
 
+impl Position {
+    #[must_use]
+    pub fn default() -> Self {
+        Self { x: START_X, y: 0 }
+    }
+}
+
+#[derive(Debug)]
 pub struct Editor {
     should_quit: bool,
     terminal: Terminal,
@@ -45,7 +54,7 @@ impl Editor {
             terminal: Terminal::default().expect("Failed to initialize terminal"),
             cursor_position: Position::default(),
             document,
-            offset: Position::default(),
+            offset: Position { x: 0, y: 0 },
             message: "".to_string(),
             mode: Mode::Normal,
             command_buffer: "".to_string(),
@@ -140,14 +149,16 @@ impl Editor {
         let term_width = size.width.saturating_sub(1) as usize;
         let Position { mut x, mut y } = self.cursor_position;
         match key {
-            Key::Up | Key::Char('k') => y = y.saturating_sub(1), // cannot be < 0
+            Key::Up | Key::Char('k') => {
+                y = y.saturating_sub(1);
+            } // cannot be < 0
             Key::Down | Key::Char('j') => {
                 if y < term_height && y < self.document.len() {
                     // don't scroll past the last line
                     y = y.saturating_add(1);
                 }
             }
-            Key::Left | Key::Char('h') => x = x.saturating_sub(1), // cannot be < 0
+            Key::Left | Key::Char('h') => x = cmp::max(x.saturating_sub(1), START_X), // cannot be < 0
             Key::Right | Key::Char('l') => {
                 if x < term_width {
                     x = x.saturating_add(1);
@@ -178,7 +189,7 @@ impl Editor {
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
         Terminal::hide_cursor();
-        Terminal::set_cursor_position(&Position::default());
+        Terminal::set_cursor_position(&Position { x: 0, y: 0 });
         if !self.should_quit {
             self.draw_rows();
             self.draw_status_bar();
@@ -230,13 +241,13 @@ impl Editor {
 
     fn draw_rows(&self) {
         let term_height = self.terminal.size().height;
-        for terminal_row_idx in 0..term_height {
+        for terminal_row_idx in 1..=term_height {
             Terminal::clear_current_line();
             if let Some(row) = self
                 .document
                 .get_row(terminal_row_idx as usize + self.offset.y)
             {
-                self.draw_row(&row);
+                self.draw_row(&row, terminal_row_idx as usize + self.offset.y);
             } else if terminal_row_idx == term_height / 2 && self.document.is_empty() {
                 self.display_welcome_message();
             } else {
@@ -245,10 +256,15 @@ impl Editor {
         }
     }
 
-    fn draw_row(&self, row: &Row) {
+    fn draw_row(&self, row: &Row, index: usize) {
         let row_visible_start = self.offset.x;
         let row_visible_end = self.offset.y + self.terminal.size().width as usize;
-        let rendered_row = row.render(row_visible_start, row_visible_end);
+        let rendered_row = row.render(
+            row_visible_start,
+            row_visible_end,
+            index,
+            LINE_NUMBER_OFFSET as usize,
+        );
         println!("{}\r", rendered_row);
     }
 }
