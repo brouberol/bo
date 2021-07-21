@@ -1,4 +1,5 @@
 use crate::Row;
+use std::fmt;
 use std::fs;
 
 #[derive(Default)]
@@ -7,6 +8,11 @@ pub struct Document {
     pub filename: String,
 }
 
+impl fmt::Debug for Document {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct(self.filename.as_str()).finish()
+    }
+}
 impl Document {
     /// # Errors
     ///

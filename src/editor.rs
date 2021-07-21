@@ -1,4 +1,5 @@
-use crate::{Document, Mode, Row, Terminal};
+use crate::{log, Document, Mode, Row, Terminal};
+use std::cmp;
 use std::env;
 use std::io::{self, stdout};
 use termion::color;
@@ -13,6 +14,7 @@ const COMMAND_PREFIX: char = ':';
 const LINE_NUMBER_OFFSET: u8 = 4;
 const START_X: usize = LINE_NUMBER_OFFSET as usize + 1;
 
+#[derive(Debug)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
@@ -234,14 +236,6 @@ impl Editor {
         } else if y + 1 >= term_height {
             self.offset.y = self.offset.y.saturating_add(1);
         }
-
-        #[cfg(debug_assertions)]
-        self.display_message(format!(
-            "y={}, offset.y={}, total.y={}",
-            y,
-            self.offset.y,
-            self.offset.y.saturating_add(y)
-        ))
     }
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
