@@ -1,4 +1,6 @@
-use crate::{log, Document, Mode, Row, Terminal};
+#[cfg(debug_assertions)]
+use crate::log;
+use crate::{Document, Mode, Row, Terminal};
 use std::cmp;
 use std::env;
 use std::io::{self, stdout};
@@ -150,6 +152,7 @@ impl Editor {
             }
             self.scroll();
         }
+        #[cfg(debug_assertions)]
         log(format!(
             "{:?} Offset= {:?}",
             self.cursor_position, self.offset
