@@ -8,6 +8,7 @@ use std::result::Result::Err;
 pub fn log(s: String) {
     let mut file = fs::OpenOptions::new()
         .write(true)
+        .create(true)
         .append(true)
         .open("bo.log")
         .unwrap();
