@@ -453,17 +453,13 @@ impl Editor {
 
     fn draw_row(&self, row: &Row, line_number: usize) {
         let row_visible_start = self.offset.x;
-        let row_visible_end = self.offset.y + self.terminal.size().width as usize;
-        let line_number_offset = if self.display_line_numbers {
-            LINE_NUMBER_OFFSET
-        } else {
-            0
-        };
+        let row_visible_end =
+            self.offset.x + self.terminal.size().width as usize - self.cursor_position.x_offset - 1;
         let rendered_row = row.render(
             row_visible_start,
             row_visible_end,
             line_number,
-            line_number_offset as usize,
+            self.cursor_position.x_offset,
         );
         println!("{}\r", rendered_row);
     }
