@@ -398,7 +398,11 @@ impl Editor {
 
     fn generate_status(&self) -> String {
         let left_status = format!("[{}] {}", self.document.filename, self.mode);
-        let right_status = format!("{}:{}", self.cursor_position.x, self.cursor_position.y);
+        let right_status = format!(
+            "{}:{}",
+            self.cursor_position.x + 1,
+            self.current_line_number()
+        );
         let spaces = " "
             .repeat(self.terminal.size().width as usize - left_status.len() - right_status.len());
         format!("{}{}{}\r", left_status, spaces, right_status)
