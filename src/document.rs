@@ -41,7 +41,12 @@ impl Document {
     }
 
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn num_rows(&self) -> usize {
         self.rows.len()
+    }
+
+    #[must_use]
+    pub fn num_words(&self) -> usize {
+        self.rows.iter().map(Row::num_words).sum()
     }
 }

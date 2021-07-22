@@ -48,4 +48,9 @@ impl Row {
     pub fn index(&self, index: usize) -> char {
         self.chars().nth(index).unwrap_or_default()
     }
+
+    #[must_use]
+    pub fn num_words(&self) -> usize {
+        self.string.split_whitespace().count()
+    }
 }

@@ -52,6 +52,7 @@ pub struct Editor {
     mode: Mode,
     command_buffer: String,
     display_line_numbers: bool,
+    display_stats: bool,
 }
 
 #[derive(PartialEq)]
@@ -89,6 +90,7 @@ impl Editor {
             mode: Mode::Normal,
             command_buffer: "".to_string(),
             display_line_numbers: false,
+            display_stats: false,
         }
     }
 
@@ -148,6 +150,10 @@ impl Editor {
                     } else {
                         0
                     };
+                }
+                "stats" => {
+                    // toggle display stats
+                    self.display_stats = !self.display_stats;
                 }
                 _ => (),
             }
@@ -217,7 +223,7 @@ impl Editor {
     }
 
     fn last_line_number(&self) -> usize {
-        self.document.len()
+        self.document.num_rows()
     }
 
     fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary) {
@@ -354,7 +360,7 @@ impl Editor {
                 y = y.saturating_sub(1);
             } // cannot be < 0
             Key::Down | Key::Char('j') => {
-                if y < term_height && y < self.document.len() {
+                if y < term_height && y < self.last_line_number() {
                     // don't scroll past the last line
                     y = y.saturating_add(1);
                 }
@@ -400,11 +406,22 @@ impl Editor {
 
     fn generate_status(&self) -> String {
         let left_status = format!("[{}] {}", self.document.filename, self.mode);
-        let right_status = format!(
+        let stats = if self.display_stats {
+            format!(
+                "{}L/{}W",
+                self.last_line_number(),
+                self.document.num_words()
+            )
+        } else {
+            "".to_string()
+        };
+        let position = format!(
             "{}:{}",
             self.cursor_position.x + 1,
             self.current_line_number()
         );
+        let right_status = format!("{} {}", stats, position);
+        let right_status = right_status.trim_start();
         let spaces = " "
             .repeat(self.terminal.size().width as usize - left_status.len() - right_status.len());
         format!("{}{}{}\r", left_status, spaces, right_status)
