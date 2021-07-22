@@ -143,12 +143,11 @@ impl Editor {
                 "ln" => {
                     // toggle line numbers
                     self.display_line_numbers = !self.display_line_numbers;
-                    let new_x_offset = if self.display_line_numbers {
+                    self.cursor_position.x_offset = if self.display_line_numbers {
                         START_X
                     } else {
                         0
                     };
-                    self.cursor_position.x_offset = new_x_offset
                 }
                 _ => (),
             }
