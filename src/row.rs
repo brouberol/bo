@@ -22,4 +22,9 @@ impl Row {
         let prefix = utils::zfill(line_number.to_string(), " ".to_string(), x_offset);
         format!("{} {}", prefix, visible)
     }
+
+    #[must_use]
+    pub fn is_whitespace(&self) -> bool {
+        !self.string.chars().any(|c| !c.is_whitespace())
+    }
 }

@@ -34,6 +34,12 @@ pub struct Editor {
     command_buffer: String,
 }
 
+#[derive(PartialEq)]
+enum Boundary {
+    Start,
+    End,
+}
+
 fn die(e: &io::Error) {
     print!("{}", termion::clear::All);
     panic!("{}", e);
@@ -120,6 +126,10 @@ impl Editor {
             Key::Char('h' | 'j' | 'k' | 'l') => self.move_cursor(key),
             Key::Char('i') => self.enter_insert_mode(),
             Key::Char(':') => self.start_receiving_command(),
+            Key::Char('}') => self.goto_start_or_end_of_paragraph(&Boundary::End),
+            Key::Char('{') => self.goto_start_or_end_of_paragraph(&Boundary::Start),
+            Key::Char('G') => self.goto_start_or_end_of_document(&Boundary::End),
+            Key::Char('g') => self.goto_start_or_end_of_document(&Boundary::Start),
             _ => (),
         }
     }
@@ -164,6 +174,35 @@ impl Editor {
 
     fn last_line_number(&self) -> usize {
         self.document.len()
+    }
+
+    fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary) {
+        let mut current_line_number = self.current_line_number();
+        let last_line_number = self.last_line_number();
+        loop {
+            current_line_number = match boundary {
+                Boundary::Start => cmp::max(1, current_line_number.saturating_sub(1)),
+                Boundary::End => cmp::min(last_line_number, current_line_number.saturating_add(1)),
+            };
+            if current_line_number == self.last_line_number()
+                || current_line_number == 1
+                || self
+                    .document
+                    .get_row(current_line_number.saturating_sub(1)) // rows inddices are 0 based
+                    .unwrap()
+                    .is_whitespace()
+            {
+                self.goto_line(current_line_number);
+                return;
+            }
+        }
+    }
+
+    fn goto_start_or_end_of_document(&mut self, boundary: &Boundary) {
+        match boundary {
+            Boundary::Start => self.goto_line(1),
+            Boundary::End => self.goto_line(self.last_line_number()),
+        }
     }
 
     fn set_cursor_position_by_line_number(&mut self, x: usize, line_number: usize) {
