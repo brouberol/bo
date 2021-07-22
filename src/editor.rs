@@ -51,6 +51,7 @@ pub struct Editor {
     message: String,
     mode: Mode,
     command_buffer: String,
+    display_line_numbers: bool,
 }
 
 #[derive(PartialEq)]
@@ -78,19 +79,16 @@ impl Editor {
             2 => Document::open(&args[1]).unwrap_or_default(),
             _ => panic!("Can't (yet) open multiple files."),
         };
-        let start_position: Position = match args.len() {
-            2 => Position::top_left_with_x_offset(START_X),
-            _ => Position::top_left(),
-        };
         Self {
             should_quit: false,
             terminal: Terminal::default().expect("Failed to initialize terminal"),
-            cursor_position: start_position,
+            cursor_position: Position::top_left(),
             document,
             offset: Position::default(),
             message: "".to_string(),
             mode: Mode::Normal,
             command_buffer: "".to_string(),
+            display_line_numbers: false,
         }
     }
 
@@ -133,15 +131,27 @@ impl Editor {
     fn process_received_command(&mut self) {
         let command = self.command_buffer.clone();
         let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
-        if command.chars().all(char::is_numeric) && !command.is_empty() {
+        if command.is_empty() {
+        } else if command.chars().all(char::is_numeric) {
             let line_index = command.parse::<usize>().unwrap();
             self.goto_line(line_index);
-        }
-        match command {
-            "q" => {
-                self.should_quit = true;
+        } else {
+            match command {
+                "q" => {
+                    self.should_quit = true;
+                }
+                "ln" => {
+                    // toggle line numbers
+                    self.display_line_numbers = !self.display_line_numbers;
+                    let new_x_offset = if self.display_line_numbers {
+                        START_X
+                    } else {
+                        0
+                    };
+                    self.cursor_position.x_offset = new_x_offset
+                }
+                _ => (),
             }
-            _ => (),
         }
     }
 
@@ -444,11 +454,16 @@ impl Editor {
     fn draw_row(&self, row: &Row, line_number: usize) {
         let row_visible_start = self.offset.x;
         let row_visible_end = self.offset.y + self.terminal.size().width as usize;
+        let line_number_offset = if self.display_line_numbers {
+            LINE_NUMBER_OFFSET
+        } else {
+            0
+        };
         let rendered_row = row.render(
             row_visible_start,
             row_visible_end,
             line_number,
-            LINE_NUMBER_OFFSET as usize,
+            line_number_offset as usize,
         );
         println!("{}\r", rendered_row);
     }

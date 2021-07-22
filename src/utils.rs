@@ -17,5 +17,8 @@ pub fn log(s: String) {
 }
 
 pub fn zfill(s: String, fill_by: String, size: usize) -> String {
+    if size == 0 {
+        return "".to_string();
+    }
     format!("{}{}", fill_by.repeat(size - s.len()), s)
 }

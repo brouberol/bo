@@ -21,8 +21,13 @@ impl Row {
         let end = cmp::min(end, self.string.len()); // either stop at terminal end or string end
         let start = cmp::min(start, end);
         let visible = self.string.get(start..end).unwrap_or_default().to_string();
-        let prefix = utils::zfill(line_number.to_string(), " ".to_string(), x_offset);
-        format!("{} {}", prefix, visible)
+        let padded_numbers = utils::zfill(line_number.to_string(), " ".to_string(), x_offset);
+        let prefix = if x_offset == 0 {
+            "".to_string()
+        } else {
+            format!("{} ", padded_numbers)
+        };
+        format!("{}{}", prefix, visible)
     }
 
     pub fn chars(&self) -> std::str::Chars {
