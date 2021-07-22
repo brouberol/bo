@@ -76,11 +76,15 @@ impl Terminal {
     }
 
     pub fn set_cursor_position(position: &Position) {
-        let Position { mut x, mut y } = position;
+        let Position {
+            mut x,
+            mut y,
+            x_offset: x_offset,
+        } = position;
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
         x = x.saturating_add(1);
         y = y.saturating_add(1);
-        print!("{}", termion::cursor::Goto(x as u16, y as u16));
+        print!("{}", termion::cursor::Goto((x + x_offset) as u16, y as u16));
     }
 
     pub fn hide_cursor() {

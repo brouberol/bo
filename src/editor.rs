@@ -19,7 +19,26 @@ const START_X: usize = LINE_NUMBER_OFFSET as usize + 1;
 #[derive(Debug, Default)]
 pub struct Position {
     pub x: usize,
+    pub x_offset: usize,
     pub y: usize,
+}
+
+impl Position {
+    pub fn reset_x(&mut self) {
+        self.x = 0;
+    }
+    #[must_use]
+    pub fn top_left() -> Self {
+        Self::default()
+    }
+    #[must_use]
+    pub fn top_left_with_x_offset(x_offset: usize) -> Self {
+        Position {
+            x: 0,
+            y: 0,
+            x_offset,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -55,8 +74,8 @@ impl Editor {
             _ => panic!("Can't (yet) open multiple files."),
         };
         let start_position: Position = match args.len() {
-            2 => Position { x: START_X, y: 0 },
-            _ => Position::default(),
+            2 => Position::top_left_with_x_offset(START_X),
+            _ => Position::top_left(),
         };
         Self {
             should_quit: false,
@@ -201,6 +220,7 @@ impl Editor {
                     .is_whitespace()
             {
                 self.goto_line(current_line_number);
+                self.cursor_position.reset_x();
                 return;
             }
         }
@@ -215,19 +235,18 @@ impl Editor {
 
     fn goto_start_or_end_of_line(&mut self, boundary: &Boundary) {
         match boundary {
-            Boundary::Start => self.cursor_position.x = START_X,
-            Boundary::End => {
-                self.cursor_position.x =
-                    START_X.saturating_add(self.current_row().len().saturating_sub(1))
+            Boundary::Start => self.cursor_position.reset_x(),
+            Boundary::End => self.cursor_position.x = self.current_row().len().saturating_sub(1),
+        }
+    }
+
             }
         }
     }
 
-    fn set_cursor_position_by_line_number(&mut self, x: usize, line_number: usize) {
-        self.cursor_position = Position {
-            x,
-            y: line_number.saturating_sub(1),
-        };
+    fn set_cursor_position_by_line_number(&mut self, line_number: usize) {
+        self.cursor_position.y = line_number.saturating_sub(1);
+        self.cursor_position.reset_x()
     }
 
     fn goto_line(&mut self, line_number: usize) {
@@ -246,19 +265,19 @@ impl Editor {
         if line_number < middle_of_screen_line_number {
             // move to the first "half-view" of the document
             self.offset.y = 0;
-            self.set_cursor_position_by_line_number(START_X, line_number);
+            self.set_cursor_position_by_line_number(line_number);
         } else if line_number > max_line_number - middle_of_screen_line_number {
             // move to the last "half view" of the document
             self.offset.y = max_line_number - term_height;
-            self.set_cursor_position_by_line_number(START_X, line_number - self.offset.y);
+            self.set_cursor_position_by_line_number(line_number - self.offset.y);
         } else if self.offset.y <= line_number && line_number <= self.offset.y + term_height {
             // move around in the same view
-            self.set_cursor_position_by_line_number(START_X, line_number - self.offset.y);
+            self.set_cursor_position_by_line_number(line_number - self.offset.y);
         } else {
             // move to another view in the document, and position the cursor at the
             // middle of the terminal/view.
             self.offset.y = line_number - middle_of_screen_line_number;
-            self.set_cursor_position_by_line_number(START_X, middle_of_screen_line_number);
+            self.set_cursor_position_by_line_number(middle_of_screen_line_number);
         }
     }
 
@@ -266,7 +285,11 @@ impl Editor {
         let size = self.terminal.size();
         let term_height = size.height.saturating_sub(1) as usize;
         let term_width = size.width.saturating_sub(1) as usize;
-        let Position { mut x, mut y } = self.cursor_position;
+        let Position {
+            mut x,
+            mut y,
+            x_offset: _,
+        } = self.cursor_position;
         match key {
             Key::Up | Key::Char('k') => {
                 y = y.saturating_sub(1);
@@ -277,7 +300,7 @@ impl Editor {
                     y = y.saturating_add(1);
                 }
             }
-            Key::Left | Key::Char('h') => x = cmp::max(x.saturating_sub(1), START_X), // cannot be < 0
+            Key::Left | Key::Char('h') => x = cmp::max(x.saturating_sub(1), 0), // cannot be < 0
             Key::Right | Key::Char('l') => {
                 if x < term_width {
                     x = x.saturating_add(1);
@@ -285,7 +308,8 @@ impl Editor {
             }
             _ => (),
         }
-        self.cursor_position = Position { x, y };
+        self.cursor_position.x = x;
+        self.cursor_position.y = y;
     }
 
     fn scroll(&mut self) {
@@ -302,7 +326,7 @@ impl Editor {
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
         Terminal::hide_cursor();
-        Terminal::set_cursor_position(&Position { x: 0, y: 0 });
+        Terminal::set_cursor_position(&Position::top_left());
         if !self.should_quit {
             self.draw_rows();
             self.draw_status_bar();
