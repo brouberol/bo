@@ -28,4 +28,9 @@ impl Row {
     pub fn is_whitespace(&self) -> bool {
         !self.string.chars().any(|c| !c.is_whitespace())
     }
+
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.string.len()
+    }
 }

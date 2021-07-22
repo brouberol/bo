@@ -130,6 +130,8 @@ impl Editor {
             Key::Char('{') => self.goto_start_or_end_of_paragraph(&Boundary::Start),
             Key::Char('G') => self.goto_start_or_end_of_document(&Boundary::End),
             Key::Char('g') => self.goto_start_or_end_of_document(&Boundary::Start),
+            Key::Char('^') => self.goto_start_or_end_of_line(&Boundary::Start),
+            Key::Char('$') => self.goto_start_or_end_of_line(&Boundary::End),
             _ => (),
         }
     }
@@ -172,6 +174,12 @@ impl Editor {
         self.cursor_position.y + self.offset.y + 1
     }
 
+    fn current_row(&self) -> &Row {
+        self.document
+            .get_row(self.offset.y.saturating_add(self.cursor_position.y))
+            .unwrap()
+    }
+
     fn last_line_number(&self) -> usize {
         self.document.len()
     }
@@ -202,6 +210,16 @@ impl Editor {
         match boundary {
             Boundary::Start => self.goto_line(1),
             Boundary::End => self.goto_line(self.last_line_number()),
+        }
+    }
+
+    fn goto_start_or_end_of_line(&mut self, boundary: &Boundary) {
+        match boundary {
+            Boundary::Start => self.cursor_position.x = START_X,
+            Boundary::End => {
+                self.cursor_position.x =
+                    START_X.saturating_add(self.current_row().len().saturating_sub(1))
+            }
         }
     }
 
