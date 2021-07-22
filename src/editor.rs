@@ -1,6 +1,6 @@
 #[cfg(debug_assertions)]
 use crate::log;
-use crate::{Document, Mode, Row, Terminal};
+use crate::{commands, Document, Mode, Row, Terminal};
 use std::cmp;
 use std::env;
 use std::io::{self, stdout};
@@ -140,20 +140,23 @@ impl Editor {
         !self.command_buffer.is_empty()
     }
 
+    /// Receive a command entered by the user in the command prompt
+    /// and take appropriate actions
     fn process_received_command(&mut self) {
         let command = self.command_buffer.clone();
         let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
         if command.is_empty() {
         } else if command.chars().all(char::is_numeric) {
+            // :n will get you to line n
             let line_index = command.parse::<usize>().unwrap();
             self.goto_line(line_index);
         } else {
             match command {
-                "q" => {
+                commands::QUIT => {
                     self.should_quit = true;
                     self.display_message("Bo-bye".to_string());
                 }
-                "ln" => {
+                commands::LINE_LNUMBERS => {
                     self.config.display_line_numbers =
                         Config::toggle(self.config.display_line_numbers);
                     self.cursor_position.x_offset = if self.config.display_line_numbers {
@@ -162,7 +165,7 @@ impl Editor {
                         0
                     };
                 }
-                "stats" => {
+                commands::STATS => {
                     self.config.display_stats = Config::toggle(self.config.display_stats);
                 }
                 _ => (),
