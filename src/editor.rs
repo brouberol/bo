@@ -104,6 +104,7 @@ impl Editor {
         }
     }
 
+    /// Main screen rendering loop
     pub fn run(&mut self) {
         let _stdout = stdout().into_raw_mode().unwrap();
         loop {
@@ -173,6 +174,8 @@ impl Editor {
         }
     }
 
+    /// Process navigation command issued in normal mode, that will
+    /// resolve in having the cursor be moved around the document.
     fn process_normal_command(&mut self, key: Key) {
         match key {
             Key::Char('h' | 'j' | 'k' | 'l') => self.move_cursor(key),
@@ -225,20 +228,27 @@ impl Editor {
         Ok(())
     }
 
-    fn current_line_number(&self) -> usize {
-        self.cursor_position.y + self.offset.y + 1
+    /// Return the index of the row associated to the current cursor position / vertical offset
+    fn current_row_index(&self) -> usize {
+        self.cursor_position.y.saturating_add(self.offset.y)
     }
 
+    /// Return the line number associated to the current cursor position / vertical offset
+    fn current_line_number(&self) -> usize {
+        self.current_row_index().saturating_add(1)
+    }
+
+    /// Return the Row object associated to the current cursor position / vertical offset
     fn current_row(&self) -> &Row {
-        self.document
-            .get_row(self.offset.y.saturating_add(self.cursor_position.y))
-            .unwrap()
+        self.document.get_row(self.current_row_index()).unwrap()
     }
 
     fn last_line_number(&self) -> usize {
         self.document.num_rows()
     }
 
+    /// Move the cursor to the next line after the current paraghraph, or the line
+    /// before the current paragraph.
     fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary) {
         let mut current_line_number = self.current_line_number();
         let last_line_number = self.last_line_number();
@@ -251,7 +261,7 @@ impl Editor {
                 || current_line_number == 1
                 || self
                     .document
-                    .get_row(current_line_number.saturating_sub(1)) // rows inddices are 0 based
+                    .get_row(current_line_number.saturating_sub(1)) // rows indices are 0 based
                     .unwrap()
                     .is_whitespace()
             {
@@ -262,6 +272,7 @@ impl Editor {
         }
     }
 
+    /// Move the cursor either to the first or last line of the document
     fn goto_start_or_end_of_document(&mut self, boundary: &Boundary) {
         match boundary {
             Boundary::Start => self.goto_line(1),
@@ -269,6 +280,7 @@ impl Editor {
         }
     }
 
+    /// Move the cursor either to the start or end of the line
     fn goto_start_or_end_of_line(&mut self, boundary: &Boundary) {
         match boundary {
             Boundary::Start => self.cursor_position.reset_x(),
@@ -276,6 +288,9 @@ impl Editor {
         }
     }
 
+    /// (Supposedly) Move to the start of the next word or previous one.
+    /// "Supposedly" because the algorithm is barely working at all and should
+    /// be smarter.
     fn goto_start_or_end_of_word(&mut self, boundary: &Boundary, direction: &Direction) {
         match (boundary, direction) {
             (Boundary::End, Direction::Right) => {
@@ -313,6 +328,7 @@ impl Editor {
         }
     }
 
+    /// Move the cursor to the first non whitespace character in the line
     fn goto_first_non_whitespace(&mut self) {
         for (x, character) in self.current_row().chars().enumerate() {
             if !character.is_whitespace() {
@@ -322,11 +338,13 @@ impl Editor {
         }
     }
 
+    /// Move the cursor to the first column of the nth line
     fn set_cursor_position_by_line_number(&mut self, line_number: usize) {
         self.cursor_position.y = line_number.saturating_sub(1);
         self.cursor_position.reset_x()
     }
 
+    /// Move the cursor to the nth line in the file and adjust the viewport
     fn goto_line(&mut self, line_number: usize) {
         /*
             We want to move to the line `line_number`. If that line is
@@ -359,6 +377,7 @@ impl Editor {
         }
     }
 
+    /// Move the cursor up/down/left/right by adjusting its x/y position
     fn move_cursor(&mut self, key: Key) {
         let size = self.terminal.size();
         let term_height = size.height.saturating_sub(1) as usize;
@@ -390,6 +409,7 @@ impl Editor {
         self.cursor_position.y = y;
     }
 
+    /// Adjust the editor's x/y offsets if the cursor is going out in the viewport
     fn scroll(&mut self) {
         let current_position_y = self.cursor_position.y;
         let term_height = self.terminal.size().height as usize;
