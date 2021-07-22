@@ -169,7 +169,7 @@ impl Editor {
                 commands::STATS => {
                     self.config.display_stats = Config::toggle(self.config.display_stats);
                 }
-                _ => (),
+                _ => self.display_message(format!("Unknown command '{}'", command)),
             }
         }
     }
