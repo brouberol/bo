@@ -145,6 +145,7 @@ impl Editor {
             match command {
                 "q" => {
                     self.should_quit = true;
+                    self.display_message("Bo-bye".to_string());
                 }
                 "ln" => {
                     // toggle line numbers
