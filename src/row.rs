@@ -1,5 +1,6 @@
 use crate::utils;
 use std::cmp;
+use std::str;
 
 #[derive(Debug)]
 pub struct Row {
@@ -24,13 +25,22 @@ impl Row {
         format!("{} {}", prefix, visible)
     }
 
+    pub fn chars(&self) -> std::str::Chars {
+        self.string.chars()
+    }
+
     #[must_use]
     pub fn is_whitespace(&self) -> bool {
-        !self.string.chars().any(|c| !c.is_whitespace())
+        !self.chars().any(|c| !c.is_whitespace())
     }
 
     #[must_use]
     pub fn len(&self) -> usize {
         self.string.len()
+    }
+
+    #[must_use]
+    pub fn index(&self, index: usize) -> char {
+        self.chars().nth(index).unwrap_or_default()
     }
 }

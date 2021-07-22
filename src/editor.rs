@@ -59,6 +59,11 @@ enum Boundary {
     End,
 }
 
+enum Direction {
+    Left,
+    Right,
+}
+
 fn die(e: &io::Error) {
     print!("{}", termion::clear::All);
     panic!("{}", e);
@@ -151,6 +156,8 @@ impl Editor {
             Key::Char('g') => self.goto_start_or_end_of_document(&Boundary::Start),
             Key::Char('^') => self.goto_start_or_end_of_line(&Boundary::Start),
             Key::Char('$') => self.goto_start_or_end_of_line(&Boundary::End),
+            Key::Char('b') => self.goto_start_or_end_of_word(&Boundary::Start, &Direction::Left),
+            Key::Char('w') => self.goto_start_or_end_of_word(&Boundary::End, &Direction::Right),
             _ => (),
         }
     }
@@ -237,6 +244,43 @@ impl Editor {
         match boundary {
             Boundary::Start => self.cursor_position.reset_x(),
             Boundary::End => self.cursor_position.x = self.current_row().len().saturating_sub(1),
+        }
+    }
+
+    fn goto_start_or_end_of_word(&mut self, boundary: &Boundary, direction: &Direction) {
+        match (boundary, direction) {
+            (Boundary::End, Direction::Right) => {
+                let mut x_offset = 1;
+                loop {
+                    let next_index = self.cursor_position.x.saturating_add(x_offset);
+                    if next_index >= self.current_row().len() {
+                        break;
+                    }
+                    let character = self.current_row().index(next_index);
+                    if !character.is_ascii_alphanumeric() {
+                        self.cursor_position.x = next_index;
+                        break;
+                    }
+                    x_offset += 1;
+                }
+            }
+            (Boundary::Start, Direction::Left) => {
+                let mut x_offset = 1;
+                loop {
+                    let prev_index = self.cursor_position.x.saturating_sub(x_offset);
+                    if self.cursor_position.x.saturating_sub(x_offset) == 0 {
+                        self.cursor_position.reset_x();
+                        break;
+                    }
+                    let character = self.current_row().index(prev_index);
+                    if !character.is_ascii_alphanumeric() {
+                        self.cursor_position.x = prev_index;
+                        break;
+                    }
+                    x_offset += 1;
+                }
+            }
+            _ => (),
         }
     }
 
