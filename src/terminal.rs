@@ -79,7 +79,7 @@ impl Terminal {
         let Position {
             mut x,
             mut y,
-            x_offset: x_offset,
+            x_offset,
         } = position;
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
         x = x.saturating_add(1);
