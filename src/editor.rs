@@ -51,8 +51,7 @@ pub struct Editor {
     message: String,
     mode: Mode,
     command_buffer: String,
-    display_line_numbers: bool,
-    display_stats: bool,
+    config: Config,
 }
 
 #[derive(PartialEq)]
@@ -64,6 +63,12 @@ enum Boundary {
 enum Direction {
     Left,
     Right,
+}
+
+#[derive(Default, Debug)]
+struct Config {
+    display_line_numbers: bool,
+    display_stats: bool,
 }
 
 fn die(e: &io::Error) {
@@ -89,8 +94,7 @@ impl Editor {
             message: "".to_string(),
             mode: Mode::Normal,
             command_buffer: "".to_string(),
-            display_line_numbers: false,
-            display_stats: false,
+            config: Config::default(),
         }
     }
 
@@ -144,8 +148,8 @@ impl Editor {
                 }
                 "ln" => {
                     // toggle line numbers
-                    self.display_line_numbers = !self.display_line_numbers;
-                    self.cursor_position.x_offset = if self.display_line_numbers {
+                    self.config.display_line_numbers = !self.config.display_line_numbers;
+                    self.cursor_position.x_offset = if self.config.display_line_numbers {
                         START_X
                     } else {
                         0
@@ -153,7 +157,7 @@ impl Editor {
                 }
                 "stats" => {
                     // toggle display stats
-                    self.display_stats = !self.display_stats;
+                    self.config.display_stats = !self.config.display_stats;
                 }
                 _ => (),
             }
@@ -406,7 +410,7 @@ impl Editor {
 
     fn generate_status(&self) -> String {
         let left_status = format!("[{}] {}", self.document.filename, self.mode);
-        let stats = if self.display_stats {
+        let stats = if self.config.display_stats {
             format!(
                 "{}L/{}W",
                 self.last_line_number(),
