@@ -233,6 +233,10 @@ impl Editor {
         self.cursor_position.y.saturating_add(self.offset.y)
     }
 
+    fn current_x_position(&self) -> usize {
+        self.cursor_position.x.saturating_add(self.offset.x)
+    }
+
     /// Return the line number associated to the current cursor position / vertical offset
     fn current_line_number(&self) -> usize {
         self.current_row_index().saturating_add(1)
@@ -294,18 +298,26 @@ impl Editor {
     fn goto_start_or_end_of_word(&mut self, boundary: &Boundary, direction: &Direction) {
         match (boundary, direction) {
             (Boundary::End, Direction::Right) => {
-                let mut x_offset = 1;
-                loop {
-                    let next_index = self.cursor_position.x.saturating_add(x_offset);
-                    if next_index >= self.current_row().len() {
+                let mut current_char = self.current_row().index(self.current_x_position());
+                for (i, next_char) in self.current_row().chars().enumerate() {
+                    if i < self.current_x_position().saturating_add(1) {
+                        continue;
+                    }
+                    if next_char.is_whitespace() || next_char == '_' || current_char == '_' {
+                        current_char = next_char;
+                        continue;
+                    }
+                    // mirrorred over the look and feel of vim
+                    #[allow(clippy::suspicious_operation_groupings)]
+                    if (current_char.is_ascii_alphabetic() && !next_char.is_ascii_alphabetic())
+                        || (!current_char.is_ascii_alphabetic() && next_char.is_ascii_alphabetic())
+                        || (current_char.is_ascii_alphanumeric()
+                            && next_char.is_ascii_punctuation())
+                    {
+                        self.cursor_position.x = i;
                         break;
                     }
-                    let character = self.current_row().index(next_index);
-                    if !character.is_ascii_alphanumeric() {
-                        self.cursor_position.x = next_index;
-                        break;
-                    }
-                    x_offset += 1;
+                    current_char = next_char;
                 }
             }
             (Boundary::Start, Direction::Left) => {
