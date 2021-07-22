@@ -158,48 +158,50 @@ impl Editor {
         Ok(())
     }
 
-    fn goto_line(&mut self, line_index: usize) {
+    fn current_line_number(&self) -> usize {
+        self.cursor_position.y + self.offset.y + 1
+    }
+
+    fn last_line_number(&self) -> usize {
+        self.document.len()
+    }
+
+    fn set_cursor_position_by_line_number(&mut self, x: usize, line_number: usize) {
+        self.cursor_position = Position {
+            x,
+            y: line_number.saturating_sub(1),
+        };
+    }
+
+    fn goto_line(&mut self, line_number: usize) {
         /*
-            We want to move to the line `line_index`. If that line index is
-            out of the vie, we need to adjust offset to make sure that we end up
+            We want to move to the line `line_number`. If that line is
+            out of the view, we need to adjust offset to make sure that we end up
             at the middle of the terminal. If the line is within the same view,
             we just move the cursor.
         */
-        let max_line_index = self.document.len().saturating_sub(1); // last line index in the document
-        let line_index = cmp::min(max_line_index, line_index); // we can't go after the last line
-        let line_index = line_index.saturating_sub(1); // line numbers are 1-based
-        let line_index = cmp::max(0, line_index); // line 0 is line 1, for the same reason
+        let max_line_number = self.last_line_number(); // last line number in the document
+        let line_number = cmp::min(max_line_number, line_number); // we can't go after the last line
+        let line_number = cmp::max(1, line_number); // line 0 is line 1, for the same reason
         let term_height = self.terminal.size().height as usize;
-        let middle_of_screen_line_index = term_height / 2 - 1; // index of the row in the middle of the terminal
+        let middle_of_screen_line_number = term_height / 2; // number of the row in the middle of the terminal
 
-        if line_index < (term_height / 2) {
+        if line_number < middle_of_screen_line_number {
             // move to the first "half-view" of the document
             self.offset.y = 0;
-            self.cursor_position = Position {
-                x: START_X,
-                y: line_index,
-            };
-        } else if line_index > self.document.len() - (term_height / 2) {
+            self.set_cursor_position_by_line_number(START_X, line_number);
+        } else if line_number > max_line_number - middle_of_screen_line_number {
             // move to the last "half view" of the document
-            self.offset.y = max_line_index - term_height;
-            self.cursor_position = Position {
-                x: START_X,
-                y: line_index - self.offset.y,
-            };
-        } else if self.offset.y <= line_index && line_index < self.offset.y + term_height {
+            self.offset.y = max_line_number - term_height;
+            self.set_cursor_position_by_line_number(START_X, line_number - self.offset.y);
+        } else if self.offset.y <= line_number && line_number <= self.offset.y + term_height {
             // move around in the same view
-            self.cursor_position = Position {
-                x: START_X,
-                y: line_index - self.offset.y,
-            };
+            self.set_cursor_position_by_line_number(START_X, line_number - self.offset.y);
         } else {
             // move to another view in the document, and position the cursor at the
             // middle of the terminal/view.
-            self.offset.y = line_index - middle_of_screen_line_index;
-            self.cursor_position = Position {
-                x: START_X,
-                y: middle_of_screen_line_index,
-            };
+            self.offset.y = line_number - middle_of_screen_line_number;
+            self.set_cursor_position_by_line_number(START_X, middle_of_screen_line_number);
         }
     }
 
@@ -230,11 +232,13 @@ impl Editor {
     }
 
     fn scroll(&mut self) {
-        let y = self.cursor_position.y;
+        let current_position_y = self.cursor_position.y;
         let term_height = self.terminal.size().height as usize;
-        if y == 0 && self.offset.y > 0 {
+        if current_position_y == 0 && self.offset.y > 0 {
+            // if we're going out of the view by the top scroll up by one row
             self.offset.y = self.offset.y.saturating_sub(1);
-        } else if y + 1 >= term_height {
+        } else if current_position_y.saturating_add(1) > term_height {
+            // if we're going out of the view by the bottom, scroll down by one row
             self.offset.y = self.offset.y.saturating_add(1);
         }
     }
@@ -293,14 +297,12 @@ impl Editor {
 
     fn draw_rows(&self) {
         let term_height = self.terminal.size().height;
-        for terminal_row_idx in 1..=term_height {
+        for terminal_row_idx in self.offset.y..(term_height as usize + self.offset.y) {
+            let line_number = terminal_row_idx.saturating_add(1);
             Terminal::clear_current_line();
-            if let Some(row) = self
-                .document
-                .get_row(terminal_row_idx as usize + self.offset.y)
-            {
-                self.draw_row(&row, terminal_row_idx as usize + self.offset.y);
-            } else if terminal_row_idx == term_height / 2 && self.document.is_empty() {
+            if let Some(row) = self.document.get_row(terminal_row_idx) {
+                self.draw_row(&row, line_number);
+            } else if terminal_row_idx == (term_height as usize / 2) && self.document.is_empty() {
                 self.display_welcome_message();
             } else {
                 println!("~\r");
@@ -308,13 +310,13 @@ impl Editor {
         }
     }
 
-    fn draw_row(&self, row: &Row, index: usize) {
+    fn draw_row(&self, row: &Row, line_number: usize) {
         let row_visible_start = self.offset.x;
         let row_visible_end = self.offset.y + self.terminal.size().width as usize;
         let rendered_row = row.render(
             row_visible_start,
             row_visible_end,
-            index,
+            line_number,
             LINE_NUMBER_OFFSET as usize,
         );
         println!("{}\r", rendered_row);

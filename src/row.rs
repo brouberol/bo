@@ -15,11 +15,11 @@ impl From<&str> for Row {
 
 impl Row {
     #[must_use]
-    pub fn render(&self, start: usize, end: usize, index: usize, x_offset: usize) -> String {
+    pub fn render(&self, start: usize, end: usize, line_number: usize, x_offset: usize) -> String {
         let end = cmp::min(end, self.string.len()); // either stop at terminal end or string end
         let start = cmp::min(start, end);
         let visible = self.string.get(start..end).unwrap_or_default().to_string();
-        let prefix = utils::zfill(index.to_string(), " ".to_string(), x_offset);
+        let prefix = utils::zfill(line_number.to_string(), " ".to_string(), x_offset);
         format!("{} {}", prefix, visible)
     }
 }
