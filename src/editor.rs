@@ -1,6 +1,6 @@
 #[cfg(debug_assertions)]
 use crate::log;
-use crate::{commands, Document, Mode, Row, Terminal};
+use crate::{commands, utils, Document, Mode, Row, Terminal};
 use std::cmp;
 use std::env;
 use std::io::{self, stdout};
@@ -40,7 +40,6 @@ impl Position {
         }
     }
 }
-
 #[derive(Debug)]
 pub struct Editor {
     should_quit: bool,
@@ -169,12 +168,7 @@ impl Editor {
                 commands::STATS => {
                     self.config.display_stats = Config::toggle(self.config.display_stats);
                 }
-                _ => self.display_message(format!(
-                    "{}Unknown command '{}'{}",
-                    color::Fg(color::Red),
-                    command,
-                    color::Fg(color::Reset)
-                )),
+                _ => self.display_message(utils::red(format!("Unknown command '{}'", command))),
             }
         }
     }

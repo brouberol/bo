@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Write;
 use std::result::Result::Err;
+use termion::color;
 
 /// # Panics
 ///
@@ -22,4 +23,8 @@ pub fn zfill(s: String, fill_by: String, size: usize) -> String {
         return "".to_string();
     }
     format!("{}{}", fill_by.repeat(size - s.len()), s)
+}
+
+pub fn red(s: String) -> String {
+    format!("{}{}{}", color::Fg(color::Red), s, color::Fg(color::Reset))
 }
