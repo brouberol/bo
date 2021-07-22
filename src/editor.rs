@@ -377,7 +377,9 @@ impl Editor {
         if current_position_y == 0 && self.offset.y > 0 {
             // if we're going out of the view by the top scroll up by one row
             self.offset.y = self.offset.y.saturating_sub(1);
-        } else if current_position_y.saturating_add(1) > term_height {
+        } else if current_position_y.saturating_add(1) >= term_height
+            && self.current_line_number() < self.last_line_number()
+        {
             // if we're going out of the view by the bottom, scroll down by one row
             self.offset.y = self.offset.y.saturating_add(1);
         }
