@@ -14,6 +14,37 @@ I tend to favour an editor with plugins/linters/autocompletion when I'm developi
 
 So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-like navigation commands.
 
+## Roadmap
+
+### Navigation
+
+- [x] Navigation with `h`, `j`, `k`, `l`
+- [x] Next/previous paragraph (`}`, `{`)
+- [x] Next/previous word (`w`, `b`)
+- [x] First/last line in document (`g`, `G`)
+- [x] First/last character in the line (`0`, `$`)
+- [x] First non whitespace character in the line (`^1)
+- [ ] Support for multi-character commands (e.g. `2j`, `3}`, ...)
+
+### Edition
+
+- [ ] Text edition
+- [ ] block (word, paragraph, line, etc) with both `d` and `c`
+- [ ] delete a line with `dd`
+- [ ] yank/paste a block
+- [ ] undo/redo
+
+### Options
+
+- [x] toggle line numbers
+- [x] toggle word count stats
+
+### UX
+
+- [ ] Display help
+- [ ] Save session file with last known cursor position
+- [ ] Restore unsaved edits by regularly saving to a hidden swap file
+
 ## Inspiration
 
 I got the inspiration for `bo` by reading about [antirez](https://github.com/antirez)'s editor [`kilo`](https://github.com/antirez/kilo), and am widly basing my work on the excellent [blogpost series](https://www.philippflenker.com/hecto-chapter-1) by Philipp Flenker.
