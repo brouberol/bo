@@ -154,10 +154,11 @@ impl Editor {
             Key::Char('{') => self.goto_start_or_end_of_paragraph(&Boundary::Start),
             Key::Char('G') => self.goto_start_or_end_of_document(&Boundary::End),
             Key::Char('g') => self.goto_start_or_end_of_document(&Boundary::Start),
-            Key::Char('^') => self.goto_start_or_end_of_line(&Boundary::Start),
+            Key::Char('0') => self.goto_start_or_end_of_line(&Boundary::Start),
             Key::Char('$') => self.goto_start_or_end_of_line(&Boundary::End),
             Key::Char('b') => self.goto_start_or_end_of_word(&Boundary::Start, &Direction::Left),
             Key::Char('w') => self.goto_start_or_end_of_word(&Boundary::End, &Direction::Right),
+            Key::Char('^') => self.goto_first_non_whitespace(),
             _ => (),
         }
     }
@@ -284,6 +285,11 @@ impl Editor {
         }
     }
 
+    fn goto_first_non_whitespace(&mut self) {
+        for (x, character) in self.current_row().chars().enumerate() {
+            if !character.is_whitespace() {
+                self.cursor_position.x = x;
+                break;
             }
         }
     }
