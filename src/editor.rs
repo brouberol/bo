@@ -71,6 +71,12 @@ struct Config {
     display_stats: bool,
 }
 
+impl Config {
+    pub fn toggle(config: bool) -> bool {
+        !config
+    }
+}
+
 fn die(e: &io::Error) {
     print!("{}", termion::clear::All);
     panic!("{}", e);
@@ -148,8 +154,8 @@ impl Editor {
                     self.display_message("Bo-bye".to_string());
                 }
                 "ln" => {
-                    // toggle line numbers
-                    self.config.display_line_numbers = !self.config.display_line_numbers;
+                    self.config.display_line_numbers =
+                        Config::toggle(self.config.display_line_numbers);
                     self.cursor_position.x_offset = if self.config.display_line_numbers {
                         START_X
                     } else {
@@ -157,8 +163,7 @@ impl Editor {
                     };
                 }
                 "stats" => {
-                    // toggle display stats
-                    self.config.display_stats = !self.config.display_stats;
+                    self.config.display_stats = Config::toggle(self.config.display_stats);
                 }
                 _ => (),
             }
