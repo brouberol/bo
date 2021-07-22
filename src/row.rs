@@ -1,6 +1,7 @@
 use crate::utils;
 use std::cmp;
 
+#[derive(Debug)]
 pub struct Row {
     pub string: String,
 }
