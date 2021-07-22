@@ -79,11 +79,12 @@ impl Terminal {
         let Position {
             mut x,
             mut y,
-            x_offset,
+            mut x_offset,
         } = position;
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
         x = x.saturating_add(1);
         y = y.saturating_add(1);
+        x_offset += if x_offset > 0 { 1 } else { 0 };
         print!("{}", termion::cursor::Goto((x + x_offset) as u16, y as u16));
     }
 
