@@ -26,6 +26,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Screen navigation (`H`, `M`, `L`)
 - [x] First non whitespace character in the line (`^1)
 - [x] Support for multi-character commands (e.g. `2j`, `3}`, ...)
+- [ ] Search text and highlight matches
 
 ### Edition
 
