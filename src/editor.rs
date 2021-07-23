@@ -292,13 +292,14 @@ impl Editor {
     }
 
     /// Execute the provided normal movement command n timess
-    fn process_normal_command_n_times(&mut self, c: char, times: usize) {
+    fn process_normal_command_n_times(&mut self, c: char, n: usize) {
         match c {
-            'b' => self.goto_start_or_end_of_word(&Boundary::Start, &Direction::Left, times),
-            'w' => self.goto_start_or_end_of_word(&Boundary::End, &Direction::Right, times),
-            'h' | 'j' | 'k' | 'l' => self.move_cursor(c, times),
-            '}' => self.goto_start_or_end_of_paragraph(&Boundary::End, times),
-            '{' => self.goto_start_or_end_of_paragraph(&Boundary::Start, times),
+            'b' => self.goto_start_or_end_of_word(&Boundary::Start, &Direction::Left, n),
+            'w' => self.goto_start_or_end_of_word(&Boundary::End, &Direction::Right, n),
+            'h' | 'j' | 'k' | 'l' => self.move_cursor(c, n),
+            '}' => self.goto_start_or_end_of_paragraph(&Boundary::End, n),
+            '{' => self.goto_start_or_end_of_paragraph(&Boundary::Start, n),
+            '%' => self.goto_percentage_in_document(n),
             _ => (),
         }
     }
@@ -479,6 +480,13 @@ impl Editor {
     /// Move the cursor to the middle of the terminal
     fn goto_last_line_of_terminal(&mut self) {
         self.goto_line((self.terminal.size().height as usize).saturating_add(self.offset.y));
+    }
+
+    /// Move to {n}% in the file
+    fn goto_percentage_in_document(&mut self, percent: usize) {
+        let percent = cmp::min(percent, 100);
+        let line_number = (self.last_line_number() * percent) / 100;
+        self.goto_line(line_number)
     }
 
     /// Move the cursor to the nth line in the file and adjust the viewport
