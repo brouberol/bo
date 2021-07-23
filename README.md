@@ -29,6 +29,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Go to n% in the file (`%`)
 - [ ] Search text and highlight matches
 - [x] Move cursor by left clicking
+- [ ] Tab navigation
 
 ### Edition
 
