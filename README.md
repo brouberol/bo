@@ -23,6 +23,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Next/previous word (`w`, `b`)
 - [x] First/last line in document (`g`, `G`)
 - [x] First/last character in the line (`0`, `$`)
+- [x] Screen navigation (`H`, `M`, `L`)
 - [x] First non whitespace character in the line (`^1)
 - [x] Support for multi-character commands (e.g. `2j`, `3}`, ...)
 

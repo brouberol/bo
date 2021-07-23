@@ -217,6 +217,9 @@ impl Editor {
                 'g' => self.goto_start_or_end_of_document(&Boundary::Start),
                 '$' => self.goto_start_or_end_of_line(&Boundary::End),
                 '^' => self.goto_first_non_whitespace(),
+                'H' => self.goto_first_line_of_terminal(),
+                'M' => self.goto_middle_of_terminal(),
+                'L' => self.goto_last_line_of_terminal(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -295,6 +298,10 @@ impl Editor {
 
     fn last_line_number(&self) -> usize {
         self.document.num_rows()
+    }
+
+    fn middle_of_screen_line_number(&self) -> usize {
+        self.terminal.size().height as usize / 2
     }
 
     /// Move the cursor to the next line after the current paraghraph, or the line
@@ -413,6 +420,24 @@ impl Editor {
         self.cursor_position.reset_x()
     }
 
+    /// Move the cursor to the middle of the terminal
+    fn goto_middle_of_terminal(&mut self) {
+        self.goto_line(
+            self.middle_of_screen_line_number()
+                .saturating_add(self.offset.y),
+        );
+    }
+
+    /// Move the cursor to the middle of the terminal
+    fn goto_first_line_of_terminal(&mut self) {
+        self.goto_line(self.offset.y);
+    }
+
+    /// Move the cursor to the middle of the terminal
+    fn goto_last_line_of_terminal(&mut self) {
+        self.goto_line((self.terminal.size().height as usize).saturating_add(self.offset.y));
+    }
+
     /// Move the cursor to the nth line in the file and adjust the viewport
     fn goto_line(&mut self, line_number: usize) {
         /*
@@ -425,7 +450,7 @@ impl Editor {
         let line_number = cmp::min(max_line_number, line_number); // we can't go after the last line
         let line_number = cmp::max(1, line_number); // line 0 is line 1, for the same reason
         let term_height = self.terminal.size().height as usize;
-        let middle_of_screen_line_number = term_height / 2; // number of the row in the middle of the terminal
+        let middle_of_screen_line_number = self.middle_of_screen_line_number(); // number of the row in the middle of the terminal
 
         if line_number < middle_of_screen_line_number {
             // move to the first "half-view" of the document
@@ -566,7 +591,9 @@ impl Editor {
             Terminal::clear_current_line();
             if let Some(row) = self.document.get_row(terminal_row_idx) {
                 self.draw_row(&row, line_number);
-            } else if terminal_row_idx == (term_height as usize / 2) && self.document.is_empty() {
+            } else if terminal_row_idx == self.middle_of_screen_line_number()
+                && self.document.is_empty()
+            {
                 self.display_welcome_message();
             } else {
                 println!("~\r");
