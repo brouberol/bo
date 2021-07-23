@@ -5,7 +5,7 @@ use std::cmp;
 use std::env;
 use std::io::{self, stdout};
 use termion::color;
-use termion::event::Key;
+use termion::event::{Event, Key, MouseButton, MouseEvent};
 use termion::raw::IntoRawMode;
 
 const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
@@ -14,12 +14,12 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
 const COMMAND_PREFIX: char = ':';
 const LINE_NUMBER_OFFSET: u8 = 4;
-const START_X: usize = LINE_NUMBER_OFFSET as usize + 1;
+const START_X: u8 = LINE_NUMBER_OFFSET as u8 + 1;
 
 #[derive(Debug, Default)]
 pub struct Position {
     pub x: usize,
-    pub x_offset: usize,
+    pub x_offset: u8,
     pub y: usize,
 }
 
@@ -31,15 +31,8 @@ impl Position {
     pub fn top_left() -> Self {
         Self::default()
     }
-    #[must_use]
-    pub fn top_left_with_x_offset(x_offset: usize) -> Self {
-        Position {
-            x: 0,
-            y: 0,
-            x_offset,
-        }
-    }
 }
+
 #[derive(Debug)]
 pub struct Editor {
     should_quit: bool,
@@ -52,6 +45,7 @@ pub struct Editor {
     command_buffer: String,
     config: Config,
     normal_command_buffer: Vec<String>,
+    mouse_event_buffer: Vec<Position>,
 }
 
 #[derive(PartialEq)]
@@ -102,6 +96,7 @@ impl Editor {
             command_buffer: "".to_string(),
             config: Config::default(),
             normal_command_buffer: vec![],
+            mouse_event_buffer: vec![],
         }
     }
 
@@ -112,13 +107,76 @@ impl Editor {
             if let Err(error) = &self.refresh_screen() {
                 die(&error);
             }
-            if let Err(error) = self.process_keypress() {
+            if let Err(error) = self.process_event() {
                 die(&error);
             }
             if self.should_quit {
                 Terminal::clear_screen();
                 break;
             }
+        }
+    }
+
+    /// Main event processing method. An event can be either be a keystroke or a mouse click
+    fn process_event(&mut self) -> Result<(), std::io::Error> {
+        let event = Terminal::read_event()?;
+        match event {
+            Event::Key(pressed_key) => self.process_keystroke(pressed_key),
+            Event::Mouse(mouse_event) => self.process_mouse_event(mouse_event),
+            Event::Unsupported(_) => (),
+        }
+        #[cfg(debug_assertions)]
+        log(format!(
+            "{:?} Offset= {:?}",
+            self.cursor_position, self.offset
+        ));
+        Ok(())
+    }
+
+    /// React to a keystroke. The reaction itself depends on the editor
+    /// mode (insert, command, normal) or whether the editor is currently
+    /// receiving a user input command (eg: ":q", etc).
+    fn process_keystroke(&mut self, pressed_key: Key) {
+        if self.is_receiving_command() {
+            // accumulate the command in the command buffer
+            match pressed_key {
+                Key::Esc => self.stop_receiving_command(),
+                Key::Char('\n') => {
+                    // Enter
+                    self.process_received_command();
+                    self.stop_receiving_command();
+                }
+                Key::Char(c) => self.command_buffer.push(c), // accumulate keystrokes into the buffer
+                Key::Backspace => self
+                    .command_buffer
+                    .truncate(self.command_buffer.len().saturating_sub(1)),
+                _ => (),
+            }
+        } else {
+            match self.mode {
+                Mode::Normal => self.process_normal_command(pressed_key),
+                Mode::Insert => self.process_insert_command(pressed_key),
+            }
+        }
+    }
+
+    /// React to a mouse event. If the mouse is being pressed, record
+    /// the coordinates, and
+    fn process_mouse_event(&mut self, mouse_event: MouseEvent) {
+        match mouse_event {
+            MouseEvent::Press(MouseButton::Left, _, _) => {
+                self.mouse_event_buffer
+                    .push(Terminal::get_cursor_index_from_mouse_event(
+                        mouse_event,
+                        self.cursor_position.x_offset,
+                    ))
+            }
+            MouseEvent::Release(_, _) => {
+                if !self.mouse_event_buffer.is_empty() {
+                    self.cursor_position = self.mouse_event_buffer.pop().unwrap();
+                }
+            }
+            _ => (),
         }
     }
 
@@ -244,37 +302,13 @@ impl Editor {
             _ => (),
         }
     }
-    fn process_keypress(&mut self) -> Result<(), std::io::Error> {
-        let pressed_key = Terminal::read_key()?;
-        if self.is_receiving_command() {
-            // accumulate the command in the command buffer
-            match pressed_key {
-                Key::Esc => self.stop_receiving_command(),
-                Key::Char('\n') => {
-                    self.process_received_command();
-                    self.stop_receiving_command();
-                }
-                Key::Char(c) => self.command_buffer.push(c), // accumulate keystrokes into the buffer
-                Key::Backspace => self
-                    .command_buffer
-                    .truncate(self.command_buffer.len().saturating_sub(1)),
-                _ => (),
-            }
-        } else {
-            match self.mode {
-                Mode::Normal => self.process_normal_command(pressed_key),
-                Mode::Insert => match pressed_key {
-                    Key::Esc => self.enter_normal_mode(),
-                    _ => (),
-                },
-            }
+
+    /// Process a command issued when the editor is in normal mode
+    fn process_insert_command(&mut self, pressed_key: Key) {
+        match pressed_key {
+            Key::Esc => self.enter_normal_mode(),
+            _ => (),
         }
-        #[cfg(debug_assertions)]
-        log(format!(
-            "{:?} Offset= {:?}",
-            self.cursor_position, self.offset
-        ));
-        Ok(())
     }
 
     /// Return the index of the row associated to the current cursor position / vertical offset
@@ -612,13 +646,14 @@ impl Editor {
 
     fn draw_row(&self, row: &Row, line_number: usize) {
         let row_visible_start = self.offset.x;
-        let row_visible_end =
-            self.offset.x + self.terminal.size().width as usize - self.cursor_position.x_offset - 1;
+        let row_visible_end = self.offset.x + self.terminal.size().width as usize
+            - self.cursor_position.x_offset as usize
+            - 1;
         let rendered_row = row.render(
             row_visible_start,
             row_visible_end,
             line_number,
-            self.cursor_position.x_offset,
+            self.cursor_position.x_offset as usize,
         );
         println!("{}\r", rendered_row);
     }

@@ -2,8 +2,8 @@ use crate::Position;
 use std::fmt;
 use std::io::{self, stdout, Write};
 use termion::color;
-use termion::event::Key;
-use termion::input::TermRead;
+use termion::event::{Event, MouseEvent};
+use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ pub struct Size {
 
 pub struct Terminal {
     size: Size,
-    _stdout: RawTerminal<std::io::Stdout>,
+    _stdout: MouseTerminal<RawTerminal<std::io::Stdout>>,
 }
 
 impl fmt::Debug for Terminal {
@@ -38,7 +38,7 @@ impl Terminal {
                 height: size.1.saturating_sub(2), // to leave space for the status and message bars
                 width: size.0,
             },
-            _stdout: stdout().into_raw_mode()?,
+            _stdout: MouseTerminal::from(stdout().into_raw_mode()?),
         })
     }
 
@@ -64,13 +64,13 @@ impl Terminal {
 
     /// # Errors
     ///
-    /// Returns an error if a key can't be read
-    pub fn read_key() -> Result<Key, std::io::Error> {
+    /// Returns an error if a event can't be read
+    pub fn read_event() -> Result<Event, std::io::Error> {
         loop {
-            let opt_key = io::stdin().lock().keys().next();
-            // at that point, key is a Result<Key, Error>, as the Option was unwrapped
-            if let Some(key) = opt_key {
-                return key;
+            let opt_key = io::stdin().lock().events().next();
+            // at that point, event is a Result<Event, Error>, as the Option was unwrapped
+            if let Some(event) = opt_key {
+                return event;
             }
         }
     }
@@ -85,7 +85,28 @@ impl Terminal {
         x = x.saturating_add(1);
         y = y.saturating_add(1);
         x_offset += if x_offset > 0 { 1 } else { 0 };
-        print!("{}", termion::cursor::Goto((x + x_offset) as u16, y as u16));
+        print!(
+            "{}",
+            termion::cursor::Goto((x + x_offset as usize) as u16, y as u16)
+        );
+    }
+
+    #[must_use]
+    pub fn get_cursor_index_from_mouse_event(mouse_event: MouseEvent, x_offset: u8) -> Position {
+        if let MouseEvent::Press(_, x, y) = mouse_event {
+            let offset_adjustment: u8 = if x_offset > 0 {
+                x_offset.saturating_add(1)
+            } else {
+                0
+            };
+            Position {
+                x: x.saturating_sub(1).saturating_sub(offset_adjustment as u16) as usize,
+                y: y.saturating_sub(1) as usize,
+                x_offset,
+            }
+        } else {
+            Position::top_left()
+        }
     }
 
     pub fn hide_cursor() {
