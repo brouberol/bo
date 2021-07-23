@@ -304,6 +304,12 @@ impl Editor {
         self.terminal.size().height as usize / 2
     }
 
+    fn row_for_line_number(&self, line_number: usize) -> &Row {
+        self.document
+            .get_row(line_number.saturating_sub(1))
+            .unwrap() // rows indices are 0 based
+    }
+
     /// Move the cursor to the next line after the current paraghraph, or the line
     /// before the current paragraph.
     fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary, times: usize) {
@@ -317,13 +323,16 @@ impl Editor {
                         cmp::min(last_line_number, current_line_number.saturating_add(1))
                     }
                 };
+                let current_line_followed_by_empty_line =
+                    self // whether both the current and next lines are empty
+                        .row_for_line_number(current_line_number)
+                        .is_whitespace()
+                        && !self
+                            .row_for_line_number(current_line_number - 1)
+                            .is_whitespace();
                 if current_line_number == self.last_line_number()
                     || current_line_number == 1
-                    || self
-                        .document
-                        .get_row(current_line_number.saturating_sub(1)) // rows indices are 0 based
-                        .unwrap()
-                        .is_whitespace()
+                    || current_line_followed_by_empty_line
                 {
                     self.goto_line(current_line_number);
                     self.cursor_position.reset_x();
