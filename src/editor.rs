@@ -493,7 +493,7 @@ impl Editor {
                     }
                 } // cannot be < 0
                 'j' => {
-                    if y < self.last_line_number() {
+                    if y.saturating_add(self.offset.y) < self.last_line_number().saturating_sub(1) {
                         // don't scroll past the last line in the document
                         if y < term_height {
                             // don't scroll past the confine the of terminal itself
