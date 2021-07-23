@@ -51,6 +51,7 @@ pub struct Editor {
     mode: Mode,
     command_buffer: String,
     config: Config,
+    normal_command_buffer: Vec<String>,
 }
 
 #[derive(PartialEq)]
@@ -100,6 +101,7 @@ impl Editor {
             mode: Mode::Normal,
             command_buffer: "".to_string(),
             config: Config::default(),
+            normal_command_buffer: vec![],
         }
     }
 
@@ -140,6 +142,19 @@ impl Editor {
         !self.command_buffer.is_empty()
     }
 
+    fn pop_normal_command_repetitions(&mut self) -> usize {
+        let times = match self.normal_command_buffer.len() {
+            0 => 1,
+            _ => self
+                .normal_command_buffer
+                .join("")
+                .parse::<usize>()
+                .unwrap(),
+        };
+        self.normal_command_buffer = vec![];
+        times
+    }
+
     /// Receive a command entered by the user in the command prompt
     /// and take appropriate actions
     fn process_received_command(&mut self) {
@@ -175,24 +190,57 @@ impl Editor {
 
     /// Process navigation command issued in normal mode, that will
     /// resolve in having the cursor be moved around the document.
+    ///
+    /// Note: some commands are accumulative (ie: 2j will move the
+    /// cursor down twice) and some are not (ie: g will move the cursor
+    /// to the start of the document only once).
+    /// A buffer is maintained for the accumulative commands, and is purged
+    /// when the last char of the command is received. For now, only commans
+    /// of the form <number>*<char> are supported and I'm not sure I'm
+    /// planning to support anything more complex than that.
     fn process_normal_command(&mut self, key: Key) {
-        match key {
-            Key::Char('h' | 'j' | 'k' | 'l') => self.move_cursor(key),
-            Key::Char('i') => self.enter_insert_mode(),
-            Key::Char(':') => self.start_receiving_command(),
-            Key::Char('}') => self.goto_start_or_end_of_paragraph(&Boundary::End),
-            Key::Char('{') => self.goto_start_or_end_of_paragraph(&Boundary::Start),
-            Key::Char('G') => self.goto_start_or_end_of_document(&Boundary::End),
-            Key::Char('g') => self.goto_start_or_end_of_document(&Boundary::Start),
-            Key::Char('0') => self.goto_start_or_end_of_line(&Boundary::Start),
-            Key::Char('$') => self.goto_start_or_end_of_line(&Boundary::End),
-            Key::Char('b') => self.goto_start_or_end_of_word(&Boundary::Start, &Direction::Left),
-            Key::Char('w') => self.goto_start_or_end_of_word(&Boundary::End, &Direction::Right),
-            Key::Char('^') => self.goto_first_non_whitespace(),
+        if let Key::Char(c) = key {
+            match c {
+                '0' => {
+                    if self.normal_command_buffer.is_empty() {
+                        self.goto_start_or_end_of_line(&Boundary::Start);
+                    } else {
+                        self.normal_command_buffer.push(c.to_string());
+                    }
+                }
+                '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+                    self.normal_command_buffer.push(c.to_string())
+                }
+                'i' => self.enter_insert_mode(),
+                ':' => self.start_receiving_command(),
+                'G' => self.goto_start_or_end_of_document(&Boundary::End),
+                'g' => self.goto_start_or_end_of_document(&Boundary::Start),
+                '$' => self.goto_start_or_end_of_line(&Boundary::End),
+                '^' => self.goto_first_non_whitespace(),
+                _ => {
+                    // at that point, we've iterated over all non accumulative commands
+                    // meaning the command we're processing is an accumulative one.
+                    // we thus pop the repeater value from self.normal_command_buffer
+                    // and we use that value as the number of times the comamnd identified
+                    // by the `c` char must be repeated.
+                    let times = self.pop_normal_command_repetitions();
+                    self.process_normal_command_n_times(c, times);
+                }
+            }
+        };
+    }
+
+    /// Execute the provided normal movement command n timess
+    fn process_normal_command_n_times(&mut self, c: char, times: usize) {
+        match c {
+            'b' => self.goto_start_or_end_of_word(&Boundary::Start, &Direction::Left, times),
+            'w' => self.goto_start_or_end_of_word(&Boundary::End, &Direction::Right, times),
+            'h' | 'j' | 'k' | 'l' => self.move_cursor(c, times),
+            '}' => self.goto_start_or_end_of_paragraph(&Boundary::End, times),
+            '{' => self.goto_start_or_end_of_paragraph(&Boundary::Start, times),
             _ => (),
         }
     }
-
     fn process_keypress(&mut self) -> Result<(), std::io::Error> {
         let pressed_key = Terminal::read_key()?;
         if self.is_receiving_command() {
@@ -217,7 +265,6 @@ impl Editor {
                     _ => (),
                 },
             }
-            self.scroll();
         }
         #[cfg(debug_assertions)]
         log(format!(
@@ -252,25 +299,29 @@ impl Editor {
 
     /// Move the cursor to the next line after the current paraghraph, or the line
     /// before the current paragraph.
-    fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary) {
+    fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary, times: usize) {
         let mut current_line_number = self.current_line_number();
         let last_line_number = self.last_line_number();
-        loop {
-            current_line_number = match boundary {
-                Boundary::Start => cmp::max(1, current_line_number.saturating_sub(1)),
-                Boundary::End => cmp::min(last_line_number, current_line_number.saturating_add(1)),
-            };
-            if current_line_number == self.last_line_number()
-                || current_line_number == 1
-                || self
-                    .document
-                    .get_row(current_line_number.saturating_sub(1)) // rows indices are 0 based
-                    .unwrap()
-                    .is_whitespace()
-            {
-                self.goto_line(current_line_number);
-                self.cursor_position.reset_x();
-                return;
+        for _ in 0..times {
+            loop {
+                current_line_number = match boundary {
+                    Boundary::Start => cmp::max(1, current_line_number.saturating_sub(1)),
+                    Boundary::End => {
+                        cmp::min(last_line_number, current_line_number.saturating_add(1))
+                    }
+                };
+                if current_line_number == self.last_line_number()
+                    || current_line_number == 1
+                    || self
+                        .document
+                        .get_row(current_line_number.saturating_sub(1)) // rows indices are 0 based
+                        .unwrap()
+                        .is_whitespace()
+                {
+                    self.goto_line(current_line_number);
+                    self.cursor_position.reset_x();
+                    break;
+                }
             }
         }
     }
@@ -291,51 +342,58 @@ impl Editor {
         }
     }
 
-    /// (Supposedly) Move to the start of the next word or previous one.
-    /// "Supposedly" because the algorithm is barely working at all and should
-    /// be smarter.
-    fn goto_start_or_end_of_word(&mut self, boundary: &Boundary, direction: &Direction) {
-        match (boundary, direction) {
-            (Boundary::End, Direction::Right) => {
-                let mut current_char = self.current_row().index(self.current_x_position());
-                for (i, next_char) in self.current_row().chars().enumerate() {
-                    if i < self.current_x_position().saturating_add(1) {
-                        continue;
-                    }
-                    if next_char.is_whitespace() || next_char == '_' || current_char == '_' {
+    /// Move to the start of the next word or previous one.
+    /// TODO: refactor Start/Left
+    fn goto_start_or_end_of_word(
+        &mut self,
+        boundary: &Boundary,
+        direction: &Direction,
+        times: usize,
+    ) {
+        for _ in 0..times {
+            match (boundary, direction) {
+                (Boundary::End, Direction::Right) => {
+                    let mut current_char = self.current_row().index(self.current_x_position());
+                    for (i, next_char) in self.current_row().chars().enumerate() {
+                        if i < self.current_x_position().saturating_add(1) {
+                            continue;
+                        }
+                        if next_char.is_whitespace() || next_char == '_' || current_char == '_' {
+                            current_char = next_char;
+                            continue;
+                        }
+                        // mirrorred over the look and feel of vim
+                        #[allow(clippy::suspicious_operation_groupings)]
+                        if (current_char.is_ascii_alphabetic() && !next_char.is_ascii_alphabetic())
+                            || (!current_char.is_ascii_alphabetic()
+                                && next_char.is_ascii_alphabetic())
+                            || (current_char.is_ascii_alphanumeric()
+                                && next_char.is_ascii_punctuation())
+                        {
+                            self.cursor_position.x = i;
+                            break;
+                        }
                         current_char = next_char;
-                        continue;
                     }
-                    // mirrorred over the look and feel of vim
-                    #[allow(clippy::suspicious_operation_groupings)]
-                    if (current_char.is_ascii_alphabetic() && !next_char.is_ascii_alphabetic())
-                        || (!current_char.is_ascii_alphabetic() && next_char.is_ascii_alphabetic())
-                        || (current_char.is_ascii_alphanumeric()
-                            && next_char.is_ascii_punctuation())
-                    {
-                        self.cursor_position.x = i;
-                        break;
-                    }
-                    current_char = next_char;
                 }
-            }
-            (Boundary::Start, Direction::Left) => {
-                let mut x_offset = 1;
-                loop {
-                    let prev_index = self.cursor_position.x.saturating_sub(x_offset);
-                    if self.cursor_position.x.saturating_sub(x_offset) == 0 {
-                        self.cursor_position.reset_x();
-                        break;
+                (Boundary::Start, Direction::Left) => {
+                    let mut x_offset = 1;
+                    loop {
+                        let prev_index = self.cursor_position.x.saturating_sub(x_offset);
+                        if self.cursor_position.x.saturating_sub(x_offset) == 0 {
+                            self.cursor_position.reset_x();
+                            break;
+                        }
+                        let character = self.current_row().index(prev_index);
+                        if !character.is_ascii_alphanumeric() {
+                            self.cursor_position.x = prev_index;
+                            break;
+                        }
+                        x_offset += 1;
                     }
-                    let character = self.current_row().index(prev_index);
-                    if !character.is_ascii_alphanumeric() {
-                        self.cursor_position.x = prev_index;
-                        break;
-                    }
-                    x_offset += 1;
                 }
+                _ => (),
             }
-            _ => (),
         }
     }
 
@@ -389,7 +447,7 @@ impl Editor {
     }
 
     /// Move the cursor up/down/left/right by adjusting its x/y position
-    fn move_cursor(&mut self, key: Key) {
+    fn move_cursor(&mut self, c: char, times: usize) {
         let size = self.terminal.size();
         let term_height = size.height.saturating_sub(1) as usize;
         let term_width = size.width.saturating_sub(1) as usize;
@@ -398,41 +456,40 @@ impl Editor {
             mut y,
             x_offset: _,
         } = self.cursor_position;
-        match key {
-            Key::Up | Key::Char('k') => {
-                y = y.saturating_sub(1);
-            } // cannot be < 0
-            Key::Down | Key::Char('j') => {
-                if y < term_height && y < self.last_line_number() {
-                    // don't scroll past the last line
-                    y = y.saturating_add(1);
+
+        for _ in 0..times {
+            match c {
+                'k' => {
+                    if y == 0 {
+                        // we reached the top of the terminal so adjust offset instead
+                        self.offset.y = self.offset.y.saturating_sub(1);
+                    } else {
+                        y = y.saturating_sub(1);
+                    }
+                } // cannot be < 0
+                'j' => {
+                    if y < self.last_line_number() {
+                        // don't scroll past the last line in the document
+                        if y < term_height {
+                            // don't scroll past the confine the of terminal itself
+                            y = y.saturating_add(1);
+                        } else {
+                            // increase offset to that scrolling adjusts the viewport
+                            self.offset.y = self.offset.y.saturating_add(1);
+                        }
+                    }
                 }
-            }
-            Key::Left | Key::Char('h') => x = cmp::max(x.saturating_sub(1), 0), // cannot be < 0
-            Key::Right | Key::Char('l') => {
-                if x < term_width {
-                    x = x.saturating_add(1);
+                'h' => x = cmp::max(x.saturating_sub(1), 0), // cannot be < 0
+                'l' => {
+                    if x < term_width {
+                        x = x.saturating_add(1);
+                    }
                 }
+                _ => (),
             }
-            _ => (),
         }
         self.cursor_position.x = x;
         self.cursor_position.y = y;
-    }
-
-    /// Adjust the editor's x/y offsets if the cursor is going out in the viewport
-    fn scroll(&mut self) {
-        let current_position_y = self.cursor_position.y;
-        let term_height = self.terminal.size().height as usize;
-        if current_position_y == 0 && self.offset.y > 0 {
-            // if we're going out of the view by the top scroll up by one row
-            self.offset.y = self.offset.y.saturating_sub(1);
-        } else if current_position_y.saturating_add(1) >= term_height
-            && self.current_line_number() < self.last_line_number()
-        {
-            // if we're going out of the view by the bottom, scroll down by one row
-            self.offset.y = self.offset.y.saturating_add(1);
-        }
     }
 
     fn refresh_screen(&self) -> Result<(), std::io::Error> {
