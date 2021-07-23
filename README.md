@@ -38,6 +38,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [ ] yank/paste a block
 - [ ] undo/redo
 - [ ] insert newline before/after (`o`, `O`)
+- [ ] Replace current character (`r`)
 
 ### Options
 
