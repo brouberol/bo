@@ -29,17 +29,21 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Go to n% in the file (`%`)
 - [ ] Search text and highlight matches
 - [x] Move cursor by left clicking
-- [ ] Tab navigation
+- [ ] Go to matching parent, bracket, quote, etc
 
 ### Edition
 
-- [ ] Text edition
+- [ ] Create a new file
+- [ ] Open an existing file
+- [ ] Save file
+- [ ] Rename file
+- [ ] Insert character under the cursor
 - [ ] block (word, paragraph, line, etc) with both `d` and `c`
 - [ ] delete a line with `dd`
 - [ ] yank/paste a block
-- [ ] undo/redo
 - [ ] insert newline before/after (`o`, `O`)
 - [ ] Replace current character (`r`)
+- [ ] Replace search matches
 
 ### Options
 
@@ -51,6 +55,13 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [ ] Display help
 - [ ] Save session file with last known cursor position
 - [ ] Restore unsaved edits by regularly saving to a hidden swap file
+- [ ] Command history, browsable with arrows
+
+### Long shot
+- [ ] Multiline edition support
+- [ ] undo/redo
+- [ ] Tab navigation
+- [ ] Fuzzy file finder
 
 ## Inspiration
 
