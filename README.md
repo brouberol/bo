@@ -35,6 +35,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [ ] delete a line with `dd`
 - [ ] yank/paste a block
 - [ ] undo/redo
+- [ ] insert newline before/after (`o`, `O`)
 
 ### Options
 
