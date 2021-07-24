@@ -1,8 +1,5 @@
-#[cfg(debug_assertions)]
-use crate::log;
-use crate::{commands, utils, Document, Mode, Row, Terminal};
+use crate::{commands, utils, Boundary, Document, Mode, Navigator, Row, Terminal};
 use std::cmp;
-use std::collections::HashMap;
 use std::env;
 use std::io::{self, stdout};
 use termion::color;
@@ -47,19 +44,6 @@ pub struct Editor {
     config: Config,
     normal_command_buffer: Vec<String>,
     mouse_event_buffer: Vec<Position>,
-    matching_opening_symbols: HashMap<char, char>,
-    matching_closing_symbols: HashMap<char, char>,
-}
-
-#[derive(PartialEq)]
-enum Boundary {
-    Start,
-    End,
-}
-
-enum Direction {
-    Left,
-    Right,
 }
 
 #[derive(Default, Debug)]
@@ -88,28 +72,6 @@ impl Editor {
             2 => Document::open(&args[1]).unwrap_or_default(),
             _ => panic!("Can't (yet) open multiple files."),
         };
-        let matching_closing_symbols = [
-            ('\'', '\''),
-            ('"', '"'),
-            ('{', '}'),
-            ('<', '>'),
-            ('(', ')'),
-            ('[', ']'),
-        ]
-        .iter()
-        .cloned()
-        .collect();
-        let matching_opening_symbols = [
-            ('\'', '\''),
-            ('"', '"'),
-            ('}', '{'),
-            ('>', '<'),
-            (')', '('),
-            (']', '['),
-        ]
-        .iter()
-        .cloned()
-        .collect();
         Self {
             should_quit: false,
             terminal: Terminal::default().expect("Failed to initialize terminal"),
@@ -122,8 +84,6 @@ impl Editor {
             config: Config::default(),
             normal_command_buffer: vec![],
             mouse_event_buffer: vec![],
-            matching_opening_symbols,
-            matching_closing_symbols,
         }
     }
 
@@ -152,11 +112,6 @@ impl Editor {
             Event::Mouse(mouse_event) => self.process_mouse_event(mouse_event),
             Event::Unsupported(_) => (),
         }
-        #[cfg(debug_assertions)]
-        log(format!(
-            "{:?} Offset= {:?}",
-            self.cursor_position, self.offset
-        ));
         Ok(())
     }
 
@@ -322,8 +277,8 @@ impl Editor {
     /// Execute the provided normal movement command n timess
     fn process_normal_command_n_times(&mut self, c: char, n: usize) {
         match c {
-            'b' => self.goto_start_or_end_of_word(&Boundary::Start, &Direction::Left, n),
-            'w' => self.goto_start_or_end_of_word(&Boundary::End, &Direction::Right, n),
+            'b' => self.goto_start_or_end_of_word(&Boundary::Start, n),
+            'w' => self.goto_start_or_end_of_word(&Boundary::End, n),
             'h' | 'j' | 'k' | 'l' => self.move_cursor(c, n),
             '}' => self.goto_start_or_end_of_paragraph(&Boundary::End, n),
             '{' => self.goto_start_or_end_of_paragraph(&Boundary::Start, n),
@@ -364,51 +319,21 @@ impl Editor {
         self.document.get_row(self.current_row_index()).unwrap()
     }
 
-    /// Return the line number of the last line in the file
-    fn last_line_number(&self) -> usize {
-        self.document.num_rows()
-    }
-
     fn middle_of_screen_line_number(&self) -> usize {
         self.terminal.size().height as usize / 2
-    }
-
-    /// Get the document row corresponding to a given line number
-    fn row_for_line_number(&self, line_number: usize) -> &Row {
-        self.document
-            .get_row(line_number.saturating_sub(1))
-            .unwrap() // rows indices are 0 based
     }
 
     /// Move the cursor to the next line after the current paraghraph, or the line
     /// before the current paragraph.
     fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary, times: usize) {
-        let mut current_line_number = self.current_line_number();
-        let last_line_number = self.last_line_number();
         for _ in 0..times {
-            loop {
-                current_line_number = match boundary {
-                    Boundary::Start => cmp::max(1, current_line_number.saturating_sub(1)),
-                    Boundary::End => {
-                        cmp::min(last_line_number, current_line_number.saturating_add(1))
-                    }
-                };
-                let current_line_followed_by_empty_line =
-                    self // whether both the current and next lines are empty
-                        .row_for_line_number(current_line_number)
-                        .is_whitespace()
-                        && !self
-                            .row_for_line_number(current_line_number - 1)
-                            .is_whitespace();
-                if current_line_number == self.last_line_number()
-                    || current_line_number == 1
-                    || current_line_followed_by_empty_line
-                {
-                    self.goto_line(current_line_number);
-                    self.cursor_position.reset_x();
-                    break;
-                }
-            }
+            let next_line_number = Navigator::find_line_number_of_start_or_end_of_paragraph(
+                &self.document,
+                self.current_line_number(),
+                boundary,
+            );
+            self.goto_line(next_line_number);
+            self.cursor_position.reset_x();
         }
     }
 
@@ -416,7 +341,7 @@ impl Editor {
     fn goto_start_or_end_of_document(&mut self, boundary: &Boundary) {
         match boundary {
             Boundary::Start => self.goto_line(1),
-            Boundary::End => self.goto_line(self.last_line_number()),
+            Boundary::End => self.goto_line(self.document.last_line_number()),
         }
     }
 
@@ -429,67 +354,21 @@ impl Editor {
     }
 
     /// Move to the start of the next word or previous one.
-    /// TODO: refactor Start/Left
-    fn goto_start_or_end_of_word(
-        &mut self,
-        boundary: &Boundary,
-        direction: &Direction,
-        times: usize,
-    ) {
+    fn goto_start_or_end_of_word(&mut self, boundary: &Boundary, times: usize) {
         for _ in 0..times {
-            match (boundary, direction) {
-                (Boundary::End, Direction::Right) => {
-                    let mut current_char = self.current_row().index(self.current_x_position());
-                    for (i, next_char) in self.current_row().chars().enumerate() {
-                        if i < self.current_x_position().saturating_add(1) {
-                            continue;
-                        }
-                        if next_char.is_whitespace() || next_char == '_' || current_char == '_' {
-                            current_char = next_char;
-                            continue;
-                        }
-                        // mirrorred over the look and feel of vim
-                        #[allow(clippy::suspicious_operation_groupings)]
-                        if (current_char.is_ascii_alphabetic() && !next_char.is_ascii_alphabetic())
-                            || (!current_char.is_ascii_alphabetic()
-                                && next_char.is_ascii_alphabetic())
-                            || (current_char.is_ascii_alphanumeric()
-                                && next_char.is_ascii_punctuation())
-                        {
-                            self.cursor_position.x = i;
-                            break;
-                        }
-                        current_char = next_char;
-                    }
-                }
-                (Boundary::Start, Direction::Left) => {
-                    let mut x_offset = 1;
-                    loop {
-                        let prev_index = self.cursor_position.x.saturating_sub(x_offset);
-                        if self.cursor_position.x.saturating_sub(x_offset) == 0 {
-                            self.cursor_position.reset_x();
-                            break;
-                        }
-                        let character = self.current_row().index(prev_index);
-                        if !character.is_ascii_alphanumeric() {
-                            self.cursor_position.x = prev_index;
-                            break;
-                        }
-                        x_offset += 1;
-                    }
-                }
-                _ => (),
-            }
+            let x = Navigator::find_index_of_next_or_previous_word(
+                self.current_row(),
+                self.current_x_position(),
+                boundary,
+            );
+            self.cursor_position.x = x;
         }
     }
 
     /// Move the cursor to the first non whitespace character in the line
     fn goto_first_non_whitespace(&mut self) {
-        for (x, character) in self.current_row().chars().enumerate() {
-            if !character.is_whitespace() {
-                self.cursor_position.x = x;
-                break;
-            }
+        if let Some(x) = Navigator::find_index_of_first_non_whitespace(&self.current_row()) {
+            self.cursor_position.x = x;
         }
     }
 
@@ -520,7 +399,7 @@ impl Editor {
     /// Move to {n}% in the file
     fn goto_percentage_in_document(&mut self, percent: usize) {
         let percent = cmp::min(percent, 100);
-        let line_number = (self.last_line_number() * percent) / 100;
+        let line_number = (self.document.last_line_number() * percent) / 100;
         self.goto_line(line_number)
     }
 
@@ -529,75 +408,23 @@ impl Editor {
         let current_char = self.current_char();
         match current_char {
             '"' | '\'' | '{' | '<' | '(' | '[' => {
-                if let Some(x) = self.find_x_index_of_matching_closing_symbol(current_char) {
+                if let Some(x) = Navigator::find_x_index_of_matching_closing_symbol(
+                    self.current_row(),
+                    self.current_x_position(),
+                ) {
                     self.cursor_position.x = x;
                 }
             }
             '}' | '>' | ')' | ']' => {
-                if let Some(x) = self.find_x_index_of_matching_opening_symbol(current_char) {
+                if let Some(x) = Navigator::find_x_index_of_matching_opening_symbol(
+                    self.current_row(),
+                    self.current_x_position(),
+                ) {
                     self.cursor_position.x = x;
                 }
             }
             _ => (),
         };
-    }
-
-    /// Return the index of the matching closing symbol (eg } for {, etc)
-    fn find_x_index_of_matching_closing_symbol(&self, symbol: char) -> Option<usize> {
-        if self.matching_closing_symbols.get(&symbol).is_some() {
-            let mut stack = vec![symbol];
-            let mut current_opening_symbol = symbol;
-
-            for index in self.current_x_position().saturating_add(1)..self.current_row().len() {
-                let c = self.current_row().index(index);
-                if c == *self
-                    .matching_closing_symbols
-                    .get(&current_opening_symbol)
-                    .unwrap()
-                {
-                    stack.pop();
-                    if stack.is_empty() {
-                        return Some(index);
-                    }
-                    current_opening_symbol = *stack.first().unwrap();
-                } else if self.matching_closing_symbols.contains_key(&c) {
-                    stack.push(c);
-                    current_opening_symbol = c;
-                }
-            }
-            None
-        } else {
-            None
-        }
-    }
-
-    /// Return the index of the matching opening symbol (eg } for {, etc)
-    fn find_x_index_of_matching_opening_symbol(&self, symbol: char) -> Option<usize> {
-        if self.matching_opening_symbols.get(&symbol).is_some() {
-            let mut stack = vec![symbol];
-            let mut current_closing_symbol = symbol;
-
-            for index in (0..self.current_x_position()).rev() {
-                let c = self.current_row().index(index);
-                if c == *self
-                    .matching_opening_symbols
-                    .get(&current_closing_symbol)
-                    .unwrap()
-                {
-                    stack.pop();
-                    if stack.is_empty() {
-                        return Some(index);
-                    }
-                    current_closing_symbol = *stack.first().unwrap();
-                } else if self.matching_opening_symbols.contains_key(&c) {
-                    stack.push(c);
-                    current_closing_symbol = c;
-                }
-            }
-            None
-        } else {
-            None
-        }
     }
 
     /// Move the cursor to the nth line in the file and adjust the viewport
@@ -608,7 +435,7 @@ impl Editor {
             at the middle of the terminal. If the line is within the same view,
             we just move the cursor.
         */
-        let max_line_number = self.last_line_number(); // last line number in the document
+        let max_line_number = self.document.last_line_number(); // last line number in the document
         let line_number = cmp::min(max_line_number, line_number); // we can't go after the last line
         let line_number = cmp::max(1, line_number); // line 0 is line 1, for the same reason
         let term_height = self.terminal.size().height as usize;
@@ -655,7 +482,9 @@ impl Editor {
                     }
                 } // cannot be < 0
                 'j' => {
-                    if y.saturating_add(self.offset.y) < self.last_line_number().saturating_sub(1) {
+                    if y.saturating_add(self.offset.y)
+                        < self.document.last_line_number().saturating_sub(1)
+                    {
                         // don't scroll past the last line in the document
                         if y < term_height {
                             // don't scroll past the confine the of terminal itself
@@ -697,7 +526,7 @@ impl Editor {
         let stats = if self.config.display_stats {
             format!(
                 "{}L/{}W",
-                self.last_line_number(),
+                self.document.last_line_number(),
                 self.document.num_words()
             )
         } else {

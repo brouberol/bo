@@ -2,7 +2,7 @@ use crate::utils;
 use std::cmp;
 use std::str;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Row {
     pub string: String,
 }
@@ -30,6 +30,7 @@ impl Row {
         format!("{}{}", prefix, visible)
     }
 
+    #[must_use]
     pub fn chars(&self) -> std::str::Chars {
         self.string.chars()
     }
@@ -42,6 +43,11 @@ impl Row {
     #[must_use]
     pub fn len(&self) -> usize {
         self.string.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     #[must_use]
