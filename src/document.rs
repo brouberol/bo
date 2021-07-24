@@ -1,6 +1,7 @@
 use crate::Row;
 use std::fmt;
 use std::fs;
+use std::slice::Iter;
 
 #[derive(Default)]
 pub struct Document {
@@ -51,7 +52,7 @@ impl Document {
 
     #[must_use]
     pub fn num_words(&self) -> usize {
-        self.rows.iter().map(Row::num_words).sum()
+        self.iter().map(Row::num_words).sum()
     }
 
     /// Get the document row corresponding to a given line number
@@ -64,5 +65,10 @@ impl Document {
     #[must_use]
     pub fn last_line_number(&self) -> usize {
         self.num_rows()
+    }
+
+    #[must_use]
+    pub fn iter(&self) -> Iter<Row> {
+        self.rows.iter()
     }
 }

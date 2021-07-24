@@ -27,7 +27,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] First non whitespace character in the line (`^`)
 - [x] Support for multi-character commands (e.g. `2j`, `3}`, ...)
 - [x] Go to n% in the file (`%`)
-- [ ] Search text and highlight matches
+- [x] Search text and navigate through matches
 - [x] Move cursor by left clicking
 - [x] Go to matching parent, bracket, quote, etc
 

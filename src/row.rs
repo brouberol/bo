@@ -59,4 +59,14 @@ impl Row {
     pub fn num_words(&self) -> usize {
         self.string.split_whitespace().count()
     }
+
+    #[must_use]
+    pub fn contains(&self, pattern: &str) -> bool {
+        self.string.contains(pattern)
+    }
+
+    #[must_use]
+    pub fn find(&self, pattern: &str) -> Option<usize> {
+        self.string.find(pattern)
+    }
 }

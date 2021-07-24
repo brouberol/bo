@@ -11,6 +11,7 @@ const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
 const COMMAND_PREFIX: char = ':';
+const SEARCH_PREFIX: char = '/';
 const LINE_NUMBER_OFFSET: u8 = 4;
 const START_X: u8 = LINE_NUMBER_OFFSET as u8 + 1;
 
@@ -44,6 +45,8 @@ pub struct Editor {
     config: Config,
     normal_command_buffer: Vec<String>,
     mouse_event_buffer: Vec<Position>,
+    search_matches: Vec<(Position, Position)>,
+    current_search_match_index: usize,
 }
 
 #[derive(Default, Debug)]
@@ -84,6 +87,8 @@ impl Editor {
             config: Config::default(),
             normal_command_buffer: vec![],
             mouse_event_buffer: vec![],
+            search_matches: vec![],
+            current_search_match_index: 0,
         }
     }
 
@@ -174,6 +179,10 @@ impl Editor {
         self.command_buffer.push(COMMAND_PREFIX);
     }
 
+    fn start_receiving_search_pattern(&mut self) {
+        self.command_buffer.push(SEARCH_PREFIX);
+    }
+
     fn stop_receiving_command(&mut self) {
         self.command_buffer = "".to_string();
     }
@@ -199,33 +208,69 @@ impl Editor {
     /// and take appropriate actions
     fn process_received_command(&mut self) {
         let command = self.command_buffer.clone();
-        let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
-        if command.is_empty() {
-        } else if command.chars().all(char::is_numeric) {
-            // :n will get you to line n
-            let line_index = command.parse::<usize>().unwrap();
-            self.goto_line(line_index);
-        } else {
-            match command {
-                commands::QUIT => {
-                    self.should_quit = true;
-                    self.display_message("Bo-bye".to_string());
+        match self.command_buffer.chars().next().unwrap() {
+            SEARCH_PREFIX => {
+                self.process_search_command(command.strip_prefix(SEARCH_PREFIX).unwrap())
+            }
+            COMMAND_PREFIX => {
+                let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
+                if command.is_empty() {
+                } else if command.chars().all(char::is_numeric) {
+                    // :n will get you to line n
+                    let line_index = command.parse::<usize>().unwrap();
+                    self.goto_line(line_index, 1);
+                } else {
+                    match command {
+                        commands::QUIT => {
+                            self.should_quit = true;
+                            self.display_message("Bo-bye".to_string());
+                        }
+                        commands::LINE_LNUMBERS => {
+                            self.config.display_line_numbers =
+                                Config::toggle(self.config.display_line_numbers);
+                            self.cursor_position.x_offset = if self.config.display_line_numbers {
+                                START_X
+                            } else {
+                                0
+                            };
+                        }
+                        commands::STATS => {
+                            self.config.display_stats = Config::toggle(self.config.display_stats);
+                        }
+                        _ => self
+                            .display_message(utils::red(format!("Unknown command '{}'", command))),
+                    }
                 }
-                commands::LINE_LNUMBERS => {
-                    self.config.display_line_numbers =
-                        Config::toggle(self.config.display_line_numbers);
-                    self.cursor_position.x_offset = if self.config.display_line_numbers {
-                        START_X
-                    } else {
-                        0
+            }
+            _ => (),
+        }
+    }
+
+    fn process_search_command(&mut self, search_pattern: &str) {
+        self.search_matches = vec![]; // erase previous search matches
+        self.current_search_match_index = 0;
+        for (row_index, row) in self.document.iter().enumerate() {
+            if row.contains(search_pattern) {
+                if let Some(match_start_index) = row.find(search_pattern) {
+                    let match_start = Position {
+                        x: match_start_index.saturating_add(1), // terminal x position, 1-based
+                        y: row_index.saturating_add(1),         // terminal line number, 1-bases
+                        x_offset: 0,
                     };
+                    let match_end = Position {
+                        x: match_start_index
+                            .saturating_add(1)
+                            .saturating_add(search_pattern.len()),
+                        y: row_index.saturating_add(1),
+                        x_offset: 0,
+                    };
+                    self.search_matches.push((match_start, match_end));
                 }
-                commands::STATS => {
-                    self.config.display_stats = Config::toggle(self.config.display_stats);
-                }
-                _ => self.display_message(utils::red(format!("Unknown command '{}'", command))),
             }
         }
+        self.display_message(format!("{} matches", self.search_matches.len()));
+        self.current_search_match_index = self.search_matches.len().saturating_sub(1);
+        self.goto_next_search_match()
     }
 
     /// Process navigation command issued in normal mode, that will
@@ -253,6 +298,7 @@ impl Editor {
                 }
                 'i' => self.enter_insert_mode(),
                 ':' => self.start_receiving_command(),
+                '/' => self.start_receiving_search_pattern(),
                 'G' => self.goto_start_or_end_of_document(&Boundary::End),
                 'g' => self.goto_start_or_end_of_document(&Boundary::Start),
                 '$' => self.goto_start_or_end_of_line(&Boundary::End),
@@ -261,6 +307,8 @@ impl Editor {
                 'M' => self.goto_middle_of_terminal(),
                 'L' => self.goto_last_line_of_terminal(),
                 'm' => self.goto_matching_closing_symbol(),
+                'n' => self.goto_next_search_match(),
+                'N' => self.goto_previous_search_match(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -332,7 +380,7 @@ impl Editor {
                 self.current_line_number(),
                 boundary,
             );
-            self.goto_line(next_line_number);
+            self.goto_line(next_line_number, 1);
             self.cursor_position.reset_x();
         }
     }
@@ -340,8 +388,8 @@ impl Editor {
     /// Move the cursor either to the first or last line of the document
     fn goto_start_or_end_of_document(&mut self, boundary: &Boundary) {
         match boundary {
-            Boundary::Start => self.goto_line(1),
-            Boundary::End => self.goto_line(self.document.last_line_number()),
+            Boundary::Start => self.goto_line(1, 1),
+            Boundary::End => self.goto_line(self.document.last_line_number(), 1),
         }
     }
 
@@ -373,9 +421,9 @@ impl Editor {
     }
 
     /// Move the cursor to the first column of the nth line
-    fn set_cursor_position_by_line_number(&mut self, line_number: usize) {
+    fn set_cursor_position_by_line_number(&mut self, x_position: usize, line_number: usize) {
         self.cursor_position.y = line_number.saturating_sub(1);
-        self.cursor_position.reset_x()
+        self.cursor_position.x = x_position.saturating_sub(1);
     }
 
     /// Move the cursor to the middle of the terminal
@@ -383,24 +431,28 @@ impl Editor {
         self.goto_line(
             self.middle_of_screen_line_number()
                 .saturating_add(self.offset.y),
+            1,
         );
     }
 
     /// Move the cursor to the middle of the terminal
     fn goto_first_line_of_terminal(&mut self) {
-        self.goto_line(self.offset.y);
+        self.goto_line(self.offset.y, 1);
     }
 
     /// Move the cursor to the middle of the terminal
     fn goto_last_line_of_terminal(&mut self) {
-        self.goto_line((self.terminal.size().height as usize).saturating_add(self.offset.y));
+        self.goto_line(
+            (self.terminal.size().height as usize).saturating_add(self.offset.y),
+            1,
+        );
     }
 
     /// Move to {n}% in the file
     fn goto_percentage_in_document(&mut self, percent: usize) {
         let percent = cmp::min(percent, 100);
         let line_number = (self.document.last_line_number() * percent) / 100;
-        self.goto_line(line_number)
+        self.goto_line(line_number, 1)
     }
 
     /// Go to the matching closing symbol (whether that's a quote, curly/square/regular brace, etc).
@@ -427,8 +479,46 @@ impl Editor {
         };
     }
 
+    /// Move to the first character of the next search match
+    fn goto_next_search_match(&mut self) {
+        if self.current_search_match_index == self.search_matches.len().saturating_sub(1) {
+            self.current_search_match_index = 0;
+        } else {
+            self.current_search_match_index = self.current_search_match_index.saturating_add(1);
+        }
+        self.display_message(format!(
+            "Match {}/{}",
+            self.current_search_match_index.saturating_add(1),
+            self.search_matches.len()
+        ));
+        if let Some(search_match) = self.search_matches.get(self.current_search_match_index) {
+            let x_position = search_match.0.x;
+            let line_number = search_match.0.y;
+            self.goto_line(line_number, x_position);
+        }
+    }
+
+    /// Move to the first character of the previous search match
+    fn goto_previous_search_match(&mut self) {
+        if self.current_search_match_index == 0 {
+            self.current_search_match_index = self.search_matches.len().saturating_sub(1);
+        } else {
+            self.current_search_match_index = self.current_search_match_index.saturating_sub(1);
+        }
+        self.display_message(format!(
+            "Match {}/{}",
+            self.current_search_match_index.saturating_add(1),
+            self.search_matches.len()
+        ));
+        if let Some(search_match) = self.search_matches.get(self.current_search_match_index) {
+            let line_number = search_match.0.y;
+            let x_position = search_match.0.x;
+            self.goto_line(line_number, x_position);
+        }
+    }
+
     /// Move the cursor to the nth line in the file and adjust the viewport
-    fn goto_line(&mut self, line_number: usize) {
+    fn goto_line(&mut self, line_number: usize, x_position: usize) {
         /*
             We want to move to the line `line_number`. If that line is
             out of the view, we need to adjust offset to make sure that we end up
@@ -444,19 +534,19 @@ impl Editor {
         if line_number < middle_of_screen_line_number {
             // move to the first "half-view" of the document
             self.offset.y = 0;
-            self.set_cursor_position_by_line_number(line_number);
+            self.set_cursor_position_by_line_number(x_position, line_number);
         } else if line_number > max_line_number - middle_of_screen_line_number {
             // move to the last "half view" of the document
             self.offset.y = max_line_number - term_height;
-            self.set_cursor_position_by_line_number(line_number - self.offset.y);
+            self.set_cursor_position_by_line_number(x_position, line_number - self.offset.y);
         } else if self.offset.y <= line_number && line_number <= self.offset.y + term_height {
             // move around in the same view
-            self.set_cursor_position_by_line_number(line_number - self.offset.y);
+            self.set_cursor_position_by_line_number(x_position, line_number - self.offset.y);
         } else {
             // move to another view in the document, and position the cursor at the
             // middle of the terminal/view.
             self.offset.y = line_number - middle_of_screen_line_number;
-            self.set_cursor_position_by_line_number(middle_of_screen_line_number);
+            self.set_cursor_position_by_line_number(x_position, middle_of_screen_line_number);
         }
     }
 
