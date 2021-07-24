@@ -49,6 +49,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 
 - [x] toggle line numbers
 - [x] toggle word count stats
+- [ ] toggle line wrapping
 
 ### UX
 
@@ -56,6 +57,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [ ] Save session file with last known cursor position
 - [ ] Restore unsaved edits by regularly saving to a hidden swap file
 - [ ] Command history, browsable with arrows
+- [ ] Support Unicode characters
 
 ### Long shot
 - [ ] Multiline edition support
