@@ -29,7 +29,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Go to n% in the file (`%`)
 - [ ] Search text and highlight matches
 - [x] Move cursor by left clicking
-- [ ] Go to matching parent, bracket, quote, etc
+- [x] Go to matching parent, bracket, quote, etc
 
 ### Edition
 

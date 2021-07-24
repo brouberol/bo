@@ -2,6 +2,7 @@
 use crate::log;
 use crate::{commands, utils, Document, Mode, Row, Terminal};
 use std::cmp;
+use std::collections::HashMap;
 use std::env;
 use std::io::{self, stdout};
 use termion::color;
@@ -46,6 +47,8 @@ pub struct Editor {
     config: Config,
     normal_command_buffer: Vec<String>,
     mouse_event_buffer: Vec<Position>,
+    matching_opening_symbols: HashMap<char, char>,
+    matching_closing_symbols: HashMap<char, char>,
 }
 
 #[derive(PartialEq)]
@@ -85,6 +88,28 @@ impl Editor {
             2 => Document::open(&args[1]).unwrap_or_default(),
             _ => panic!("Can't (yet) open multiple files."),
         };
+        let matching_closing_symbols = [
+            ('\'', '\''),
+            ('"', '"'),
+            ('{', '}'),
+            ('<', '>'),
+            ('(', ')'),
+            ('[', ']'),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+        let matching_opening_symbols = [
+            ('\'', '\''),
+            ('"', '"'),
+            ('}', '{'),
+            ('>', '<'),
+            (')', '('),
+            (']', '['),
+        ]
+        .iter()
+        .cloned()
+        .collect();
         Self {
             should_quit: false,
             terminal: Terminal::default().expect("Failed to initialize terminal"),
@@ -97,6 +122,8 @@ impl Editor {
             config: Config::default(),
             normal_command_buffer: vec![],
             mouse_event_buffer: vec![],
+            matching_opening_symbols,
+            matching_closing_symbols,
         }
     }
 
@@ -278,6 +305,7 @@ impl Editor {
                 'H' => self.goto_first_line_of_terminal(),
                 'M' => self.goto_middle_of_terminal(),
                 'L' => self.goto_last_line_of_terminal(),
+                'm' => self.goto_matching_closing_symbol(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -321,6 +349,11 @@ impl Editor {
         self.cursor_position.x.saturating_add(self.offset.x)
     }
 
+    /// Return the character currently under the cursor
+    fn current_char(&self) -> char {
+        self.current_row().index(self.current_x_position())
+    }
+
     /// Return the line number associated to the current cursor position / vertical offset
     fn current_line_number(&self) -> usize {
         self.current_row_index().saturating_add(1)
@@ -331,6 +364,7 @@ impl Editor {
         self.document.get_row(self.current_row_index()).unwrap()
     }
 
+    /// Return the line number of the last line in the file
     fn last_line_number(&self) -> usize {
         self.document.num_rows()
     }
@@ -339,6 +373,7 @@ impl Editor {
         self.terminal.size().height as usize / 2
     }
 
+    /// Get the document row corresponding to a given line number
     fn row_for_line_number(&self, line_number: usize) -> &Row {
         self.document
             .get_row(line_number.saturating_sub(1))
@@ -487,6 +522,82 @@ impl Editor {
         let percent = cmp::min(percent, 100);
         let line_number = (self.last_line_number() * percent) / 100;
         self.goto_line(line_number)
+    }
+
+    /// Go to the matching closing symbol (whether that's a quote, curly/square/regular brace, etc).
+    fn goto_matching_closing_symbol(&mut self) {
+        let current_char = self.current_char();
+        match current_char {
+            '"' | '\'' | '{' | '<' | '(' | '[' => {
+                if let Some(x) = self.find_x_index_of_matching_closing_symbol(current_char) {
+                    self.cursor_position.x = x;
+                }
+            }
+            '}' | '>' | ')' | ']' => {
+                if let Some(x) = self.find_x_index_of_matching_opening_symbol(current_char) {
+                    self.cursor_position.x = x;
+                }
+            }
+            _ => (),
+        };
+    }
+
+    /// Return the index of the matching closing symbol (eg } for {, etc)
+    fn find_x_index_of_matching_closing_symbol(&self, symbol: char) -> Option<usize> {
+        if self.matching_closing_symbols.get(&symbol).is_some() {
+            let mut stack = vec![symbol];
+            let mut current_opening_symbol = symbol;
+
+            for index in self.current_x_position().saturating_add(1)..self.current_row().len() {
+                let c = self.current_row().index(index);
+                if c == *self
+                    .matching_closing_symbols
+                    .get(&current_opening_symbol)
+                    .unwrap()
+                {
+                    stack.pop();
+                    if stack.is_empty() {
+                        return Some(index);
+                    }
+                    current_opening_symbol = *stack.first().unwrap();
+                } else if self.matching_closing_symbols.contains_key(&c) {
+                    stack.push(c);
+                    current_opening_symbol = c;
+                }
+            }
+            None
+        } else {
+            None
+        }
+    }
+
+    /// Return the index of the matching opening symbol (eg } for {, etc)
+    fn find_x_index_of_matching_opening_symbol(&self, symbol: char) -> Option<usize> {
+        if self.matching_opening_symbols.get(&symbol).is_some() {
+            let mut stack = vec![symbol];
+            let mut current_closing_symbol = symbol;
+
+            for index in (0..self.current_x_position()).rev() {
+                let c = self.current_row().index(index);
+                if c == *self
+                    .matching_opening_symbols
+                    .get(&current_closing_symbol)
+                    .unwrap()
+                {
+                    stack.pop();
+                    if stack.is_empty() {
+                        return Some(index);
+                    }
+                    current_closing_symbol = *stack.first().unwrap();
+                } else if self.matching_opening_symbols.contains_key(&c) {
+                    stack.push(c);
+                    current_closing_symbol = c;
+                }
+            }
+            None
+        } else {
+            None
+        }
     }
 
     /// Move the cursor to the nth line in the file and adjust the viewport
