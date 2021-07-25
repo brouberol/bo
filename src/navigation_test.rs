@@ -15,6 +15,10 @@ fn test_row_word_nav() -> Row {
     Row::from("const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);")
 }
 
+fn test_row_word_nav_unicode() -> Row {
+    Row::from("I \u{9ec} unicode!")
+}
+
 #[test]
 fn test_find_index_of_first_non_whitespace() {
     assert_eq!(
@@ -135,6 +139,11 @@ fn test_is_word_delimiter_true() {
 }
 
 #[test]
+fn test_is_word_delimited_unicode() {
+    assert!(Navigator::is_word_delimiter(' ', '\u{9ec}'));
+}
+
+#[test]
 fn test_find_index_of_next_word() {
     let test_cases: Vec<(usize, usize)> = vec![
         // const STATUS_FG_COLOR
@@ -155,6 +164,29 @@ fn test_find_index_of_next_word() {
         assert_eq!(
             Navigator::find_index_of_next_or_previous_word(
                 &test_row_word_nav(),
+                start_index,
+                &Boundary::End
+            ),
+            expected_next_word_start_index
+        )
+    }
+}
+
+#[test]
+fn test_find_index_of_next_word_with_unicode_chars() {
+    let test_cases: Vec<(usize, usize)> = vec![
+        // I * unicode!
+        // 0.2.4......^11
+        (0, 2),
+        // I * unicode!
+        // 0.2.4......^11
+        (2, 4),
+        (4, 11),
+    ];
+    for (start_index, expected_next_word_start_index) in test_cases {
+        assert_eq!(
+            Navigator::find_index_of_next_or_previous_word(
+                &test_row_word_nav_unicode(),
                 start_index,
                 &Boundary::End
             ),
@@ -185,6 +217,27 @@ fn test_find_index_of_previous_word() {
         assert_eq!(
             Navigator::find_index_of_next_or_previous_word(
                 &test_row_word_nav(),
+                start_index,
+                &Boundary::Start
+            ),
+            expected_next_word_start_index
+        )
+    }
+}
+
+#[test]
+fn test_find_index_of_previous_word_with_unicode() {
+    let test_cases: Vec<(usize, usize)> = vec![
+        // I * unicode!
+        // 0.2.4......^11
+        (11, 4),
+        (4, 2),
+        (2, 0),
+    ];
+    for (start_index, expected_next_word_start_index) in test_cases {
+        assert_eq!(
+            Navigator::find_index_of_next_or_previous_word(
+                &test_row_word_nav_unicode(),
                 start_index,
                 &Boundary::Start
             ),

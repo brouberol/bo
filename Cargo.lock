@@ -13,6 +13,7 @@ name = "bo"
 version = "0.1.0"
 dependencies = [
  "termion",
+ "unicode-segmentation",
 ]
 
 [[package]]
@@ -56,3 +57,9 @@ dependencies = [
  "redox_syscall",
  "redox_termios",
 ]
+
+[[package]]
+name = "unicode-segmentation"
+version = "1.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8895849a949e7845e06bd6dc1aa51731a103c42707010a5b591c0038fb73385b"

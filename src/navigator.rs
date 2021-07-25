@@ -2,28 +2,28 @@ use crate::{Document, Row};
 use std::cmp;
 use std::collections::HashMap;
 
-fn matching_closing_symbols() -> HashMap<char, char> {
+fn matching_closing_symbols() -> HashMap<&'static str, &'static str> {
     [
-        ('\'', '\''),
-        ('"', '"'),
-        ('{', '}'),
-        ('<', '>'),
-        ('(', ')'),
-        ('[', ']'),
+        ("'", "'"),
+        ("\"", "\""),
+        ("{", "}"),
+        ("<", ">"),
+        ("(", ")"),
+        ("[", "]"),
     ]
     .iter()
     .copied()
     .collect()
 }
 
-fn matching_opening_symbols() -> HashMap<char, char> {
+fn matching_opening_symbols() -> HashMap<&'static str, &'static str> {
     [
-        ('\'', '\''),
-        ('"', '"'),
-        ('}', '{'),
-        ('>', '<'),
-        (')', '('),
-        (']', '['),
+        ("'", "'"),
+        ("\"", "\""),
+        ("}", "{"),
+        (">", "<"),
+        (")", "("),
+        ("]", "["),
     ]
     .iter()
     .copied()
@@ -41,7 +41,7 @@ pub struct Navigator {}
 impl Navigator {
     #[must_use]
     pub fn find_index_of_first_non_whitespace(row: &Row) -> Option<usize> {
-        for (x, character) in row.chars().enumerate() {
+        for (x, character) in row.string.chars().enumerate() {
             if !character.is_whitespace() {
                 return Some(x);
             }
@@ -153,13 +153,20 @@ impl Navigator {
     #[allow(clippy::suspicious_operation_groupings)]
     #[must_use]
     // mirrorred over the look and feel of vim
+    // Note: this assumes working on char, and I _think_ is is shaky at best
+    // as we start supporting unicde, as an unicode is made of code points, each
+    // of which is internally represented by a char, so this has no change of _really_ working well.
+    // we should drop that function and try to rely on the string.split_word_bounds
+    // method implemented in the unicode-segmentation crate. However, that crate seems
+    // to drop all characters (eg: heart) that isn't alphabetic.
     pub fn is_word_delimiter(char1: char, char2: char) -> bool {
         if char2.is_whitespace() || char1 == '_' || char2 == '_' {
             return false;
         }
-        (char1.is_ascii_alphabetic() && !char2.is_ascii_alphabetic())
-            || (!char1.is_ascii_alphabetic() && char2.is_ascii_alphabetic())
-            || (char1.is_ascii_alphanumeric() && char2.is_ascii_punctuation())
+        (char1.is_alphabetic() && !char2.is_alphabetic())
+            || (!char1.is_alphabetic() && char2.is_alphabetic())
+            || (char1.is_alphanumeric() && char2.is_ascii_punctuation())
+            || (char1.is_whitespace() && char2.is_alphanumeric())
     }
 
     #[must_use]
@@ -171,7 +178,7 @@ impl Navigator {
         let current_x_index = current_x_position.saturating_add(1);
         match boundary {
             Boundary::End => {
-                let mut current_char = current_row.index(current_x_position);
+                let mut current_char = current_row.nth_char(current_x_position);
                 for (i, next_char) in current_row.chars().skip(current_x_index).enumerate() {
                     if Self::is_word_delimiter(current_char, next_char) {
                         return current_x_index.saturating_add(i);
@@ -182,8 +189,8 @@ impl Navigator {
             }
             Boundary::Start => {
                 for i in (1..current_x_index.saturating_sub(1)).rev() {
-                    let current_char = current_row.index(i);
-                    let prev_char = current_row.index(i.saturating_sub(1));
+                    let current_char = current_row.nth_char(i);
+                    let prev_char = current_row.nth_char(i.saturating_sub(1));
                     if Self::is_word_delimiter(prev_char, current_char) {
                         return i;
                     }

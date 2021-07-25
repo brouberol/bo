@@ -361,7 +361,7 @@ impl Editor {
     }
 
     /// Return the character currently under the cursor
-    fn current_char(&self) -> char {
+    fn current_grapheme(&self) -> &str {
         self.current_row().index(self.current_x_position())
     }
 
@@ -465,9 +465,9 @@ impl Editor {
 
     /// Go to the matching closing symbol (whether that's a quote, curly/square/regular brace, etc).
     fn goto_matching_closing_symbol(&mut self) {
-        let current_char = self.current_char();
-        match current_char {
-            '"' | '\'' | '{' | '<' | '(' | '[' => {
+        let current_grapheme = self.current_grapheme();
+        match current_grapheme {
+            "\"" | "'" | "{" | "<" | "(" | "[" => {
                 if let Some(x) = Navigator::find_x_index_of_matching_closing_symbol(
                     self.current_row(),
                     self.current_x_position(),
@@ -475,7 +475,7 @@ impl Editor {
                     self.cursor_position.x = x;
                 }
             }
-            '}' | '>' | ')' | ']' => {
+            "}" | ">" | ")" | "]" => {
                 if let Some(x) = Navigator::find_x_index_of_matching_opening_symbol(
                     self.current_row(),
                     self.current_x_position(),
