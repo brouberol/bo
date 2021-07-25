@@ -1,4 +1,7 @@
 # bo
+
+[![Tests](https://github.com/brouberol/bo/actions/workflows/tests.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/rust.yml) [![Release](https://github.com/brouberol/bo/actions/workflows/rust-release-binary-on-tag.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/rust-release-binary-on-tag.yml)
+
 My (WIP) personal text editor for prose.
 
 ## Why?
