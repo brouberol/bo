@@ -14,3 +14,7 @@ impl fmt::Display for Mode {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "./mode_test.rs"]
+mod mode_test;

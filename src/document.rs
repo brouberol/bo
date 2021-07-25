@@ -72,3 +72,7 @@ impl Document {
         self.rows.iter()
     }
 }
+
+#[cfg(test)]
+#[path = "./document_test.rs"]
+mod document_test;
