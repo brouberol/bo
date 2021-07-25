@@ -247,8 +247,7 @@ impl Editor {
     }
 
     fn process_search_command(&mut self, search_pattern: &str) {
-        self.search_matches = vec![]; // erase previous search matches
-        self.current_search_match_index = 0;
+        self.reset_search();
         for (row_index, row) in self.document.iter().enumerate() {
             if row.contains(search_pattern) {
                 if let Some(match_start_index) = row.find(search_pattern) {
@@ -273,6 +272,11 @@ impl Editor {
         self.goto_next_search_match()
     }
 
+    fn reset_search(&mut self) {
+        self.search_matches = vec![]; // erase previous search matches
+        self.current_search_match_index = 0;
+    }
+
     /// Process navigation command issued in normal mode, that will
     /// resolve in having the cursor be moved around the document.
     ///
@@ -284,6 +288,10 @@ impl Editor {
     /// of the form <number>*<char> are supported and I'm not sure I'm
     /// planning to support anything more complex than that.
     fn process_normal_command(&mut self, key: Key) {
+        if key == Key::Esc {
+            self.reset_message();
+            self.reset_search();
+        }
         if let Key::Char(c) = key {
             match c {
                 '0' => {
@@ -659,6 +667,10 @@ impl Editor {
 
     fn display_message(&mut self, message: String) {
         self.message = message;
+    }
+
+    fn reset_message(&mut self) {
+        self.message = "".to_string();
     }
 
     fn display_welcome_message(&self) {
