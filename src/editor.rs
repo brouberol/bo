@@ -481,6 +481,9 @@ impl Editor {
 
     /// Move to the first character of the next search match
     fn goto_next_search_match(&mut self) {
+        if self.search_matches.is_empty() {
+            return;
+        }
         if self.current_search_match_index == self.search_matches.len().saturating_sub(1) {
             self.current_search_match_index = 0;
         } else {
@@ -500,6 +503,9 @@ impl Editor {
 
     /// Move to the first character of the previous search match
     fn goto_previous_search_match(&mut self) {
+        if self.search_matches.is_empty() {
+            return;
+        }
         if self.current_search_match_index == 0 {
             self.current_search_match_index = self.search_matches.len().saturating_sub(1);
         } else {
