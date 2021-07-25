@@ -12,8 +12,8 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const PKG: &str = env!("CARGO_PKG_NAME");
 const COMMAND_PREFIX: char = ':';
 const SEARCH_PREFIX: char = '/';
-const LINE_NUMBER_OFFSET: u8 = 4;
-const START_X: u8 = LINE_NUMBER_OFFSET as u8 + 1;
+const LINE_NUMBER_OFFSET: u8 = 4; // number of chars
+const START_X: u8 = LINE_NUMBER_OFFSET as u8; // index, so that's actually an offset of 5 chars
 
 #[derive(Debug, Default)]
 pub struct Position {
