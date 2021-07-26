@@ -29,8 +29,7 @@ impl Row {
         {
             visible.push_str(grapheme);
         }
-        // let visible = self.string.get(start..end).unwrap_or_default().to_string();
-        let padded_numbers = utils::zfill(line_number.to_string(), " ".to_string(), x_offset);
+        let padded_numbers = utils::zfill(&line_number.to_string(), " ", x_offset);
         let prefix = if x_offset == 0 {
             "".to_string()
         } else {

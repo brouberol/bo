@@ -6,7 +6,7 @@ use termion::color;
 /// # Panics
 ///
 /// Can panic if the file can't be written to
-pub fn log(s: String) {
+pub fn log(s: &str) {
     let mut file = fs::OpenOptions::new()
         .write(true)
         .create(true)
@@ -18,13 +18,13 @@ pub fn log(s: String) {
     }
 }
 
-pub fn zfill(s: String, fill_by: String, size: usize) -> String {
+pub fn zfill(s: &str, fill_by: &str, size: usize) -> String {
     if size == 0 {
         return "".to_string();
     }
     format!("{}{}", fill_by.repeat(size - s.len()), s)
 }
 
-pub fn red(s: String) -> String {
+pub fn red(s: &str) -> String {
     format!("{}{}{}", color::Fg(color::Red), s, color::Fg(color::Reset))
 }

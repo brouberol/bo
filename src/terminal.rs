@@ -1,4 +1,5 @@
 use crate::Position;
+use std::cmp;
 use std::fmt;
 use std::io::{self, stdout, Write};
 use termion::color;
@@ -75,16 +76,18 @@ impl Terminal {
         }
     }
 
-    pub fn set_cursor_position(position: &Position) {
+    pub fn set_cursor_position(&mut self, position: &Position) {
         let Position {
             mut x,
             mut y,
             mut x_offset,
         } = position;
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
-        x = x.saturating_add(1);
-        y = y.saturating_add(1);
         x_offset += if x_offset > 0 { 1 } else { 0 };
+        x = x.saturating_add(1);
+        x = cmp::min(x.saturating_add(x_offset.into()), self.size.width.into());
+        y = y.saturating_add(1);
+        y = cmp::min(y, self.size.height.into());
         print!(
             "{}",
             termion::cursor::Goto((x + x_offset as usize) as u16, y as u16)
@@ -100,7 +103,8 @@ impl Terminal {
                 0
             };
             Position {
-                x: x.saturating_sub(1).saturating_sub(offset_adjustment as u16) as usize,
+                x: x.saturating_sub(1)
+                    .saturating_sub(u16::from(offset_adjustment)) as usize,
                 y: y.saturating_sub(1) as usize,
                 x_offset,
             }

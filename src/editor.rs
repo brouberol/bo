@@ -238,7 +238,7 @@ impl Editor {
                             self.config.display_stats = Config::toggle(self.config.display_stats);
                         }
                         _ => self
-                            .display_message(utils::red(format!("Unknown command '{}'", command))),
+                            .display_message(utils::red(&format!("Unknown command '{}'", command))),
                     }
                 }
             }
@@ -345,9 +345,8 @@ impl Editor {
 
     /// Process a command issued when the editor is in normal mode
     fn process_insert_command(&mut self, pressed_key: Key) {
-        match pressed_key {
-            Key::Esc => self.enter_normal_mode(),
-            _ => (),
+        if let Key::Esc = pressed_key {
+            self.enter_normal_mode()
         }
     }
 
@@ -612,14 +611,14 @@ impl Editor {
         self.cursor_position.y = y;
     }
 
-    fn refresh_screen(&self) -> Result<(), std::io::Error> {
+    fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
         Terminal::hide_cursor();
-        Terminal::set_cursor_position(&Position::top_left());
+        self.terminal.set_cursor_position(&Position::top_left());
         if !self.should_quit {
             self.draw_rows();
             self.draw_status_bar();
             self.draw_message_bar();
-            Terminal::set_cursor_position(&self.cursor_position);
+            self.terminal.set_cursor_position(&self.cursor_position);
         }
         Terminal::show_cursor();
         Terminal::flush()
