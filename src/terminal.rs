@@ -6,6 +6,7 @@ use termion::color;
 use termion::event::{Event, MouseEvent};
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
+use termion::screen::{AlternateScreen, ToAlternateScreen, ToMainScreen};
 
 #[derive(Debug)]
 pub struct Size {
@@ -15,7 +16,7 @@ pub struct Size {
 
 pub struct Terminal {
     size: Size,
-    _stdout: MouseTerminal<RawTerminal<std::io::Stdout>>,
+    _stdout: AlternateScreen<MouseTerminal<RawTerminal<std::io::Stdout>>>,
 }
 
 impl fmt::Debug for Terminal {
@@ -33,13 +34,12 @@ impl Terminal {
     /// or if the stdout cannot be put into raw mode.
     pub fn default() -> Result<Self, std::io::Error> {
         let size = termion::terminal_size()?;
-        println!("{:?}", size);
         Ok(Self {
             size: Size {
                 height: size.1.saturating_sub(2), // to leave space for the status and message bars
                 width: size.0,
             },
-            _stdout: MouseTerminal::from(stdout().into_raw_mode()?),
+            _stdout: AlternateScreen::from(MouseTerminal::from(stdout().into_raw_mode()?)),
         })
     }
 
@@ -132,7 +132,20 @@ impl Terminal {
     pub fn set_fg_color(color: color::Rgb) {
         print!("{}", color::Fg(color));
     }
+
     pub fn reset_fg_color() {
         print!("{}", color::Fg(color::Reset));
+    }
+
+    pub fn to_alternate_screen() {
+        print!("{}", ToAlternateScreen);
+    }
+
+    pub fn to_main_screen() {
+        print!("{}", ToMainScreen);
+    }
+
+    pub fn clear_all() {
+        print!("{}", termion::clear::All);
     }
 }

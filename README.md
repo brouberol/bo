@@ -56,7 +56,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 
 ### UX
 
-- [ ] Display help
+- [x] Display help
 - [ ] Save session file with last known cursor position
 - [ ] Restore unsaved edits by regularly saving to a hidden swap file
 - [ ] Command history, browsable with arrows

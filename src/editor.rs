@@ -47,6 +47,7 @@ pub struct Editor {
     mouse_event_buffer: Vec<Position>,
     search_matches: Vec<(Position, Position)>,
     current_search_match_index: usize,
+    alternate_screen: bool,
 }
 
 #[derive(Default, Debug)]
@@ -89,6 +90,7 @@ impl Editor {
             mouse_event_buffer: vec![],
             search_matches: vec![],
             current_search_match_index: 0,
+            alternate_screen: false,
         }
     }
 
@@ -237,6 +239,9 @@ impl Editor {
                         commands::STATS => {
                             self.config.display_stats = Config::toggle(self.config.display_stats);
                         }
+                        commands::HELP => {
+                            self.alternate_screen = true;
+                        }
                         _ => self
                             .display_message(utils::red(&format!("Unknown command '{}'", command))),
                     }
@@ -275,6 +280,11 @@ impl Editor {
     fn reset_search(&mut self) {
         self.search_matches = vec![]; // erase previous search matches
         self.current_search_match_index = 0;
+    }
+
+    fn revert_to_main_screen(&mut self) {
+        self.display_message("".to_string());
+        self.alternate_screen = false;
     }
 
     /// Process navigation command issued in normal mode, that will
@@ -317,6 +327,7 @@ impl Editor {
                 'm' => self.goto_matching_closing_symbol(),
                 'n' => self.goto_next_search_match(),
                 'N' => self.goto_previous_search_match(),
+                'q' => self.revert_to_main_screen(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -615,7 +626,14 @@ impl Editor {
         Terminal::hide_cursor();
         self.terminal.set_cursor_position(&Position::top_left());
         if !self.should_quit {
-            self.draw_rows();
+            if self.alternate_screen {
+                Terminal::clear_all();
+                Terminal::to_alternate_screen();
+                self.draw_help_screen();
+            } else {
+                Terminal::to_main_screen();
+                self.draw_rows();
+            }
             self.draw_status_bar();
             self.draw_message_bar();
             self.terminal.set_cursor_position(&self.cursor_position);
@@ -680,6 +698,58 @@ impl Editor {
         let mut padded_welcome_message = format!("~ {}{}{}", padding, welcome_msg, padding);
         padded_welcome_message.truncate(term_width); // make it fit on screen
         println!("{}\r", padded_welcome_message);
+    }
+
+    fn draw_help_screen(&mut self) {
+        let help_text = "Normal commands\r\n  \
+                            j => move cursor down one row (<n>j moves it by n rows)\r\n  \
+                            k => move cursor up one row (<n>k moves it by n rows)\r\n  \
+                            h => move cursor left (<n>h moves it n times)\r\n  \
+                            l => move cursor right (<n>l moves it n times)\r\n  \
+                            } => move to the end of the current paragraph (<n>} moves n times)\r\n  \
+                            { => move to the start of the current paragraph (<n>{ moves n times)\r\n  \
+                            w => move to the end of the current word (<n>w moves n times)\r\n  \
+                            b => move to the start of the current word (<n>b moves n times)\r\n  \
+                            i => switch to insert mode\r\n  \
+                            g => go to beginining of document\r\n  \
+                            G => go to end of document\r\n  \
+                            0 => go to first character in line\r\n  \
+                            ^ => go to first non-whitespace character in line\r\n  \
+                            $ => go to end of line\r\n  \
+                            H => go to first line in screen\r\n  \
+                            M => go to line in the middle of the screen\r\n  \
+                            L => go to last line in screen\r\n  \
+                           n% => move to n% in the file\r\n  \
+                            / => open search prompt\r\n  \
+                            n => go to next search match\r\n  \
+                            N => go to previous search match\r\n  \
+                            : => open command prompt\r\n\n\
+                        Prompt commands\r\n  \
+                            ln    => toggle line numbers\r\n  \
+                            stats => toggle line/word stats\r\n  \
+                            help  => display this help screen\r\n  \
+                            q     => quit bo\r\n\n\
+                        Insert commands\r\n  \
+                            Esc => go back to normal mode";
+        let help_text_lines = help_text.split('\n');
+        let help_text_lines_count = help_text_lines.count();
+        let term_height = self.terminal.size().height;
+        let v_padding = (term_height - 2 - help_text_lines_count as u16) / 2;
+        let max_line_length = help_text.split('\n').map(str::len).max().unwrap();
+        let h_padding = " ".repeat((self.terminal.size().width as usize - max_line_length) / 2);
+        for _ in 0..=v_padding {
+            println!("\r");
+        }
+        for line in help_text.split('\n') {
+            println!("{}{}\r", h_padding, line);
+        }
+        for _ in 0..=v_padding {
+            println!("\r");
+        }
+        if (v_padding + help_text_lines_count as u16 + v_padding) == (term_height - 1) {
+            println!("\r");
+        }
+        self.display_message("Press q to quit".to_string());
     }
 
     fn draw_rows(&self) {
