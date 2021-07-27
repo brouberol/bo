@@ -225,7 +225,6 @@ impl Editor {
                     match command {
                         commands::QUIT => {
                             self.should_quit = true;
-                            self.display_message("Bo-bye".to_string());
                         }
                         commands::LINE_LNUMBERS => {
                             self.config.display_line_numbers =
