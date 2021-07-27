@@ -68,13 +68,10 @@ fn die(e: &io::Error) {
 }
 
 impl Editor {
-    pub fn default() -> Self {
-        let args: Vec<String> = env::args().collect();
-
-        let document: Document = match args.len() {
-            1 => Document::default(),
-            2 => Document::open(&args[1]).unwrap_or_default(),
-            _ => panic!("Can't (yet) open multiple files."),
+    pub fn default(filename: Option<String>) -> Self {
+        let document: Document = match filename {
+            None => Document::default(),
+            Some(path) => Document::open(path.as_str()).unwrap_or_default(),
         };
         Self {
             should_quit: false,
