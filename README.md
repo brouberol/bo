@@ -32,7 +32,8 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Go to n% in the file (`%`)
 - [x] Search text and navigate through matches
 - [x] Move cursor by left clicking
-- [x] Go to matching parent, bracket, quote, etc
+- [x] Go to matching symbol, bracket, quote, etc
+- [ ] Support multiline goto-matching-symbol
 
 ### Edition
 
@@ -47,6 +48,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [ ] insert newline before/after (`o`, `O`)
 - [ ] Replace current character (`r`)
 - [ ] Replace search matches
+- [ ] Remove trailing space at save
 
 ### Options
 
