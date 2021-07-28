@@ -1,6 +1,7 @@
 use crate::Row;
 use std::fmt;
 use std::fs;
+use std::io::{Error, Write};
 use std::slice::Iter;
 
 #[derive(Default)]
@@ -31,7 +32,7 @@ impl Document {
     ///
     /// Returns an error if a file bearing the provided filename
     /// cannot be open.
-    pub fn open(filename: &str) -> Result<Self, std::io::Error> {
+    pub fn open(filename: &str) -> Result<Self, Error> {
         let file_contents = fs::read_to_string(filename)?;
         let mut rows = Vec::new();
         for line in file_contents.lines() {
@@ -41,6 +42,20 @@ impl Document {
             rows,
             filename: filename.to_string().clone(),
         })
+    }
+
+    /// # Errors
+    ///
+    /// Can return an error if the file can't be created or written to.
+    pub fn save(&self) -> Result<(), Error> {
+        if !self.filename.is_empty() {
+            let mut file = fs::File::create(self.filename.as_str())?;
+            for row in &self.rows {
+                file.write_all(row.as_bytes())?;
+                file.write_all(b"\n")?;
+            }
+        }
+        Ok(())
     }
 
     #[must_use]

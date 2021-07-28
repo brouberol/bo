@@ -87,6 +87,11 @@ impl Row {
     pub fn find(&self, pattern: &str) -> Option<usize> {
         self.string.find(pattern)
     }
+
+    #[must_use]
+    pub fn as_bytes(&self) -> &[u8] {
+        self.string.as_bytes()
+    }
 }
 
 #[cfg(test)]

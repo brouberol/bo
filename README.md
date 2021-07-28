@@ -39,7 +39,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 
 - [x] Create a new file
 - [x] Open an existing file
-- [ ] Save file
+- [x] Save file
 - [ ] Rename file
 - [ ] Insert character under the cursor
 - [ ] block (word, paragraph, line, etc) with both `d` and `c`

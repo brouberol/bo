@@ -257,6 +257,13 @@ impl Editor {
                         commands::HELP => {
                             self.alternate_screen = true;
                         }
+                        commands::SAVE => {
+                            if self.document.save().is_ok() {
+                                self.display_message("File saved successfully".to_string());
+                            } else {
+                                self.display_message(utils::red("Error writing to file!"));
+                            }
+                        }
                         _ => self
                             .display_message(utils::red(&format!("Unknown command '{}'", command))),
                     }
