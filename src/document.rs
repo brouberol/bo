@@ -19,6 +19,14 @@ impl Document {
     pub fn new(rows: Vec<Row>, filename: String) -> Self {
         Self { rows, filename }
     }
+
+    #[must_use]
+    pub fn new_empty(filename: String) -> Self {
+        Self {
+            rows: vec![],
+            filename,
+        }
+    }
     /// # Errors
     ///
     /// Returns an error if a file bearing the provided filename

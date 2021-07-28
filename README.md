@@ -37,7 +37,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 
 ### Edition
 
-- [ ] Create a new file
+- [x] Create a new file
 - [x] Open an existing file
 - [ ] Save file
 - [ ] Rename file

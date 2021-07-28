@@ -232,6 +232,9 @@ impl Editor {
                                 )));
                             }
                         }
+                        commands::NEW => {
+                            self.document = Document::new_empty(cmd_tokens[1].to_string())
+                        }
                         _ => (),
                     }
                 } else {
@@ -737,11 +740,12 @@ impl Editor {
                             N => go to previous search match\r\n  \
                             : => open command prompt\r\n\n\
                         Prompt commands\r\n  \
-                            ln    => toggle line numbers\r\n  \
-                            stats => toggle line/word stats\r\n  \
-                            help  => display this help screen\r\n  \
-                            open  => open a file\r\n  \
-                            q     => quit bo\r\n\n\
+                            help            => display this help screen\r\n  \
+                            ln              => toggle line numbers\r\n  \
+                            new  <filename> => open a new file \r\n  \
+                            open <filename> => open a file\r\n  \
+                            q               => quit bo\r\n  \
+                            stats           => toggle line/word stats\r\n\n\
                         Insert commands\r\n  \
                             Esc => go back to normal mode";
         let help_text_lines = help_text.split('\n');
@@ -773,7 +777,7 @@ impl Editor {
             if let Some(row) = self.document.get_row(terminal_row_idx) {
                 self.draw_row(&row, line_number);
             } else if terminal_row_idx == self.middle_of_screen_line_number()
-                && self.document.is_empty()
+                && self.document.filename.is_empty()
             {
                 self.display_welcome_message();
             } else {
