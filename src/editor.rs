@@ -233,7 +233,8 @@ impl Editor {
                             }
                         }
                         commands::NEW => {
-                            self.document = Document::new_empty(cmd_tokens[1].to_string())
+                            self.document = Document::new_empty(cmd_tokens[1].to_string());
+                            self.enter_insert_mode();
                         }
                         _ => (),
                     }
