@@ -242,7 +242,7 @@ impl Editor {
                         commands::QUIT => {
                             self.should_quit = true;
                         }
-                        commands::LINE_LNUMBERS => {
+                        commands::LINE_NUMBERS => {
                             self.config.display_line_numbers =
                                 Config::toggle(self.config.display_line_numbers);
                             self.cursor_position.x_offset = if self.config.display_line_numbers {
