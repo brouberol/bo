@@ -305,7 +305,7 @@ impl Editor {
     }
 
     fn revert_to_main_screen(&mut self) {
-        self.display_message("".to_string());
+        self.reset_message();
         self.alternate_screen = false;
     }
 
