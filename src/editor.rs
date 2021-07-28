@@ -218,6 +218,22 @@ impl Editor {
                     // :n will get you to line n
                     let line_index = command.parse::<usize>().unwrap();
                     self.goto_line(line_index, 1);
+                } else if command.split(' ').count() > 1 {
+                    let cmd_tokens: Vec<&str> = command.split(' ').collect();
+                    match cmd_tokens[0] {
+                        commands::OPEN => {
+                            if let Ok(document) = Document::open(cmd_tokens[1]) {
+                                self.document = document;
+                                self.reset_message();
+                            } else {
+                                self.display_message(utils::red(&format!(
+                                    "{} not found",
+                                    cmd_tokens[1]
+                                )));
+                            }
+                        }
+                        _ => (),
+                    }
                 } else {
                     match command {
                         commands::QUIT => {
@@ -724,6 +740,7 @@ impl Editor {
                             ln    => toggle line numbers\r\n  \
                             stats => toggle line/word stats\r\n  \
                             help  => display this help screen\r\n  \
+                            open  => open a file\r\n  \
                             q     => quit bo\r\n\n\
                         Insert commands\r\n  \
                             Esc => go back to normal mode";

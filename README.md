@@ -38,7 +38,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 ### Edition
 
 - [ ] Create a new file
-- [ ] Open an existing file
+- [x] Open an existing file
 - [ ] Save file
 - [ ] Rename file
 - [ ] Insert character under the cursor
