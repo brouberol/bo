@@ -33,6 +33,14 @@ impl Position {
 }
 
 #[derive(Debug)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+#[derive(Debug)]
 pub struct Editor {
     should_quit: bool,
     terminal: Terminal,
@@ -217,7 +225,7 @@ impl Editor {
                 } else if command.chars().all(char::is_numeric) {
                     // :n will get you to line n
                     let line_index = command.parse::<usize>().unwrap();
-                    self.goto_line(line_index, 1);
+                    self.goto_line(line_index, 0);
                 } else if command.split(' ').count() > 1 {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
                     match cmd_tokens[0] {
@@ -369,7 +377,10 @@ impl Editor {
         match c {
             'b' => self.goto_start_or_end_of_word(&Boundary::Start, n),
             'w' => self.goto_start_or_end_of_word(&Boundary::End, n),
-            'h' | 'j' | 'k' | 'l' => self.move_cursor(c, n),
+            'h' => self.move_cursor(&Direction::Left, n),
+            'j' => self.move_cursor(&Direction::Down, n),
+            'k' => self.move_cursor(&Direction::Up, n),
+            'l' => self.move_cursor(&Direction::Right, n),
             '}' => self.goto_start_or_end_of_paragraph(&Boundary::End, n),
             '{' => self.goto_start_or_end_of_paragraph(&Boundary::Start, n),
             '%' => self.goto_percentage_in_document(n),
@@ -421,24 +432,25 @@ impl Editor {
                 self.current_line_number(),
                 boundary,
             );
-            self.goto_line(next_line_number, 1);
-            self.cursor_position.reset_x();
+            self.goto_line(next_line_number, 0);
         }
     }
 
     /// Move the cursor either to the first or last line of the document
     fn goto_start_or_end_of_document(&mut self, boundary: &Boundary) {
         match boundary {
-            Boundary::Start => self.goto_line(1, 1),
-            Boundary::End => self.goto_line(self.document.last_line_number(), 1),
+            Boundary::Start => self.goto_line(1, 0),
+            Boundary::End => self.goto_line(self.document.last_line_number().saturating_add(1), 0),
         }
     }
 
     /// Move the cursor either to the start or end of the line
     fn goto_start_or_end_of_line(&mut self, boundary: &Boundary) {
         match boundary {
-            Boundary::Start => self.cursor_position.reset_x(),
-            Boundary::End => self.cursor_position.x = self.current_row().len().saturating_sub(1),
+            Boundary::Start => self.move_cursor_to_position_x(0),
+            Boundary::End => {
+                self.move_cursor_to_position_x(self.current_row().len().saturating_sub(1))
+            }
         }
     }
 
@@ -450,21 +462,15 @@ impl Editor {
                 self.current_x_position(),
                 boundary,
             );
-            self.cursor_position.x = x;
+            self.move_cursor_to_position_x(x);
         }
     }
 
     /// Move the cursor to the first non whitespace character in the line
     fn goto_first_non_whitespace(&mut self) {
         if let Some(x) = Navigator::find_index_of_first_non_whitespace(&self.current_row()) {
-            self.cursor_position.x = x;
+            self.move_cursor_to_position_x(x);
         }
-    }
-
-    /// Move the cursor to the first column of the nth line
-    fn set_cursor_position_by_line_number(&mut self, x_position: usize, line_number: usize) {
-        self.cursor_position.y = line_number.saturating_sub(1);
-        self.cursor_position.x = x_position.saturating_sub(1);
     }
 
     /// Move the cursor to the middle of the terminal
@@ -472,20 +478,22 @@ impl Editor {
         self.goto_line(
             self.middle_of_screen_line_number()
                 .saturating_add(self.offset.y),
-            1,
+            0,
         );
     }
 
     /// Move the cursor to the middle of the terminal
     fn goto_first_line_of_terminal(&mut self) {
-        self.goto_line(self.offset.y, 1);
+        self.goto_line(self.offset.y.saturating_add(1), 0);
     }
 
-    /// Move the cursor to the middle of the terminal
+    /// Move the cursor to the last line of the terminal
     fn goto_last_line_of_terminal(&mut self) {
         self.goto_line(
-            (self.terminal.size().height as usize).saturating_add(self.offset.y),
-            1,
+            (self.terminal.size().height as usize)
+                .saturating_add(self.offset.y)
+                .saturating_add(1),
+            0,
         );
     }
 
@@ -493,7 +501,7 @@ impl Editor {
     fn goto_percentage_in_document(&mut self, percent: usize) {
         let percent = cmp::min(percent, 100);
         let line_number = (self.document.last_line_number() * percent) / 100;
-        self.goto_line(line_number, 1)
+        self.goto_line(line_number, 0)
     }
 
     /// Go to the matching closing symbol (whether that's a quote, curly/square/regular brace, etc).
@@ -566,39 +574,18 @@ impl Editor {
 
     /// Move the cursor to the nth line in the file and adjust the viewport
     fn goto_line(&mut self, line_number: usize, x_position: usize) {
-        /*
-            We want to move to the line `line_number`. If that line is
-            out of the view, we need to adjust offset to make sure that we end up
-            at the middle of the terminal. If the line is within the same view,
-            we just move the cursor.
-        */
-        let max_line_number = self.document.last_line_number(); // last line number in the document
-        let line_number = cmp::min(max_line_number, line_number); // we can't go after the last line
-        let line_number = cmp::max(1, line_number); // line 0 is line 1, for the same reason
-        let term_height = self.terminal.size().height as usize;
-        let middle_of_screen_line_number = self.middle_of_screen_line_number(); // number of the row in the middle of the terminal
+        let y = line_number.saturating_sub(1);
+        self.goto_x_y(x_position, y);
+    }
 
-        if line_number < middle_of_screen_line_number {
-            // move to the first "half-view" of the document
-            self.offset.y = 0;
-            self.set_cursor_position_by_line_number(x_position, line_number);
-        } else if line_number > max_line_number - middle_of_screen_line_number {
-            // move to the last "half view" of the document
-            self.offset.y = max_line_number - term_height;
-            self.set_cursor_position_by_line_number(x_position, line_number - self.offset.y);
-        } else if self.offset.y <= line_number && line_number <= self.offset.y + term_height {
-            // move around in the same view
-            self.set_cursor_position_by_line_number(x_position, line_number - self.offset.y);
-        } else {
-            // move to another view in the document, and position the cursor at the
-            // middle of the terminal/view.
-            self.offset.y = line_number - middle_of_screen_line_number;
-            self.set_cursor_position_by_line_number(x_position, middle_of_screen_line_number);
-        }
+    /// Move the cursor to the first column of the nth line
+    fn goto_x_y(&mut self, x: usize, y: usize) {
+        self.move_cursor_to_position_x(x);
+        self.move_cursor_to_position_y(y);
     }
 
     /// Move the cursor up/down/left/right by adjusting its x/y position
-    fn move_cursor(&mut self, c: char, times: usize) {
+    fn move_cursor(&mut self, direction: &Direction, times: usize) {
         let size = self.terminal.size();
         let term_height = size.height.saturating_sub(1) as usize;
         let term_width = size.width.saturating_sub(1) as usize;
@@ -608,18 +595,24 @@ impl Editor {
             x_offset: _,
         } = self.cursor_position;
 
+        let Position {
+            x: mut offset_x,
+            y: mut offset_y,
+            x_offset: _,
+        } = self.offset;
+
         for _ in 0..times {
-            match c {
-                'k' => {
+            match direction {
+                Direction::Up => {
                     if y == 0 {
                         // we reached the top of the terminal so adjust offset instead
-                        self.offset.y = self.offset.y.saturating_sub(1);
+                        offset_y = offset_y.saturating_sub(1);
                     } else {
                         y = y.saturating_sub(1);
                     }
                 } // cannot be < 0
-                'j' => {
-                    if y.saturating_add(self.offset.y)
+                Direction::Down => {
+                    if y.saturating_add(offset_y)
                         < self.document.last_line_number().saturating_sub(1)
                     {
                         // don't scroll past the last line in the document
@@ -628,21 +621,73 @@ impl Editor {
                             y = y.saturating_add(1);
                         } else {
                             // increase offset to that scrolling adjusts the viewport
-                            self.offset.y = self.offset.y.saturating_add(1);
+                            offset_y = offset_y.saturating_add(1);
                         }
                     }
                 }
-                'h' => x = cmp::max(x.saturating_sub(1), 0), // cannot be < 0
-                'l' => {
-                    if x < term_width {
-                        x = x.saturating_add(1);
+                Direction::Left => {
+                    x = cmp::max(x.saturating_sub(1), 0); // cannot be < 0
+                    if x > 0 {
+                        if x >= term_width {
+                            offset_x = offset_x.saturating_sub(1);
+                        } else {
+                            x = x.saturating_sub(1);
+                        }
                     }
                 }
-                _ => (),
+                Direction::Right => {
+                    if x.saturating_add(offset_x) < self.current_row().len().saturating_sub(1) {
+                        if x < term_width {
+                            x = x.saturating_add(1);
+                        } else {
+                            offset_x = offset_x.saturating_add(1)
+                        }
+                    }
+                }
             }
         }
         self.cursor_position.x = x;
         self.cursor_position.y = y;
+        self.offset.x = offset_x;
+        self.offset.y = offset_y;
+    }
+
+    fn move_cursor_to_position_y(&mut self, y: usize) {
+        let max_line_number = self.document.last_line_number(); // last line number in the document
+        let term_height = self.terminal.size().height as usize;
+        let middle_of_screen_line_number = self.middle_of_screen_line_number(); // number of the line in the middle of the terminal
+
+        let y = cmp::max(0, y);
+        let y = cmp::min(y, max_line_number);
+        if y < middle_of_screen_line_number {
+            // move to the first "half-view" of the document
+            self.offset.y = 0;
+            self.cursor_position.y = y;
+        } else if y > max_line_number - middle_of_screen_line_number {
+            // move to the last "half view" of the document
+            self.offset.y = max_line_number - term_height;
+            self.cursor_position.y = y.saturating_sub(self.offset.y);
+        } else if self.offset.y <= y && y <= self.offset.y + term_height {
+            // move around in the same view
+            self.cursor_position.y = y.saturating_sub(self.offset.y);
+        } else {
+            // move to another view in the document, and position the cursor at the
+            // middle of the terminal/view.
+            self.offset.y = y - middle_of_screen_line_number;
+            self.cursor_position.y = middle_of_screen_line_number;
+        }
+    }
+
+    fn move_cursor_to_position_x(&mut self, x: usize) {
+        let term_width = self.terminal.size().width as usize;
+        let x = cmp::max(0, x);
+        if x > term_width {
+            self.cursor_position.x = term_width;
+            self.offset.x = x - term_width;
+        } else {
+            self.cursor_position.x = x;
+            self.offset.x = 0;
+        }
     }
 
     fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
