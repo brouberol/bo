@@ -722,9 +722,12 @@ impl Editor {
             "".to_string()
         };
         let position = format!(
-            "{}:{}",
-            self.cursor_position.x + 1,
-            self.current_line_number()
+            "Ln {}, Col {}",
+            self.current_line_number(),
+            self.cursor_position
+                .x
+                .saturating_add(self.offset.x)
+                .saturating_add(1),
         );
         let right_status = format!("{} {}", stats, position);
         let right_status = right_status.trim_start();
