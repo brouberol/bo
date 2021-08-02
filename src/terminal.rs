@@ -88,10 +88,7 @@ impl Terminal {
         x = cmp::min(x.saturating_add(x_offset.into()), self.size.width.into());
         y = y.saturating_add(1);
         y = cmp::min(y, self.size.height.into());
-        print!(
-            "{}",
-            termion::cursor::Goto((x + x_offset as usize) as u16, y as u16)
-        );
+        print!("{}", termion::cursor::Goto(x as u16, y as u16));
     }
 
     #[must_use]

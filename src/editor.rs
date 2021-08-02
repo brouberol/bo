@@ -845,8 +845,7 @@ impl Editor {
     fn draw_row(&self, row: &Row, line_number: usize) {
         let row_visible_start = self.offset.x;
         let row_visible_end = self.offset.x + self.terminal.size().width as usize
-            - self.cursor_position.x_offset as usize
-            - 1;
+            - self.cursor_position.x_offset as usize;
         let rendered_row = row.render(
             row_visible_start,
             row_visible_end,
