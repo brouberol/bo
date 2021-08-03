@@ -534,6 +534,7 @@ impl Editor {
             terminal
                 .middle_of_screen_line_number()
                 .saturating_add(self.offset.y)
+                .saturating_add(1),
             0,
             terminal,
         );
@@ -549,6 +550,7 @@ impl Editor {
         self.goto_line(
             (terminal.size().height as usize)
                 .saturating_add(self.offset.y)
+                .saturating_add(1),
             0,
             terminal,
         );
