@@ -656,7 +656,7 @@ impl Editor {
                     }
                 }
                 Direction::Right => {
-                    if x.saturating_add(offset_x) < self.current_row().len().saturating_sub(1) {
+                    if x.saturating_add(offset_x) <= self.current_row().len().saturating_sub(1) {
                         if x < term_width {
                             x = x.saturating_add(1);
                         } else {
