@@ -850,6 +850,10 @@ impl Editor {
                             / => open search prompt\r\n  \
                             n => go to next search match\r\n  \
                             N => go to previous search match\r\n  \
+                            d => delete current line\r\n  \
+                            x => delete current character\r\n  \
+                            o => insert newline after current line & enter insert mode\r\n  \
+                            O => insert newline before current line & enter insert mode\r\n  \
                             : => open command prompt\r\n\n\
                         Prompt commands\r\n  \
                             help            => display this help screen\r\n  \
