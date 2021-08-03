@@ -117,6 +117,11 @@ impl Row {
         before.push_str(&after);
         self.string = before;
     }
+
+    /// Append a string at the end of the current one
+    pub fn append(&mut self, other: &Self) {
+        self.string = format!("{}{}", self.string, other.string);
+    }
 }
 
 #[cfg(test)]

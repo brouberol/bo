@@ -113,3 +113,18 @@ fn test_document_delete() {
     });
     assert_eq!(doc.rows.get(1).unwrap().string, "wold");
 }
+
+#[test]
+fn test_document_delete_at_start_of_line() {
+    let mut doc = Document::new(
+        vec![Row::from("Hello"), Row::from("world!")],
+        "test.rs".to_string(),
+    );
+    doc.delete(&Position {
+        x: 0,
+        y: 1,
+        x_offset: 0,
+    });
+    assert_eq!(doc.rows.get(0).unwrap().string, "Helloworld!");
+    assert!(doc.rows.get(1).is_none());
+}

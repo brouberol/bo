@@ -107,3 +107,11 @@ fn test_row_delete() {
     row.delete(2);
     assert_eq!(row.string, "Helo");
 }
+
+#[test]
+fn test_row_append() {
+    let mut row1 = Row::from("Hello!");
+    let row2 = Row::from("world!");
+    row1.append(&row2);
+    assert_eq!(row1.string, "Hello!world!");
+}

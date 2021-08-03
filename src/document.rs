@@ -115,7 +115,13 @@ impl Document {
         if at.y >= self.num_rows() {
             return;
         }
-        if let Some(row) = self.rows.get_mut(at.y) {
+        // Deletion at the very start of a line means we append the current line to the previous one
+        if at.x == 0 && at.y > 0 {
+            let current_row = self.rows.remove(at.y);
+            if let Some(previous_row) = self.rows.get_mut(at.y - 1) {
+                previous_row.append(&current_row);
+            }
+        } else if let Some(row) = self.rows.get_mut(at.y) {
             row.delete(at.x);
         }
     }

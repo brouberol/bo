@@ -397,7 +397,19 @@ impl Editor {
                 self.move_cursor(&Direction::Right, 1)
             }
             Key::Backspace => {
-                if self.cursor_position.x > 0 || self.cursor_position.y > 0 {
+                // When Backspace is pressed on the first column of a line, it means that we
+                // should append the current line with the previous one
+                if self.cursor_position.x == 0 {
+                    if self.cursor_position.y > 0 {
+                        let previous_line_len = self
+                            .document
+                            .get_row(self.cursor_position.y - 1)
+                            .unwrap()
+                            .len();
+                        self.document.delete(&self.cursor_position);
+                        self.goto_x_y(previous_line_len, self.cursor_position.y - 1);
+                    }
+                } else {
                     self.move_cursor(&Direction::Left, 1);
                     self.document.delete(&self.cursor_position);
                 }
