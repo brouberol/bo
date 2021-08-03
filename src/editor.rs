@@ -770,7 +770,7 @@ impl Editor {
         let left_status = format!("[{}] {}", self.document.filename, self.mode);
         let stats = if self.config.display_stats {
             format!(
-                "{}L/{}W",
+                "[{}L/{}W]",
                 self.document.last_line_number(),
                 self.document.num_words()
             )
@@ -817,7 +817,7 @@ impl Editor {
         self.message = "".to_string();
     }
 
-    fn display_welcome_message(&self, terminal: &impl Console) {
+    fn display_welcome_message(terminal: &impl Console) {
         let term_width = terminal.size().width as usize;
         let welcome_msg = format!("{} v{}", PKG, VERSION);
         let padding_len = (term_width - welcome_msg.chars().count() - 2) / 2; // -2 because of the starting '~ '
@@ -891,7 +891,7 @@ impl Editor {
             } else if terminal_row_idx == terminal.middle_of_screen_line_number()
                 && self.document.filename.is_empty()
             {
-                self.display_welcome_message(terminal);
+                Editor::display_welcome_message(terminal);
             } else {
                 println!("~\r");
             }
