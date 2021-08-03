@@ -360,6 +360,8 @@ impl Editor {
                 'N' => self.goto_previous_search_match(),
                 'q' => self.revert_to_main_screen(),
                 'd' => self.delete_current_line(),
+                'o' => self.insert_newline_after_current_line(),
+                'O' => self.insert_newline_before_current_line(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -455,6 +457,33 @@ impl Editor {
     fn delete_current_line(&mut self) {
         self.document.delete_row(&self.cursor_position);
         self.cursor_position.reset_x();
+    }
+
+
+    /// Insert a newline after the current one, move cursor to it in insert mode
+    fn insert_newline_after_current_line(&mut self) {
+        let next_row_index = self.current_row_index().saturating_add(1);
+        let end_of_current_row = Position {
+            x: self.current_row().len(),
+            y: next_row_index,
+            x_offset: 0,
+        };
+        self.document.insert_newline(&end_of_current_row);
+        self.goto_x_y(0, next_row_index);
+        self.enter_insert_mode();
+    }
+
+    /// Insert a newline before the current one, move cursor to it in insert mode
+    fn insert_newline_before_current_line(&mut self) {
+        let previous_row_index = self.current_row_index().saturating_sub(1);
+        let end_of_current_row = Position {
+            x: self.current_row().len(),
+            y: previous_row_index,
+            x_offset: 0,
+        };
+        self.document.insert_newline(&end_of_current_row);
+        self.goto_x_y(0, previous_row_index);
+        self.enter_insert_mode();
     }
 
     /// Move the cursor to the next line after the current paraghraph, or the line
