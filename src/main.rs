@@ -2,6 +2,7 @@
 
 mod commands;
 mod config;
+mod console;
 mod document;
 mod editor;
 mod mode;
@@ -14,6 +15,7 @@ use editor::Editor;
 use structopt::StructOpt;
 
 pub use config::Config;
+pub use console::{Console, Size};
 pub use document::Document;
 pub use editor::Position;
 pub use mode::Mode;
@@ -39,6 +41,7 @@ fn main() {
     if opt.version {
         println!("{}", env!("CARGO_PKG_VERSION"));
     } else {
-        Editor::default(opt.file_name).run();
+        let term = Terminal::default().unwrap();
+        Editor::default(opt.file_name).run(&term);
     }
 }
