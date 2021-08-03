@@ -115,3 +115,11 @@ fn test_row_append() {
     row1.append(&row2);
     assert_eq!(row1.string, "Hello!world!");
 }
+
+#[test]
+fn test_row_split() {
+    let mut row1 = Row::from("Hello world!");
+    let row2 = row1.split(5);
+    assert_eq!(row1.string, "Hello");
+    assert_eq!(row2.string, " world!");
+}

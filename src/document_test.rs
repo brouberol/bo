@@ -127,3 +127,41 @@ fn test_document_delete_at_start_of_line() {
     assert_eq!(doc.rows.get(0).unwrap().string, "Helloworld!");
     assert!(doc.rows.get(1).is_none());
 }
+
+#[test]
+fn test_insert_newline() {
+    let mut doc = Document::new(
+        vec![Row::from("Hello"), Row::from("world!")],
+        "test.rs".to_string(),
+    );
+    doc.insert_newline(&Position {
+        x: 0,
+        y: 0,
+        x_offset: 0,
+    });
+    assert_eq!(doc.rows.get(0).unwrap().string, "");
+    assert_eq!(doc.rows.get(1).unwrap().string, "Hello");
+    assert_eq!(doc.rows.get(2).unwrap().string, "world!");
+
+    doc.insert_newline(&Position {
+        x: 0,
+        y: 2,
+        x_offset: 0,
+    });
+    assert_eq!(doc.rows.get(0).unwrap().string, "");
+    assert_eq!(doc.rows.get(1).unwrap().string, "Hello");
+    assert_eq!(doc.rows.get(2).unwrap().string, "");
+    assert_eq!(doc.rows.get(3).unwrap().string, "world!");
+}
+
+#[test]
+fn test_insert_newline_row_split() {
+    let mut doc = Document::new(vec![Row::from("Hello world!")], "test.rs".to_string());
+    doc.insert_newline(&Position {
+        x: 5,
+        y: 0,
+        x_offset: 0,
+    });
+    assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
+    assert_eq!(doc.rows.get(1).unwrap().string, " world!");
+}

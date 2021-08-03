@@ -122,6 +122,13 @@ impl Row {
     pub fn append(&mut self, other: &Self) {
         self.string = format!("{}{}", self.string, other.string);
     }
+
+    pub fn split(&mut self, at: usize) -> Self {
+        let before: String = self.graphemes().take(at).collect();
+        let after: String = self.graphemes().skip(at).collect();
+        self.string = before;
+        Self::from(&after[..])
+    }
 }
 
 #[cfg(test)]

@@ -134,6 +134,27 @@ impl Document {
             row.delete(at.x);
         }
     }
+
+    pub fn insert_newline(&mut self, at: &Position) {
+        if at.y > self.num_rows() {
+            return;
+        }
+        let current_row = self.rows.get_mut(at.y);
+        if let Some(current_row) = current_row {
+            if at.x < current_row.len().saturating_sub(1) {
+                let split_row = current_row.split(at.x);
+                self.rows.insert(at.y.saturating_add(1), split_row)
+                // newline inserted in the middle of the row
+            } else {
+                let new_row = Row::default();
+                if at.y == self.num_rows() || at.y.saturating_add(1) == self.num_rows() {
+                    self.rows.push(new_row);
+                } else {
+                    self.rows.insert(at.y, new_row)
+                }
+            }
+        }
+    }
 }
 
 #[cfg(test)]

@@ -392,10 +392,6 @@ impl Editor {
     fn process_insert_command(&mut self, pressed_key: Key) {
         match pressed_key {
             Key::Esc => self.enter_normal_mode(),
-            Key::Char(c) => {
-                self.document.insert(c, &self.cursor_position);
-                self.move_cursor(&Direction::Right, 1)
-            }
             Key::Backspace => {
                 // When Backspace is pressed on the first column of a line, it means that we
                 // should append the current line with the previous one
@@ -413,6 +409,14 @@ impl Editor {
                     self.move_cursor(&Direction::Left, 1);
                     self.document.delete(&self.cursor_position);
                 }
+            }
+            Key::Char('\n') => {
+                self.document.insert_newline(&self.cursor_position);
+                self.goto_x_y(0, self.cursor_position.y + 1);
+            }
+            Key::Char(c) => {
+                self.document.insert(c, &self.cursor_position);
+                self.move_cursor(&Direction::Right, 1);
             }
             _ => (),
         }
