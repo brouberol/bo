@@ -359,6 +359,7 @@ impl Editor {
                 'n' => self.goto_next_search_match(),
                 'N' => self.goto_previous_search_match(),
                 'q' => self.revert_to_main_screen(),
+                'd' => self.delete_current_line(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -448,6 +449,12 @@ impl Editor {
 
     fn middle_of_screen_line_number(&self) -> usize {
         self.terminal.size().height as usize / 2
+    }
+
+    /// Delete the line currently under the cursor
+    fn delete_current_line(&mut self) {
+        self.document.delete_row(&self.cursor_position);
+        self.cursor_position.reset_x();
     }
 
     /// Move the cursor to the next line after the current paraghraph, or the line

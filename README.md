@@ -43,7 +43,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [ ] Rename file
 - [x] Insert character under the cursor
 - [ ] block (word, paragraph, line, etc) with both `d` and `c`
-- [ ] delete a line with `dd`
+- [x] delete a line with `dd`
 - [ ] yank/paste a block
 - [ ] insert newline before/after (`o`, `O`)
 - [ ] Replace current character (`r`)
