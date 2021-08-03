@@ -49,9 +49,8 @@ fn test_document_row_for_line_number() {
             .string,
         "Hello world"
     );
-    assert!(Document::new_empty("test.rs".to_string())
-        .row_for_line_number(1)
-        .is_none())
+    assert!(Document::default().row_for_line_number(1).is_some());
+    assert!(Document::default().row_for_line_number(2).is_none());
 }
 
 #[test]

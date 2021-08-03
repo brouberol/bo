@@ -5,7 +5,6 @@ use std::fs;
 use std::io::{Error, Write};
 use std::slice::Iter;
 
-#[derive(Default)]
 pub struct Document {
     rows: Vec<Row>,
     pub filename: String,
@@ -16,6 +15,16 @@ impl fmt::Debug for Document {
         f.debug_struct(self.filename.as_str()).finish()
     }
 }
+
+impl Default for Document {
+    fn default() -> Self {
+        Self {
+            rows: vec![Row::from("")],
+            filename: "".to_string(),
+        }
+    }
+}
+
 impl Document {
     #[must_use]
     pub fn new(rows: Vec<Row>, filename: String) -> Self {
@@ -25,7 +34,7 @@ impl Document {
     #[must_use]
     pub fn new_empty(filename: String) -> Self {
         Self {
-            rows: vec![],
+            rows: vec![Row::from("")],
             filename,
         }
     }
