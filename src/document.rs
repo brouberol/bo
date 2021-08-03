@@ -1,4 +1,5 @@
-use crate::Row;
+use crate::{Position, Row};
+use std::cmp::Ordering;
 use std::fmt;
 use std::fs;
 use std::io::{Error, Write};
@@ -93,6 +94,21 @@ impl Document {
     #[must_use]
     pub fn iter(&self) -> Iter<Row> {
         self.rows.iter()
+    }
+
+    pub fn insert(&mut self, c: char, at: &Position) {
+        match at.y.cmp(&self.num_rows()) {
+            Ordering::Equal | Ordering::Greater => {
+                let mut row = Row::default();
+                row.insert(0, c);
+                self.rows.push(row);
+            }
+            Ordering::Less => {
+                if let Some(row) = self.rows.get_mut(at.y) {
+                    row.insert(at.x, c);
+                }
+            }
+        }
     }
 }
 

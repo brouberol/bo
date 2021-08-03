@@ -92,6 +92,20 @@ impl Row {
     pub fn as_bytes(&self) -> &[u8] {
         self.string.as_bytes()
     }
+
+    /// Insert a character in the provided x index
+    pub fn insert(&mut self, index: usize, c: char) {
+        if index >= self.len() {
+            self.string.push(c); // Append at the end of the row
+        } else {
+            // mid row edition
+            let mut before: String = self.graphemes().take(index).collect();
+            let after: String = self.graphemes().skip(index).collect();
+            before.push(c);
+            before.push_str(&after);
+            self.string = before;
+        }
+    }
 }
 
 #[cfg(test)]

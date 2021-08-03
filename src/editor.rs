@@ -390,8 +390,13 @@ impl Editor {
 
     /// Process a command issued when the editor is in normal mode
     fn process_insert_command(&mut self, pressed_key: Key) {
-        if let Key::Esc = pressed_key {
-            self.enter_normal_mode()
+        match pressed_key {
+            Key::Esc => self.enter_normal_mode(),
+            Key::Char(c) => {
+                self.document.insert(c, &self.cursor_position);
+                self.move_cursor(&Direction::Right, 1)
+            }
+            _ => (),
         }
     }
 

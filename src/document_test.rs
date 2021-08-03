@@ -1,4 +1,4 @@
-use crate::{Document, Row};
+use crate::{Document, Position, Row};
 
 #[test]
 fn test_document_get_row() {
@@ -60,4 +60,31 @@ fn test_document_last_line_number() {
         .last_line_number(),
         2
     );
+}
+
+#[test]
+fn test_document_insert() {
+    let mut doc = Document::new(
+        vec![Row::from("Hello"), Row::from("world!")],
+        "test.rs".to_string(),
+    );
+    doc.insert(
+        ' ',
+        &Position {
+            x: 6,
+            y: 1,
+            x_offset: 0,
+        },
+    );
+    assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
+    assert_eq!(doc.rows.get(1).unwrap().string, "world! ");
+    doc.insert(
+        'W',
+        &Position {
+            x: 0,
+            y: 2,
+            x_offset: 0,
+        },
+    );
+    assert_eq!(doc.rows.get(2).unwrap().string, "W");
 }

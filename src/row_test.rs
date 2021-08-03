@@ -85,3 +85,14 @@ fn test_row_string_chars() {
         [' ', '\u{2764}']
     );
 }
+
+#[test]
+fn test_row_insert() {
+    let mut row = Row::from("Hell");
+    row.insert(4, 'o');
+    assert_eq!(row.string, "Hello");
+    row.insert(8, 'o');
+    assert_eq!(row.string, "Helloo");
+    row.insert(0, '.');
+    assert_eq!(row.string, ".Helloo");
+}
