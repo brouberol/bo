@@ -1,6 +1,7 @@
 #![warn(clippy::all, clippy::pedantic)]
 
 mod commands;
+mod config;
 mod document;
 mod editor;
 mod mode;
@@ -12,6 +13,7 @@ mod utils;
 use editor::Editor;
 use structopt::StructOpt;
 
+pub use config::Config;
 pub use document::Document;
 pub use editor::Position;
 pub use mode::Mode;

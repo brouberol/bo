@@ -1,4 +1,4 @@
-use crate::{commands, utils, Boundary, Document, Mode, Navigator, Row, Terminal};
+use crate::{commands, utils, Boundary, Config, Document, Mode, Navigator, Row, Terminal};
 use std::cmp;
 use std::env;
 use std::io::{self, stdout};
@@ -56,18 +56,6 @@ pub struct Editor {
     search_matches: Vec<(Position, Position)>,
     current_search_match_index: usize,
     alternate_screen: bool,
-}
-
-#[derive(Default, Debug)]
-struct Config {
-    display_line_numbers: bool,
-    display_stats: bool,
-}
-
-impl Config {
-    pub fn toggle(config: bool) -> bool {
-        !config
-    }
 }
 
 fn die(e: &io::Error) {
