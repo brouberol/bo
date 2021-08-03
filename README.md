@@ -41,7 +41,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Open an existing file
 - [x] Save file
 - [ ] Rename file
-- [ ] Insert character under the cursor
+- [x] Insert character under the cursor
 - [ ] block (word, paragraph, line, etc) with both `d` and `c`
 - [ ] delete a line with `dd`
 - [ ] yank/paste a block
@@ -63,6 +63,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [ ] Restore unsaved edits by regularly saving to a hidden swap file
 - [ ] Command history, browsable with arrows
 - [x] Support Unicode characters
+- [ ] Redraw rows when the terminal size changes 
 
 ### Long shot
 - [ ] Multiline edition support
