@@ -410,8 +410,8 @@ impl Editor {
                         self.goto_x_y(previous_line_len, self.cursor_position.y - 1);
                     }
                 } else {
-                    self.move_cursor(&Direction::Left, 1);
                     self.document.delete(&self.cursor_position);
+                    self.move_cursor(&Direction::Left, 1);
                 }
             }
             _ => (),
