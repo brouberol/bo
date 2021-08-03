@@ -344,6 +344,7 @@ impl Editor {
                 'x' => self.delete_current_grapheme(),
                 'o' => self.insert_newline_after_current_line(terminal),
                 'O' => self.insert_newline_before_current_line(terminal),
+                'A' => self.goto_end_of_line_in_insert_mode(terminal),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -465,6 +466,11 @@ impl Editor {
         };
         self.document.insert_newline(&end_of_current_row);
         self.goto_x_y(0, previous_row_index, terminal);
+        self.enter_insert_mode();
+    }
+
+    fn goto_end_of_line_in_insert_mode(&mut self, terminal: &impl Console) {
+        self.goto_start_or_end_of_line(&Boundary::End, terminal);
         self.enter_insert_mode();
     }
 
@@ -854,6 +860,7 @@ impl Editor {
                             x => delete current character\r\n  \
                             o => insert newline after current line & enter insert mode\r\n  \
                             O => insert newline before current line & enter insert mode\r\n  \
+                            A => go to end of line & enter insert moder\n  \
                             : => open command prompt\r\n\n\
                         Prompt commands\r\n  \
                             help            => display this help screen\r\n  \

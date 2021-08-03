@@ -364,6 +364,10 @@ fn test_editor_edition() {
     editor.goto_x_y(0, 0, &console);
     editor.process_keystroke(Key::Char('x'), &console);
     assert_nth_row_is(&editor, 0, "ello world");
+
+    editor.process_keystroke(Key::Char('A'), &console);
+    assert_eq!(editor.mode, Mode::Insert);
+    assert_position_is(&editor, 9, 0);
 }
 
 #[test]
