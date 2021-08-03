@@ -45,9 +45,13 @@ fn test_document_row_for_line_number() {
     assert_eq!(
         Document::new(vec![row1, row2], "test.rs".to_string())
             .row_for_line_number(1)
+            .unwrap()
             .string,
         "Hello world"
     );
+    assert!(Document::new_empty("test.rs".to_string())
+        .row_for_line_number(1)
+        .is_none())
 }
 
 #[test]

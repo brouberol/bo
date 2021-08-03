@@ -134,18 +134,24 @@ impl Navigator {
                     current_line_number.saturating_add(1),
                 ),
             };
-            let current_line_followed_by_empty_line =
-                document // whether both the current and next lines are empty
-                    .row_for_line_number(current_line_number)
-                    .is_whitespace()
-                    && !document
-                        .row_for_line_number(current_line_number - 1)
-                        .is_whitespace();
-            if current_line_number == document.last_line_number()
-                || current_line_number == 1
-                || current_line_followed_by_empty_line
+            if (current_line_number == 1 && boundary == &Boundary::Start)
+                || (current_line_number == document.last_line_number()
+                    && boundary == &Boundary::End)
             {
                 return current_line_number;
+            }
+
+            let current_line = document.row_for_line_number(current_line_number);
+            let previous_line = document.row_for_line_number(current_line_number.saturating_sub(1));
+
+            if let Some(previous_line) = previous_line {
+                if let Some(current_line) = current_line {
+                    let current_line_followed_by_empty_line =
+                        current_line.is_whitespace() && !previous_line.is_whitespace();
+                    if current_line_followed_by_empty_line {
+                        return current_line_number;
+                    }
+                }
             }
         }
     }

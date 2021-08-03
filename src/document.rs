@@ -81,8 +81,8 @@ impl Document {
 
     /// Get the document row corresponding to a given line number
     #[must_use]
-    pub fn row_for_line_number(&self, line_number: usize) -> &Row {
-        self.get_row(line_number.saturating_sub(1)).unwrap() // rows indices are 0 based
+    pub fn row_for_line_number(&self, line_number: usize) -> Option<&Row> {
+        self.get_row(line_number.saturating_sub(1))
     }
 
     /// Return the line number of the last line in the file
