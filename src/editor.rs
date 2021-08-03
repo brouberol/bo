@@ -360,6 +360,7 @@ impl Editor {
                 'N' => self.goto_previous_search_match(),
                 'q' => self.revert_to_main_screen(),
                 'd' => self.delete_current_line(),
+                'x' => self.delete_current_grapheme(),
                 'o' => self.insert_newline_after_current_line(),
                 'O' => self.insert_newline_before_current_line(),
                 _ => {
@@ -459,6 +460,10 @@ impl Editor {
         self.cursor_position.reset_x();
     }
 
+    /// Delete the grapheme currently under the cursor
+    fn delete_current_grapheme(&mut self) {
+        self.document.delete(&self.cursor_position);
+    }
 
     /// Insert a newline after the current one, move cursor to it in insert mode
     fn insert_newline_after_current_line(&mut self) {
