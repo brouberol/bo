@@ -288,8 +288,8 @@ impl Editor {
             if row.contains(search_pattern) {
                 if let Some(match_start_index) = row.find(search_pattern) {
                     let match_start = Position {
-                        x: match_start_index.saturating_add(1), // terminal x position, 1-based
-                        y: row_index.saturating_add(1),         // terminal line number, 1-bases
+                        x: match_start_index,
+                        y: row_index.saturating_add(1), // terminal line number, 1-bases
                         x_offset: 0,
                     };
                     let match_end = Position {
