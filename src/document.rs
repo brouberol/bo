@@ -110,6 +110,15 @@ impl Document {
             }
         }
     }
+
+    pub fn delete(&mut self, at: &Position) {
+        if at.y >= self.num_rows() {
+            return;
+        }
+        if let Some(row) = self.rows.get_mut(at.y) {
+            row.delete(at.x);
+        }
+    }
 }
 
 #[cfg(test)]

@@ -106,6 +106,17 @@ impl Row {
             self.string = before;
         }
     }
+
+    /// Delete the character located at provided index
+    pub fn delete(&mut self, index: usize) {
+        if index >= self.len() {
+            return;
+        }
+        let mut before: String = self.graphemes().take(index).collect();
+        let after: String = self.graphemes().skip(index.saturating_add(1)).collect();
+        before.push_str(&after);
+        self.string = before;
+    }
 }
 
 #[cfg(test)]

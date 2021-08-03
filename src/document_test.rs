@@ -92,3 +92,24 @@ fn test_document_insert() {
     );
     assert_eq!(doc.rows.get(2).unwrap().string, "W");
 }
+
+#[test]
+fn test_document_delete() {
+    let mut doc = Document::new(
+        vec![Row::from("Hello"), Row::from("world!")],
+        "test.rs".to_string(),
+    );
+    doc.delete(&Position {
+        x: 5,
+        y: 1,
+        x_offset: 0,
+    });
+    assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
+    assert_eq!(doc.rows.get(1).unwrap().string, "world");
+    doc.delete(&Position {
+        x: 2,
+        y: 1,
+        x_offset: 0,
+    });
+    assert_eq!(doc.rows.get(1).unwrap().string, "wold");
+}

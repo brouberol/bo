@@ -396,6 +396,12 @@ impl Editor {
                 self.document.insert(c, &self.cursor_position);
                 self.move_cursor(&Direction::Right, 1)
             }
+            Key::Backspace => {
+                if self.cursor_position.x > 0 || self.cursor_position.y > 0 {
+                    self.move_cursor(&Direction::Left, 1);
+                    self.document.delete(&self.cursor_position);
+                }
+            }
             _ => (),
         }
     }
@@ -631,13 +637,10 @@ impl Editor {
                     }
                 }
                 Direction::Left => {
-                    x = cmp::max(x.saturating_sub(1), 0); // cannot be < 0
-                    if x > 0 {
-                        if x >= term_width {
-                            offset_x = offset_x.saturating_sub(1);
-                        } else {
-                            x = x.saturating_sub(1);
-                        }
+                    if x >= term_width {
+                        offset_x = offset_x.saturating_sub(1);
+                    } else {
+                        x = x.saturating_sub(1);
                     }
                 }
                 Direction::Right => {

@@ -96,3 +96,14 @@ fn test_row_insert() {
     row.insert(0, '.');
     assert_eq!(row.string, ".Helloo");
 }
+
+#[test]
+fn test_row_delete() {
+    let mut row = Row::from("Hello!");
+    row.delete(8); // outside the string's boundaries
+    assert_eq!(row.string, "Hello!");
+    row.delete(5);
+    assert_eq!(row.string, "Hello");
+    row.delete(2);
+    assert_eq!(row.string, "Helo");
+}
