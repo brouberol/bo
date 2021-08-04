@@ -22,18 +22,13 @@ impl Row {
         let end = cmp::min(end, self.string.len()); // either stop at terminal end or string end
         let start = cmp::min(start, end);
         let mut visible = String::new();
-        for grapheme in self.string[..]
-            .graphemes(true)
-            .skip(start)
-            .take(end - start)
-        {
+        for grapheme in self.graphemes().skip(start).take(end - start) {
             visible.push_str(grapheme);
         }
-        let padded_numbers = utils::zfill(&line_number.to_string(), " ", x_offset);
         let prefix = if x_offset == 0 {
             "".to_string()
         } else {
-            format!("{} ", padded_numbers)
+            format!("{} ", utils::zfill(&line_number.to_string(), " ", x_offset))
         };
         format!("{}{}", prefix, visible)
     }
