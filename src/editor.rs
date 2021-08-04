@@ -231,9 +231,7 @@ impl Editor {
                     }
                 } else {
                     match command {
-                        commands::QUIT => {
-                            self.should_quit = true;
-                        }
+                        commands::QUIT => self.quit(),
                         commands::LINE_NUMBERS => {
                             self.config.display_line_numbers =
                                 Config::toggle(self.config.display_line_numbers);
@@ -249,12 +247,10 @@ impl Editor {
                         commands::HELP => {
                             self.alternate_screen = true;
                         }
-                        commands::SAVE => {
-                            if self.document.save().is_ok() {
-                                self.display_message("File saved successfully".to_string());
-                            } else {
-                                self.display_message(utils::red("Error writing to file!"));
-                            }
+                        commands::SAVE => self.save(),
+                        commands::SAVE_AND_QUIT => {
+                            self.save();
+                            self.quit();
                         }
                         _ => self
                             .display_message(utils::red(&format!("Unknown command '{}'", command))),
@@ -263,6 +259,18 @@ impl Editor {
             }
             _ => (),
         }
+    }
+
+    fn save(&mut self) {
+        if self.document.save().is_ok() {
+            self.display_message("File saved successfully".to_string());
+        } else {
+            self.display_message(utils::red("Error writing to file!"));
+        }
+    }
+
+    fn quit(&mut self) {
+        self.should_quit = true;
     }
 
     fn process_search_command(&mut self, search_pattern: &str, terminal: &impl Console) {
@@ -870,10 +878,12 @@ impl Editor {
                         Prompt commands\r\n  \
                             help            => display this help screen\r\n  \
                             ln              => toggle line numbers\r\n  \
-                            new  <filename> => open a new file \r\n  \
+                            new  <filename> => open a new file\r\n  \
                             open <filename> => open a file\r\n  \
                             q               => quit bo\r\n  \
-                            stats           => toggle line/word stats\r\n\n\
+                            stats           => toggle line/word stats\r\n  \
+                            w               => save\r\n  \
+                            wq              => save and quit\r\n\n\
                         Insert commands\r\n  \
                             Esc => go back to normal mode";
         let help_text_lines = help_text.split('\n');
