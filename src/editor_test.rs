@@ -446,3 +446,36 @@ fn test_editor_simple_utilities() {
     assert_eq!(editor.current_grapheme(), "H");
     assert_eq!(editor.current_row().string, "Hello world");
 }
+
+#[test]
+fn test_editor_status() {
+    let mut editor = get_test_editor();
+    let console = MockConsole::default();
+
+    assert_eq!(
+        editor.generate_status(&console),
+        format!("[test] NORMAL{}Ln 1, Col 1\r", " ".repeat(96))
+    );
+
+    editor.is_dirty = true;
+    assert_eq!(
+        editor.generate_status(&console),
+        format!("[test] + NORMAL{}Ln 1, Col 1\r", " ".repeat(94))
+    );
+    editor.is_dirty = false;
+
+    editor.cursor_position.x = 1;
+    editor.cursor_position.y = 2;
+    assert_eq!(
+        editor.generate_status(&console),
+        format!("[test] NORMAL{}Ln 3, Col 2\r", " ".repeat(96))
+    );
+    editor.cursor_position.x = 0;
+    editor.cursor_position.y = 0;
+
+    editor.config.display_stats = true;
+    assert_eq!(
+        editor.generate_status(&console),
+        format!("[test] NORMAL{}[3L/6W] Ln 1, Col 1\r", " ".repeat(88))
+    );
+}

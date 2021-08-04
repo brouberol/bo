@@ -54,6 +54,7 @@ pub struct Editor {
     search_matches: Vec<(Position, Position)>,
     current_search_match_index: usize,
     alternate_screen: bool,
+    is_dirty: bool,
 }
 
 fn die(e: &io::Error) {
@@ -81,6 +82,7 @@ impl Editor {
             search_matches: vec![],
             current_search_match_index: 0,
             alternate_screen: false,
+            is_dirty: false,
         }
     }
 
@@ -387,7 +389,10 @@ impl Editor {
     /// Process a command issued when the editor is in normal mode
     fn process_insert_command(&mut self, pressed_key: Key, terminal: &impl Console) {
         match pressed_key {
-            Key::Esc => self.enter_normal_mode(terminal),
+            Key::Esc => {
+                self.enter_normal_mode(terminal);
+                return;
+            }
             Key::Backspace => {
                 // When Backspace is pressed on the first column of a line, it means that we
                 // should append the current line with the previous one
@@ -420,6 +425,7 @@ impl Editor {
             }
             _ => (),
         }
+        self.is_dirty = true;
     }
 
     /// Return the index of the row associated to the current cursor position / vertical offset
@@ -781,7 +787,8 @@ impl Editor {
     }
 
     fn generate_status(&self, terminal: &impl Console) -> String {
-        let left_status = format!("[{}] {}", self.document.filename, self.mode);
+        let dirty_marker = if self.is_dirty { " +" } else { "" };
+        let left_status = format!("[{}]{} {}", self.document.filename, dirty_marker, self.mode);
         let stats = if self.config.display_stats {
             format!(
                 "[{}L/{}W]",
