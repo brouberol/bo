@@ -398,12 +398,14 @@ impl Editor {
                             .get_row(self.cursor_position.y - 1)
                             .unwrap()
                             .len();
-                        self.document.delete(&self.cursor_position);
+                        self.document
+                            .delete(self.current_x_position(), self.current_row_index());
                         self.goto_x_y(previous_line_len, self.cursor_position.y - 1, terminal);
                     }
                 } else {
                     self.move_cursor(&Direction::Left, 1, terminal);
-                    self.document.delete(&self.cursor_position);
+                    self.document
+                        .delete(self.current_x_position(), self.current_row_index());
                 }
             }
             Key::Char('\n') => {
@@ -411,7 +413,8 @@ impl Editor {
                 self.goto_x_y(0, self.cursor_position.y + 1, terminal);
             }
             Key::Char(c) => {
-                self.document.insert(c, &self.cursor_position);
+                self.document
+                    .insert(c, self.current_x_position(), self.current_row_index());
                 self.move_cursor(&Direction::Right, 1, terminal);
             }
             _ => (),
@@ -451,7 +454,8 @@ impl Editor {
 
     /// Delete the grapheme currently under the cursor
     fn delete_current_grapheme(&mut self) {
-        self.document.delete(&self.cursor_position);
+        self.document
+            .delete(self.current_x_position(), self.current_row_index());
     }
 
     /// Insert a newline after the current one, move cursor to it in insert mode

@@ -105,33 +105,33 @@ impl Document {
         self.rows.iter()
     }
 
-    pub fn insert(&mut self, c: char, at: &Position) {
-        match at.y.cmp(&self.num_rows()) {
+    pub fn insert(&mut self, c: char, x: usize, y: usize) {
+        match y.cmp(&self.num_rows()) {
             Ordering::Equal | Ordering::Greater => {
                 let mut row = Row::default();
                 row.insert(0, c);
                 self.rows.push(row);
             }
             Ordering::Less => {
-                if let Some(row) = self.rows.get_mut(at.y) {
-                    row.insert(at.x, c);
+                if let Some(row) = self.rows.get_mut(y) {
+                    row.insert(x, c);
                 }
             }
         }
     }
 
-    pub fn delete(&mut self, at: &Position) {
-        if at.y >= self.num_rows() {
+    pub fn delete(&mut self, x: usize, y: usize) {
+        if y >= self.num_rows() {
             return;
         }
         // Deletion at the very start of a line means we append the current line to the previous one
-        if at.x == 0 && at.y > 0 {
-            let current_row = self.rows.remove(at.y);
-            if let Some(previous_row) = self.rows.get_mut(at.y - 1) {
+        if x == 0 && y > 0 {
+            let current_row = self.rows.remove(y);
+            if let Some(previous_row) = self.rows.get_mut(y - 1) {
                 previous_row.append(&current_row);
             }
-        } else if let Some(row) = self.rows.get_mut(at.y) {
-            row.delete(at.x);
+        } else if let Some(row) = self.rows.get_mut(y) {
+            row.delete(x);
         }
     }
 

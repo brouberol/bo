@@ -71,24 +71,10 @@ fn test_document_insert() {
         vec![Row::from("Hello"), Row::from("world!")],
         "test.rs".to_string(),
     );
-    doc.insert(
-        ' ',
-        &Position {
-            x: 6,
-            y: 1,
-            x_offset: 0,
-        },
-    );
+    doc.insert(' ', 6, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, "world! ");
-    doc.insert(
-        'W',
-        &Position {
-            x: 0,
-            y: 2,
-            x_offset: 0,
-        },
-    );
+    doc.insert('W', 0, 2);
     assert_eq!(doc.rows.get(2).unwrap().string, "W");
 }
 
@@ -98,18 +84,10 @@ fn test_document_delete() {
         vec![Row::from("Hello"), Row::from("world!")],
         "test.rs".to_string(),
     );
-    doc.delete(&Position {
-        x: 5,
-        y: 1,
-        x_offset: 0,
-    });
+    doc.delete(5, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, "world");
-    doc.delete(&Position {
-        x: 2,
-        y: 1,
-        x_offset: 0,
-    });
+    doc.delete(2, 1);
     assert_eq!(doc.rows.get(1).unwrap().string, "wold");
 }
 
@@ -119,11 +97,7 @@ fn test_document_delete_at_start_of_line() {
         vec![Row::from("Hello"), Row::from("world!")],
         "test.rs".to_string(),
     );
-    doc.delete(&Position {
-        x: 0,
-        y: 1,
-        x_offset: 0,
-    });
+    doc.delete(0, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Helloworld!");
     assert!(doc.rows.get(1).is_none());
 }
