@@ -222,5 +222,5 @@ impl Navigator {
 }
 
 #[cfg(test)]
-#[path = "./navigation_test.rs"]
-mod navigation_test;
+#[path = "./navigator_test.rs"]
+mod navigator_test;
