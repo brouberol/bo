@@ -9,6 +9,24 @@ pub struct Size {
     pub width: u16,
 }
 
+impl From<(u16, u16)> for Size {
+    fn from(t: (u16, u16)) -> Self {
+        Self {
+            height: t.1.saturating_sub(2), // to leave space for the status/message bars
+            width: t.0,
+        }
+    }
+}
+
+impl Default for Size {
+    fn default() -> Self {
+        Self {
+            height: 80,
+            width: 120,
+        }
+    }
+}
+
 pub trait Console {
     /// Read the next event from the console input.termion
     ///
@@ -42,7 +60,7 @@ pub trait Console {
 
     fn clear_all(&self);
 
-    fn size(&self) -> &Size;
+    fn size(&self) -> Size;
 
     fn middle_of_screen_line_number(&self) -> usize;
 

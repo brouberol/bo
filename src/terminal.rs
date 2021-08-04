@@ -10,15 +10,12 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, ToAlternateScreen, ToMainScreen};
 
 pub struct Terminal {
-    size: Size,
     _stdout: AlternateScreen<MouseTerminal<RawTerminal<std::io::Stdout>>>,
 }
 
 impl fmt::Debug for Terminal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Terminal")
-            .field("size", &self.size)
-            .finish()
+        f.debug_struct("Terminal").finish()
     }
 }
 
@@ -87,8 +84,8 @@ impl Console for Terminal {
         print!("{}", termion::clear::All);
     }
 
-    fn size(&self) -> &Size {
-        &self.size
+    fn size(&self) -> Size {
+        Size::from(termion::terminal_size().unwrap_or_default())
     }
 
     fn middle_of_screen_line_number(&self) -> usize {
@@ -104,9 +101,9 @@ impl Console for Terminal {
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
         x_offset += if x_offset > 0 { 1 } else { 0 };
         x = x.saturating_add(1);
-        x = cmp::min(x.saturating_add(x_offset.into()), self.size.width.into());
+        x = cmp::min(x.saturating_add(x_offset.into()), self.size().width.into());
         y = y.saturating_add(1);
-        y = cmp::min(y, self.size.height.into());
+        y = cmp::min(y, self.size().height.into());
         print!("{}", termion::cursor::Goto(x as u16, y as u16));
     }
 
@@ -144,12 +141,7 @@ impl Terminal {
     /// will return an error if the terminal size can't be acquired
     /// or if the stdout cannot be put into raw mode.
     pub fn default() -> Result<Self, std::io::Error> {
-        let size = termion::terminal_size()?;
         Ok(Self {
-            size: Size {
-                height: size.1.saturating_sub(2), // to leave space for the status and message bars
-                width: size.0,
-            },
             _stdout: AlternateScreen::from(MouseTerminal::from(stdout().into_raw_mode()?)),
         })
     }

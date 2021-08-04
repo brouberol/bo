@@ -44,11 +44,8 @@ impl Console for MockConsole {
 
     fn set_cursor_as_steady_block(&self) {}
 
-    fn size(&self) -> &Size {
-        &Size {
-            height: 80,
-            width: 120,
-        }
+    fn size(&self) -> Size {
+        Size::default()
     }
 
     fn middle_of_screen_line_number(&self) -> usize {
