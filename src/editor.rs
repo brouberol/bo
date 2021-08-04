@@ -574,19 +574,21 @@ impl Editor {
         let current_grapheme = self.current_grapheme();
         match current_grapheme {
             "\"" | "'" | "{" | "<" | "(" | "[" => {
-                if let Some(x) = Navigator::find_x_index_of_matching_closing_symbol(
-                    self.current_row(),
-                    self.current_x_position(),
+                if let Some(position) = Navigator::find_matching_closing_symbol(
+                    &self.document,
+                    &self.cursor_position,
+                    &self.offset,
                 ) {
-                    self.move_cursor_to_position_x(x, terminal)
+                    self.goto_x_y(position.x, position.y, terminal);
                 }
             }
             "}" | ">" | ")" | "]" => {
-                if let Some(x) = Navigator::find_x_index_of_matching_opening_symbol(
-                    self.current_row(),
-                    self.current_x_position(),
+                if let Some(position) = Navigator::find_matching_opening_symbol(
+                    &self.document,
+                    &self.cursor_position,
+                    &self.offset,
                 ) {
-                    self.move_cursor_to_position_x(x, terminal)
+                    self.goto_x_y(position.x, position.y, terminal);
                 }
             }
             _ => (),

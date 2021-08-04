@@ -33,7 +33,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Search text and navigate through matches
 - [x] Move cursor by left clicking
 - [x] Go to matching symbol, bracket, quote, etc
-- [ ] Support multiline goto-matching-symbol
+- [x] Support multiline goto-matching-symbol
 
 ### Edition
 

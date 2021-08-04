@@ -1,4 +1,4 @@
-use crate::{Boundary, Document, Navigator, Row};
+use crate::{Boundary, Document, Navigator, Position, Row};
 
 fn test_document() -> Document {
     Document::new(
@@ -28,37 +28,156 @@ fn test_find_index_of_first_non_whitespace() {
 }
 
 #[test]
-fn test_find_x_index_of_matching_closing_symbol() {
-    let row = Row::from("Hello(world);");
+fn test_find_matching_closing_symbol() {
+    let doc = Document::new(vec![Row::from("fn test() {}")], "test.txt".to_string());
     assert_eq!(
-        Navigator::find_x_index_of_matching_closing_symbol(&row, 5),
-        Some(11)
+        Navigator::find_matching_closing_symbol(
+            &doc,
+            &Position {
+                x: 7,
+                y: 0,
+                x_offset: 0
+            },
+            &Position {
+                x: 0,
+                y: 0,
+                x_offset: 0
+            },
+        ),
+        Some(Position {
+            x: 8,
+            y: 0,
+            x_offset: 0
+        })
+    );
+}
+#[test]
+fn test_find_matching_closing_symbol_multiline() {
+    let doc = Document::new(
+        vec![
+            Row::from("fn test() {"),
+            Row::from("  return 2;"),
+            Row::from("};"),
+        ],
+        "test.txt".to_string(),
+    );
+    assert_eq!(
+        Navigator::find_matching_closing_symbol(
+            &doc,
+            &Position {
+                x: 10,
+                y: 0,
+                x_offset: 0,
+            },
+            &Position {
+                x: 0,
+                y: 0,
+                x_offset: 0
+            },
+        ),
+        Some(Position {
+            x: 0,
+            y: 2,
+            x_offset: 0
+        })
     );
 }
 
 #[test]
-fn test_find_x_index_of_matching_closing_symbol_no_match() {
-    let row = Row::from("Hello(world;");
+fn test_find_matching_closing_symbol_no_match() {
+    let doc = Document::new(vec![Row::from("fn test( {}")], "test.txt".to_string());
     assert_eq!(
-        Navigator::find_x_index_of_matching_closing_symbol(&row, 5),
+        Navigator::find_matching_closing_symbol(
+            &doc,
+            &Position {
+                x: 7,
+                y: 0,
+                x_offset: 0
+            },
+            &Position {
+                x: 0,
+                y: 0,
+                x_offset: 0
+            },
+        ),
         None
     );
 }
 
 #[test]
-fn test_find_x_index_of_matching_opening_symbol() {
-    let row = Row::from("Hello(world);");
+fn test_find_matching_opening_symbol() {
+    let doc = Document::new(vec![Row::from("fn test() {}")], "test.txt".to_string());
     assert_eq!(
-        Navigator::find_x_index_of_matching_opening_symbol(&row, 11),
-        Some(5)
+        Navigator::find_matching_opening_symbol(
+            &doc,
+            &Position {
+                x: 11,
+                y: 0,
+                x_offset: 0
+            },
+            &Position {
+                x: 0,
+                y: 0,
+                x_offset: 0
+            },
+        ),
+        Some(Position {
+            x: 10,
+            y: 0,
+            x_offset: 0
+        })
     );
 }
 
 #[test]
-fn test_find_x_index_of_matching_opening_symbol_no_match() {
-    let row = Row::from("Helloworld);");
+fn test_find_matching_opening_symbol_multiline() {
+    let doc = Document::new(
+        vec![
+            Row::from("fn test() {"),
+            Row::from("  return 2;"),
+            Row::from("};"),
+        ],
+        "test.txt".to_string(),
+    );
     assert_eq!(
-        Navigator::find_x_index_of_matching_opening_symbol(&row, 11),
+        Navigator::find_matching_opening_symbol(
+            &doc,
+            &Position {
+                x: 0,
+                y: 2,
+                x_offset: 0
+            },
+            &Position {
+                x: 0,
+                y: 0,
+                x_offset: 0
+            },
+        ),
+        Some(Position {
+            x: 10,
+            y: 0,
+            x_offset: 0
+        })
+    );
+}
+
+#[test]
+fn test_find_matching_opening_symbol_no_match() {
+    let doc = Document::new(vec![Row::from("fn test) {}")], "test.txt".to_string());
+    assert_eq!(
+        Navigator::find_matching_opening_symbol(
+            &doc,
+            &Position {
+                x: 7,
+                y: 0,
+                x_offset: 0
+            },
+            &Position {
+                x: 0,
+                y: 0,
+                x_offset: 0
+            },
+        ),
         None
     );
 }

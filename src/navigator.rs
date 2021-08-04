@@ -1,33 +1,19 @@
-use crate::{Document, Row};
+use crate::{Document, Position, Row};
 use std::cmp;
 use std::collections::HashMap;
 
 fn matching_closing_symbols() -> HashMap<&'static str, &'static str> {
-    [
-        ("'", "'"),
-        ("\"", "\""),
-        ("{", "}"),
-        ("<", ">"),
-        ("(", ")"),
-        ("[", "]"),
-    ]
-    .iter()
-    .copied()
-    .collect()
+    [("'", "'"), ("\"", "\""), ("{", "}"), ("(", ")"), ("[", "]")]
+        .iter()
+        .copied()
+        .collect()
 }
 
 fn matching_opening_symbols() -> HashMap<&'static str, &'static str> {
-    [
-        ("'", "'"),
-        ("\"", "\""),
-        ("}", "{"),
-        (">", "<"),
-        (")", "("),
-        ("]", "["),
-    ]
-    .iter()
-    .copied()
-    .collect()
+    [("'", "'"), ("\"", "\""), ("}", "{"), (")", "("), ("]", "[")]
+        .iter()
+        .copied()
+        .collect()
 }
 #[derive(PartialEq)]
 pub enum Boundary {
@@ -53,16 +39,28 @@ impl Navigator {
     /// # Panics
     /// TODO
     #[must_use]
-    pub fn find_x_index_of_matching_closing_symbol(
-        current_row: &Row,
-        current_x_position: usize,
-    ) -> Option<usize> {
-        let symbol = current_row.index(current_x_position);
-        if matching_closing_symbols().get(&symbol).is_some() {
-            let mut stack = vec![symbol];
-            let mut current_opening_symbol = symbol;
-
-            for index in current_x_position.saturating_add(1)..current_row.len() {
+    pub fn find_matching_closing_symbol(
+        document: &Document,
+        current_position: &Position,
+        offset: &Position,
+    ) -> Option<Position> {
+        let initial_col_position = current_position.x.saturating_add(offset.x);
+        let initial_row_position = current_position.y.saturating_add(offset.y);
+        let symbol = document
+            .get_row(initial_row_position)
+            .unwrap()
+            .index(current_position.x.saturating_add(offset.x));
+        let mut stack = vec![symbol];
+        let mut current_opening_symbol = symbol;
+        matching_closing_symbols().get(&symbol)?;
+        for y in initial_row_position..document.num_rows() {
+            let current_row = document.get_row(y).unwrap();
+            let start_x = if y == initial_row_position {
+                initial_col_position.saturating_add(1)
+            } else {
+                0
+            };
+            for index in start_x..current_row.len() {
                 let c = current_row.index(index);
                 if c == *matching_closing_symbols()
                     .get(&current_opening_symbol)
@@ -70,34 +68,48 @@ impl Navigator {
                 {
                     stack.pop();
                     if stack.is_empty() {
-                        return Some(index);
+                        return Some(Position {
+                            x: index,
+                            y,
+                            x_offset: 0,
+                        });
                     }
-                    current_opening_symbol = *stack.first().unwrap();
+                    current_opening_symbol = *stack.last().unwrap();
                 } else if matching_closing_symbols().contains_key(&c) {
                     stack.push(c);
                     current_opening_symbol = c;
                 }
             }
-            None
-        } else {
-            None
         }
+        None
     }
 
     /// Return the index of the matching opening symbol (eg } for {, etc)
     /// # Panics
     /// TODO
     #[must_use]
-    pub fn find_x_index_of_matching_opening_symbol(
-        current_row: &Row,
-        current_x_position: usize,
-    ) -> Option<usize> {
-        let symbol = current_row.index(current_x_position);
-        if matching_opening_symbols().get(&symbol).is_some() {
-            let mut stack = vec![symbol];
-            let mut current_closing_symbol = symbol;
-
-            for index in (0..current_x_position).rev() {
+    pub fn find_matching_opening_symbol(
+        document: &Document,
+        current_position: &Position,
+        offset: &Position,
+    ) -> Option<Position> {
+        let initial_col_position = current_position.x.saturating_add(offset.x);
+        let initial_row_position = current_position.y.saturating_add(offset.y);
+        let symbol = document
+            .get_row(initial_row_position)
+            .unwrap()
+            .index(current_position.x.saturating_add(offset.x));
+        let mut stack = vec![symbol];
+        let mut current_closing_symbol = symbol;
+        matching_opening_symbols().get(&symbol)?;
+        for y in (0..=initial_row_position).rev() {
+            let current_row = document.get_row(y).unwrap();
+            let start_x = if y == initial_row_position {
+                initial_col_position
+            } else {
+                current_row.len()
+            };
+            for index in (0..start_x).rev() {
                 let c = current_row.index(index);
                 if c == *matching_opening_symbols()
                     .get(&current_closing_symbol)
@@ -105,18 +117,20 @@ impl Navigator {
                 {
                     stack.pop();
                     if stack.is_empty() {
-                        return Some(index);
+                        return Some(Position {
+                            x: index,
+                            y,
+                            x_offset: 0,
+                        });
                     }
-                    current_closing_symbol = *stack.first().unwrap();
+                    current_closing_symbol = *stack.last().unwrap();
                 } else if matching_opening_symbols().contains_key(&c) {
                     stack.push(c);
                     current_closing_symbol = c;
                 }
             }
-            None
-        } else {
-            None
         }
+        None
     }
 
     #[must_use]
