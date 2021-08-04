@@ -233,7 +233,8 @@ impl Editor {
                     }
                 } else {
                     match command {
-                        commands::QUIT => self.quit(),
+                        commands::FORCE_QUIT => self.quit(true),
+                        commands::QUIT => self.quit(false),
                         commands::LINE_NUMBERS => {
                             self.config.display_line_numbers =
                                 Config::toggle(self.config.display_line_numbers);
@@ -252,7 +253,7 @@ impl Editor {
                         commands::SAVE => self.save(),
                         commands::SAVE_AND_QUIT => {
                             self.save();
-                            self.quit();
+                            self.quit(false);
                         }
                         _ => self
                             .display_message(utils::red(&format!("Unknown command '{}'", command))),
@@ -266,13 +267,18 @@ impl Editor {
     fn save(&mut self) {
         if self.document.save().is_ok() {
             self.display_message("File saved successfully".to_string());
+            self.is_dirty = false;
         } else {
             self.display_message(utils::red("Error writing to file!"));
         }
     }
 
-    fn quit(&mut self) {
-        self.should_quit = true;
+    fn quit(&mut self, force: bool) {
+        if self.is_dirty && !force {
+            self.display_message(utils::red("Unsaved changes! Run :q! to override"));
+        } else {
+            self.should_quit = true;
+        }
     }
 
     fn process_search_command(&mut self, search_pattern: &str, terminal: &impl Console) {

@@ -479,3 +479,24 @@ fn test_editor_status() {
         format!("[test] NORMAL{}[3L/6W] Ln 1, Col 1\r", " ".repeat(88))
     );
 }
+
+#[test]
+fn test_editor_quit() {
+    let mut editor = get_test_editor();
+    assert!(!editor.should_quit);
+    editor.quit(false);
+    assert!(editor.should_quit);
+
+    editor.should_quit = false;
+    editor.is_dirty = true;
+    assert!(!editor.should_quit);
+    editor.quit(false);
+    assert!(!editor.should_quit);
+    assert_eq!(
+        editor.message,
+        "\u{1b}[38;5;1mUnsaved changes! Run :q! to override\u{1b}[39m"
+    );
+
+    editor.quit(true);
+    assert!(editor.should_quit);
+}
