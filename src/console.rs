@@ -1,5 +1,4 @@
 use crate::Position;
-use core::fmt;
 use std::io::Error;
 use termion::color;
 use termion::event::{Event, MouseEvent};
@@ -21,6 +20,8 @@ pub trait Console {
 
     fn clear_current_line(&self);
 
+    /// # Errors
+    /// Will return an error if the terminal can't be flushed
     fn flush(&self) -> Result<(), Error>;
 
     fn hide_cursor(&self);
@@ -48,10 +49,8 @@ pub trait Console {
     fn get_cursor_index_from_mouse_event(&self, mouse_event: MouseEvent, x_offset: u8) -> Position;
 
     fn set_cursor_position(&self, position: &Position);
-}
 
-impl fmt::Debug for dyn Console {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Console").finish()
-    }
+    fn set_cursor_as_steady_bar(&self);
+
+    fn set_cursor_as_steady_block(&self);
 }

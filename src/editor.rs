@@ -155,12 +155,14 @@ impl Editor {
         }
     }
 
-    fn enter_insert_mode(&mut self) {
+    fn enter_insert_mode(&mut self, terminal: &impl Console) {
         self.mode = Mode::Insert;
+        terminal.set_cursor_as_steady_bar();
     }
 
-    fn enter_normal_mode(&mut self) {
+    fn enter_normal_mode(&mut self, terminal: &impl Console) {
         self.mode = Mode::Normal;
+        terminal.set_cursor_as_steady_block();
     }
 
     fn start_receiving_command(&mut self) {
@@ -223,7 +225,7 @@ impl Editor {
                         }
                         commands::NEW => {
                             self.document = Document::new_empty(cmd_tokens[1].to_string());
-                            self.enter_insert_mode();
+                            self.enter_insert_mode(terminal);
                         }
                         _ => (),
                     }
@@ -326,7 +328,7 @@ impl Editor {
                 '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
                     self.normal_command_buffer.push(c.to_string())
                 }
-                'i' => self.enter_insert_mode(),
+                'i' => self.enter_insert_mode(terminal),
                 ':' => self.start_receiving_command(),
                 '/' => self.start_receiving_search_pattern(),
                 'G' => self.goto_start_or_end_of_document(&Boundary::End, terminal),
@@ -377,7 +379,7 @@ impl Editor {
     /// Process a command issued when the editor is in normal mode
     fn process_insert_command(&mut self, pressed_key: Key, terminal: &impl Console) {
         match pressed_key {
-            Key::Esc => self.enter_normal_mode(),
+            Key::Esc => self.enter_normal_mode(terminal),
             Key::Backspace => {
                 // When Backspace is pressed on the first column of a line, it means that we
                 // should append the current line with the previous one
@@ -454,7 +456,7 @@ impl Editor {
         };
         self.document.insert_newline(&end_of_current_row);
         self.goto_x_y(0, next_row_index, terminal);
-        self.enter_insert_mode();
+        self.enter_insert_mode(terminal);
     }
 
     /// Insert a newline before the current one, move cursor to it in insert mode
@@ -466,13 +468,13 @@ impl Editor {
         };
         self.document.insert_newline(&start_of_current_row);
         self.goto_x_y(0, self.current_row_index(), terminal);
-        self.enter_insert_mode();
+        self.enter_insert_mode(terminal);
     }
 
     fn goto_end_of_line_in_insert_mode(&mut self, terminal: &impl Console) {
         self.goto_start_or_end_of_line(&Boundary::End, terminal);
         self.move_cursor(&Direction::Right, 1, terminal);
-        self.enter_insert_mode();
+        self.enter_insert_mode(terminal);
     }
 
     /// Move the cursor to the next line after the current paraghraph, or the line

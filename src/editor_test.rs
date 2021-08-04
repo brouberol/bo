@@ -11,13 +11,9 @@ impl Console for MockConsole {
         Ok(Event::Key(Key::Char('r')))
     }
 
-    fn clear_screen(&self) {
-        // pass
-    }
+    fn clear_screen(&self) {}
 
-    fn clear_current_line(&self) {
-        // pass
-    }
+    fn clear_current_line(&self) {}
 
     /// # Errors
     ///
@@ -26,41 +22,27 @@ impl Console for MockConsole {
         Ok(())
     }
 
-    fn hide_cursor(&self) {
-        // pass
-    }
+    fn hide_cursor(&self) {}
 
-    fn show_cursor(&self) {
-        // pass
-    }
+    fn show_cursor(&self) {}
 
-    fn set_bg_color(&self, _color: color::Rgb) {
-        // pass
-    }
+    fn set_bg_color(&self, _color: color::Rgb) {}
 
-    fn reset_bg_color(&self) {
-        // pass
-    }
+    fn reset_bg_color(&self) {}
 
-    fn set_fg_color(&self, _color: color::Rgb) {
-        // pass
-    }
+    fn set_fg_color(&self, _color: color::Rgb) {}
 
-    fn reset_fg_color(&self) {
-        // pass
-    }
+    fn reset_fg_color(&self) {}
 
-    fn to_alternate_screen(&self) {
-        // pass
-    }
+    fn to_alternate_screen(&self) {}
 
-    fn to_main_screen(&self) {
-        // pass
-    }
+    fn to_main_screen(&self) {}
 
-    fn clear_all(&self) {
-        // pass
-    }
+    fn clear_all(&self) {}
+
+    fn set_cursor_as_steady_bar(&self) {}
+
+    fn set_cursor_as_steady_block(&self) {}
 
     fn size(&self) -> &Size {
         &Size {
@@ -73,9 +55,7 @@ impl Console for MockConsole {
         self.size().height as usize / 2
     }
 
-    fn set_cursor_position(&self, _position: &Position) {
-        // pass
-    }
+    fn set_cursor_position(&self, _position: &Position) {}
 
     #[must_use]
     fn get_cursor_index_from_mouse_event(
@@ -127,10 +107,11 @@ fn assert_nth_row_is(editor: &Editor, n: usize, s: &str) {
 #[test]
 fn test_editor_enter_mode() {
     let mut editor = get_test_editor();
+    let console = MockConsole::default();
     assert_eq!(editor.mode, Mode::Normal); // default mode
-    editor.enter_insert_mode();
+    editor.enter_insert_mode(&console);
     assert_eq!(editor.mode, Mode::Insert);
-    editor.enter_normal_mode();
+    editor.enter_normal_mode(&console);
     assert_eq!(editor.mode, Mode::Normal);
 }
 

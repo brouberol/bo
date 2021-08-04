@@ -3,6 +3,7 @@ use std::cmp;
 use std::fmt;
 use std::io::{self, stdout, Write};
 use termion::color;
+use termion::cursor::{SteadyBar, SteadyBlock};
 use termion::event::{Event, MouseEvent};
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
@@ -126,6 +127,14 @@ impl Console for Terminal {
         } else {
             Position::top_left()
         }
+    }
+
+    fn set_cursor_as_steady_bar(&self) {
+        print!("{}", SteadyBar);
+    }
+
+    fn set_cursor_as_steady_block(&self) {
+        print!("{}", SteadyBlock);
     }
 }
 
