@@ -471,6 +471,7 @@ impl Editor {
 
     fn goto_end_of_line_in_insert_mode(&mut self, terminal: &impl Console) {
         self.goto_start_or_end_of_line(&Boundary::End, terminal);
+        self.move_cursor(&Direction::Right, 1, terminal);
         self.enter_insert_mode();
     }
 

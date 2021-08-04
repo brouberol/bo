@@ -367,7 +367,7 @@ fn test_editor_edition() {
 
     editor.process_keystroke(Key::Char('A'), &console);
     assert_eq!(editor.mode, Mode::Insert);
-    assert_position_is(&editor, 9, 0);
+    assert_position_is(&editor, 10, 0);
 }
 
 #[test]
