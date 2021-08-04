@@ -341,6 +341,7 @@ fn test_editor_edition() {
     editor.process_keystroke(Key::Char('d'), &console);
     assert_eq!(editor.document.num_rows(), 4);
 
+    editor.goto_x_y(0, 1, &console);
     editor.process_keystroke(Key::Char('i'), &console);
     assert_eq!(editor.mode, Mode::Insert);
     editor.process_keystroke(Key::Char('b'), &console);

@@ -340,7 +340,7 @@ impl Editor {
                 'n' => self.goto_next_search_match(terminal),
                 'N' => self.goto_previous_search_match(terminal),
                 'q' => self.revert_to_main_screen(),
-                'd' => self.delete_current_line(),
+                'd' => self.delete_current_line(terminal),
                 'x' => self.delete_current_grapheme(),
                 'o' => self.insert_newline_after_current_line(terminal),
                 'O' => self.insert_newline_before_current_line(terminal),
@@ -433,9 +433,10 @@ impl Editor {
     }
 
     /// Delete the line currently under the cursor
-    fn delete_current_line(&mut self) {
+    fn delete_current_line(&mut self, terminal: &impl Console) {
         self.document.delete_row(&self.cursor_position);
         self.cursor_position.reset_x();
+        self.move_cursor(&Direction::Up, 1, terminal);
     }
 
     /// Delete the grapheme currently under the cursor

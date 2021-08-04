@@ -158,9 +158,11 @@ impl Document {
 
     pub fn delete_row(&mut self, at: &Position) {
         if at.y > self.num_rows() {
-            return;
-        }
-        if self.rows.get(at.y).is_some() {
+        } else if self.num_rows() == 1 {
+            if let Some(row) = self.rows.get_mut(0) {
+                row.string = "".to_string();
+            }
+        } else if self.rows.get(at.y).is_some() {
             self.rows.remove(at.y);
         }
     }
