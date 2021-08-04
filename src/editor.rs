@@ -448,7 +448,7 @@ impl Editor {
         let next_row_index = self.current_row_index().saturating_add(1);
         let end_of_current_row = Position {
             x: self.current_row().len(),
-            y: next_row_index,
+            y: self.current_row_index(),
             x_offset: 0,
         };
         self.document.insert_newline(&end_of_current_row);
@@ -458,14 +458,13 @@ impl Editor {
 
     /// Insert a newline before the current one, move cursor to it in insert mode
     fn insert_newline_before_current_line(&mut self, terminal: &impl Console) {
-        let previous_row_index = self.current_row_index().saturating_sub(1);
-        let end_of_current_row = Position {
-            x: self.current_row().len(),
-            y: previous_row_index,
+        let start_of_current_row = Position {
+            x: 0,
+            y: self.current_row_index(),
             x_offset: 0,
         };
-        self.document.insert_newline(&end_of_current_row);
-        self.goto_x_y(0, previous_row_index, terminal);
+        self.document.insert_newline(&start_of_current_row);
+        self.goto_x_y(0, self.current_row_index(), terminal);
         self.enter_insert_mode();
     }
 

@@ -325,9 +325,23 @@ fn test_editor_edition() {
 
     assert_eq!(editor.document.num_rows(), 3);
     editor.process_keystroke(Key::Char('o'), &console);
+    assert_position_is(&editor, 0, 1);
     assert_eq!(editor.document.num_rows(), 4);
     assert_nth_row_is(&editor, 1, "");
 
+    editor.process_keystroke(Key::Esc, &console);
+    editor.process_keystroke(Key::Char('O'), &console);
+    assert_position_is(&editor, 0, 1);
+    assert_eq!(editor.document.num_rows(), 5);
+    assert_nth_row_is(&editor, 1, "");
+    assert_nth_row_is(&editor, 2, "");
+
+    editor.process_keystroke(Key::Esc, &console);
+    assert_eq!(editor.document.num_rows(), 5);
+    editor.process_keystroke(Key::Char('d'), &console);
+    assert_eq!(editor.document.num_rows(), 4);
+
+    editor.process_keystroke(Key::Char('i'), &console);
     assert_eq!(editor.mode, Mode::Insert);
     editor.process_keystroke(Key::Char('b'), &console);
     editor.process_keystroke(Key::Char('o'), &console);
@@ -356,12 +370,8 @@ fn test_editor_edition() {
     assert_nth_row_is(&editor, 1, "boo");
     assert_position_is(&editor, 0, 1);
 
-    editor.process_keystroke(Key::Esc, &console);
-    assert_eq!(editor.document.num_rows(), 4);
-    editor.process_keystroke(Key::Char('d'), &console);
-    assert_eq!(editor.document.num_rows(), 3);
-
     editor.goto_x_y(0, 0, &console);
+    editor.process_keystroke(Key::Esc, &console);
     editor.process_keystroke(Key::Char('x'), &console);
     assert_nth_row_is(&editor, 0, "ello world");
 

@@ -150,7 +150,7 @@ impl Document {
                 if at.y == self.num_rows() || at.y.saturating_add(1) == self.num_rows() {
                     self.rows.push(new_row);
                 } else {
-                    self.rows.insert(at.y, new_row)
+                    self.rows.insert(at.y.saturating_add(1), new_row)
                 }
             }
         }
