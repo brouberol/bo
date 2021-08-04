@@ -135,22 +135,22 @@ impl Document {
         }
     }
 
-    pub fn insert_newline(&mut self, at: &Position) {
-        if at.y > self.num_rows() {
+    pub fn insert_newline(&mut self, x: usize, y: usize) {
+        if y > self.num_rows() {
             return;
         }
-        let current_row = self.rows.get_mut(at.y);
+        let current_row = self.rows.get_mut(y);
         if let Some(current_row) = current_row {
-            if at.x < current_row.len().saturating_sub(1) {
-                let split_row = current_row.split(at.x);
-                self.rows.insert(at.y.saturating_add(1), split_row)
+            if x < current_row.len().saturating_sub(1) {
+                let split_row = current_row.split(x);
+                self.rows.insert(y.saturating_add(1), split_row)
                 // newline inserted in the middle of the row
             } else {
                 let new_row = Row::default();
-                if at.y == self.num_rows() || at.y.saturating_add(1) == self.num_rows() {
+                if y == self.num_rows() || y.saturating_add(1) == self.num_rows() {
                     self.rows.push(new_row);
                 } else {
-                    self.rows.insert(at.y.saturating_add(1), new_row)
+                    self.rows.insert(y.saturating_add(1), new_row)
                 }
             }
         }
