@@ -373,8 +373,8 @@ fn test_editor_move_cursor_to_position_x() {
     assert_eq!(editor.offset.x, 0);
 
     editor.move_cursor_to_position_x(140, &console);
-    assert_position_is(&editor, 120, 0);
-    assert_eq!(editor.offset.x, 20);
+    assert_position_is(&editor, 119, 0);
+    assert_eq!(editor.offset.x, 21);
 }
 
 #[test]

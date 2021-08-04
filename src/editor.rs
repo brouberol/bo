@@ -354,7 +354,7 @@ impl Editor {
                 'x' => self.delete_current_grapheme(),
                 'o' => self.insert_newline_after_current_line(terminal),
                 'O' => self.insert_newline_before_current_line(terminal),
-                'A' => self.goto_end_of_line_in_insert_mode(terminal),
+                'A' => self.append_to_line(terminal),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -482,7 +482,7 @@ impl Editor {
         self.enter_insert_mode(terminal);
     }
 
-    fn goto_end_of_line_in_insert_mode(&mut self, terminal: &impl Console) {
+    fn append_to_line(&mut self, terminal: &impl Console) {
         self.goto_start_or_end_of_line(&Boundary::End, terminal);
         self.move_cursor(&Direction::Right, 1, terminal);
         self.enter_insert_mode(terminal);
@@ -760,8 +760,8 @@ impl Editor {
         let term_width = terminal.size().width as usize;
         let x = cmp::max(0, x);
         if x > term_width {
-            self.cursor_position.x = term_width;
-            self.offset.x = x - term_width;
+            self.cursor_position.x = term_width - 1;
+            self.offset.x = x - term_width - self.offset.x + 1;
         } else {
             self.cursor_position.x = x;
             self.offset.x = 0;
