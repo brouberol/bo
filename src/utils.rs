@@ -28,3 +28,14 @@ pub fn zfill(s: &str, fill_by: &str, size: usize) -> String {
 pub fn red(s: &str) -> String {
     format!("{}{}{}", color::Fg(color::Red), s, color::Fg(color::Reset))
 }
+
+pub fn expand_tilde(s: &str) -> String {
+    if !s.contains('~') {
+        return s.to_string();
+    }
+    s.replace("~", env!("HOME"))
+}
+
+#[cfg(test)]
+#[path = "./utils_test.rs"]
+mod utils_test;

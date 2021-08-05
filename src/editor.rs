@@ -66,7 +66,7 @@ impl Editor {
     pub fn default(filename: Option<String>) -> Self {
         let document: Document = match filename {
             None => Document::default(),
-            Some(path) => Document::open(path.as_str()).unwrap_or_default(),
+            Some(path) => Document::open(utils::expand_tilde(&path).as_str()).unwrap_or_default(),
         };
         Self {
             should_quit: false,
