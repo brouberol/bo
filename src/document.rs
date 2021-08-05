@@ -131,7 +131,7 @@ impl Document {
                 previous_row.append(&current_row);
             }
         } else if let Some(row) = self.rows.get_mut(y) {
-            row.delete(x);
+            row.delete(x.saturating_sub(1));
         }
     }
 
