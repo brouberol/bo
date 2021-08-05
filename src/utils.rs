@@ -30,7 +30,7 @@ pub fn red(s: &str) -> String {
 }
 
 pub fn expand_tilde(s: &str) -> String {
-    if !s.contains('~') {
+    if !s.starts_with('~') {
         return s.to_string();
     }
     s.replace("~", env!("HOME"))

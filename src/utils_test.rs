@@ -11,4 +11,5 @@ fn test_zfill() {
 #[test]
 fn test_expand_tilde() {
     assert_eq!(expand_tilde("~/code"), format!("{}/code", env!("HOME")));
+    assert_eq!(expand_tilde("/~code"), "/~code");
 }
