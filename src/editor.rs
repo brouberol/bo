@@ -409,14 +409,12 @@ impl Editor {
                             .get_row(self.cursor_position.y - 1)
                             .unwrap()
                             .len();
-                        self.document
-                            .delete(self.current_x_position(), self.current_row_index());
+                        self.document.delete(self.current_x_position(), self.current_row_index());
                         self.goto_x_y(previous_line_len, self.cursor_position.y - 1, terminal);
                     }
                 } else {
                     self.move_cursor(&Direction::Left, 1, terminal);
-                    self.document
-                        .delete(self.current_x_position(), self.current_row_index());
+                    self.document.delete(self.current_x_position(), self.current_row_index());
                 }
             }
             Key::Char('\n') => {
