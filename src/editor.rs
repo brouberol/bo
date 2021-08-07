@@ -772,7 +772,6 @@ impl Editor {
 
     fn refresh_screen(&mut self, terminal: &impl Console) -> Result<(), std::io::Error> {
         terminal.hide_cursor();
-        terminal.set_cursor_position(&Position::top_left());
         if !self.should_quit {
             if self.alternate_screen {
                 terminal.clear_all();
@@ -784,7 +783,11 @@ impl Editor {
             }
             self.draw_status_bar(terminal);
             self.draw_message_bar(terminal);
-            terminal.set_cursor_position(&self.cursor_position);
+            if self.alternate_screen {
+                terminal.set_cursor_position(&Position::top_left());
+            } else {
+                terminal.set_cursor_position(&self.cursor_position);
+            }
         }
         terminal.show_cursor();
         terminal.flush()
