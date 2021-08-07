@@ -84,10 +84,10 @@ fn test_document_delete() {
         vec![Row::from("Hello"), Row::from("world!")],
         "test.rs".to_string(),
     );
-    doc.delete(5, 1);
+    doc.delete(5, 6, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, "world");
-    doc.delete(2, 1);
+    doc.delete(2, 6, 1);
     assert_eq!(doc.rows.get(1).unwrap().string, "wold");
 }
 
@@ -97,7 +97,7 @@ fn test_document_delete_at_start_of_line() {
         vec![Row::from("Hello"), Row::from("world!")],
         "test.rs".to_string(),
     );
-    doc.delete(0, 1);
+    doc.delete(0, 0, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Helloworld!");
     assert!(doc.rows.get(1).is_none());
 }

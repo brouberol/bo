@@ -120,13 +120,13 @@ impl Document {
         }
     }
 
-    pub fn delete(&mut self, x: usize, y: usize) {
+    pub fn delete(&mut self, x: usize, from_x: usize, y: usize) {
         if y >= self.num_rows() {
             return;
         }
         if let Some(row) = self.rows.get_mut(y) {
             // Deletion at the very start of a line means we append the current line to the previous one
-            if x == 0 && y > 0 {
+            if x == 0 && from_x == 0 && y > 0 {
                 let current_row = self.rows.remove(y);
                 if let Some(previous_row) = self.rows.get_mut(y - 1) {
                     previous_row.append(&current_row);

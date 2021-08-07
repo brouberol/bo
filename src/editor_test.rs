@@ -297,6 +297,23 @@ fn test_editor_navigation() {
 }
 
 #[test]
+fn test_editor_deletion() {
+    let mut editor = get_test_editor();
+    let console = MockConsole::default();
+
+    editor.goto_x_y(1, 1, &console);
+    editor.process_keystroke(Key::Char('i'), &console);
+    editor.process_keystroke(Key::Backspace, &console);
+    assert_eq!(editor.document.num_rows(), 3);
+    assert_eq!(editor.document.get_row(1).unwrap().string, "ello world!");
+    editor.goto_x_y(0, 1, &console);
+    editor.process_keystroke(Key::Backspace, &console);
+    assert_eq!(editor.document.num_rows(), 2);
+    assert_eq!(editor.document.get_row(0).unwrap().string, "Hello worldello world!");
+    assert_eq!(editor.document.get_row(1).unwrap().string, "Hello world!!");
+}
+
+#[test]
 fn test_editor_edition() {
     let mut editor = get_test_editor();
     let console = MockConsole::default();
