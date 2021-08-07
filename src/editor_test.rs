@@ -179,6 +179,19 @@ fn test_editor_help_command() {
 }
 
 #[test]
+fn test_editor_goto_line() {
+    let mut editor = get_test_editor();
+    let console = MockConsole::default();
+    let input: Vec<char> = vec![':', '2', '\n'];
+    assert_position_is(&editor, 0, 0);
+    for c in input {
+        editor.process_keystroke(Key::Char(c), &console);
+    }
+    assert_position_is(&editor, 0, 1);
+    assert_eq!(editor.current_line_number(), 2);
+}
+
+#[test]
 fn test_editor_search() {
     let mut editor = get_test_editor();
     let console = MockConsole::default();
@@ -309,7 +322,10 @@ fn test_editor_deletion() {
     editor.goto_x_y(0, 1, &console);
     editor.process_keystroke(Key::Backspace, &console);
     assert_eq!(editor.document.num_rows(), 2);
-    assert_eq!(editor.document.get_row(0).unwrap().string, "Hello worldello world!");
+    assert_eq!(
+        editor.document.get_row(0).unwrap().string,
+        "Hello worldello world!"
+    );
     assert_eq!(editor.document.get_row(1).unwrap().string, "Hello world!!");
 }
 
