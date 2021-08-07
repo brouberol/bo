@@ -1,4 +1,4 @@
-use crate::{Position, Row};
+use crate::{Row};
 use std::cmp::Ordering;
 use std::fmt;
 use std::fs;
@@ -158,14 +158,14 @@ impl Document {
         }
     }
 
-    pub fn delete_row(&mut self, at: &Position) {
-        if at.y > self.num_rows() {
+    pub fn delete_row(&mut self, y: usize) {
+        if y > self.num_rows() {
         } else if self.num_rows() == 1 {
             if let Some(row) = self.rows.get_mut(0) {
                 row.string = "".to_string();
             }
-        } else if self.rows.get(at.y).is_some() {
-            self.rows.remove(at.y);
+        } else if self.rows.get(y).is_some() {
+            self.rows.remove(y);
         }
     }
 }

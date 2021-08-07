@@ -458,7 +458,7 @@ impl Editor {
 
     /// Delete the line currently under the cursor
     fn delete_current_line(&mut self) {
-        self.document.delete_row(&self.cursor_position);
+        self.document.delete_row(self.current_row_index());
         self.cursor_position.reset_x();
     }
 
