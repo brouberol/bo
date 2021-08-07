@@ -101,6 +101,20 @@ fn assert_nth_row_is(editor: &Editor, n: usize, s: &str) {
     assert_eq!(editor.document.get_row(n).unwrap().string, String::from(s));
 }
 
+fn process_keystrokes(editor: &mut Editor, console: &impl Console, keys: Vec<char>) {
+    for c in keys {
+        editor.process_keystroke(Key::Char(c), console);
+    }
+}
+
+fn process_command(editor: &mut Editor, console: &impl Console, command: &str) {
+    let mut command = String::from(command);
+    command.push('\n');
+    for c in command.chars() {
+        editor.process_keystroke(Key::Char(c), console);
+    }
+}
+
 #[test]
 fn test_editor_enter_mode() {
     let mut editor = get_test_editor();
@@ -159,8 +173,7 @@ fn test_editor_process_keystroke_navigation() {
     editor.process_keystroke(Key::Char('h'), &console);
     assert_position_is(&editor, 0, 0);
 
-    editor.process_keystroke(Key::Char('2'), &console);
-    editor.process_keystroke(Key::Char('j'), &console);
+    process_keystrokes(&mut editor, &console, vec!['2', 'j']);
     assert_position_is(&editor, 0, 2);
 }
 
@@ -168,11 +181,8 @@ fn test_editor_process_keystroke_navigation() {
 fn test_editor_help_command() {
     let mut editor = get_test_editor();
     let console = MockConsole::default();
-    let input: Vec<char> = vec![':', 'h', 'e', 'l', 'p', '\n'];
     assert!(!editor.alternate_screen);
-    for c in input {
-        editor.process_keystroke(Key::Char(c), &console);
-    }
+    process_command(&mut editor, &console, ":help");
     assert!(editor.alternate_screen);
     editor.process_keystroke(Key::Char('q'), &console);
     assert!(!editor.alternate_screen);
@@ -182,11 +192,8 @@ fn test_editor_help_command() {
 fn test_editor_goto_line() {
     let mut editor = get_test_editor();
     let console = MockConsole::default();
-    let input: Vec<char> = vec![':', '2', '\n'];
     assert_position_is(&editor, 0, 0);
-    for c in input {
-        editor.process_keystroke(Key::Char(c), &console);
-    }
+    process_command(&mut editor, &console, ":2");
     assert_position_is(&editor, 0, 1);
     assert_eq!(editor.current_line_number(), 2);
 }
@@ -195,11 +202,8 @@ fn test_editor_goto_line() {
 fn test_editor_search() {
     let mut editor = get_test_editor();
     let console = MockConsole::default();
-    let input: Vec<char> = vec!['/', 'w', 'o', 'r', 'l', 'd', '\n'];
     assert!(editor.search_matches.is_empty());
-    for c in input {
-        editor.process_keystroke(Key::Char(c), &console);
-    }
+    process_command(&mut editor, &console, "/world");
     assert_eq!(editor.search_matches.len(), 3);
     assert_eq!(
         editor.search_matches,
@@ -266,10 +270,7 @@ fn test_editor_search() {
 fn test_editor_unknown_command() {
     let mut editor = get_test_editor();
     let console = MockConsole::default();
-    let input: Vec<char> = vec![':', 'd', 'e', 'r', 'p', '\n'];
-    for c in input {
-        editor.process_keystroke(Key::Char(c), &console);
-    }
+    process_command(&mut editor, &console, ":derp");
     assert_eq!(
         editor.message,
         "\u{1b}[38;5;1mUnknown command 'derp'\u{1b}[39m"
@@ -300,12 +301,10 @@ fn test_editor_navigation() {
     editor.process_keystroke(Key::Char('b'), &console);
     assert_position_is(&editor, 0, 0);
 
-    editor.process_keystroke(Key::Char('2'), &console);
-    editor.process_keystroke(Key::Char('w'), &console);
+    process_keystrokes(&mut editor, &console, vec!['2', 'w']);
     assert_position_is(&editor, 10, 0);
 
-    editor.process_keystroke(Key::Char('2'), &console);
-    editor.process_keystroke(Key::Char('b'), &console);
+    process_keystrokes(&mut editor, &console, vec!['2', 'b']);
     assert_position_is(&editor, 0, 0);
 }
 
@@ -355,18 +354,14 @@ fn test_editor_edition() {
     editor.goto_x_y(0, 1, &console);
     editor.process_keystroke(Key::Char('i'), &console);
     assert_eq!(editor.mode, Mode::Insert);
-    editor.process_keystroke(Key::Char('b'), &console);
-    editor.process_keystroke(Key::Char('o'), &console);
-    editor.process_keystroke(Key::Char('o'), &console);
-    editor.process_keystroke(Key::Char('p'), &console);
+    process_keystrokes(&mut editor, &console, vec!['b', 'o', 'o', 'p']);
     assert_nth_row_is(&editor, 1, "boop");
     editor.process_keystroke(Key::Backspace, &console);
     assert_nth_row_is(&editor, 1, "boo");
 
     editor.process_keystroke(Key::Esc, &console);
     assert_eq!(editor.mode, Mode::Normal);
-    editor.process_keystroke(Key::Char('^'), &console);
-    editor.process_keystroke(Key::Char('i'), &console);
+    process_keystrokes(&mut editor, &console, vec!['^', 'i']);
     assert_eq!(editor.mode, Mode::Insert);
     assert_eq!(editor.document.num_rows(), 4);
     editor.process_keystroke(Key::Backspace, &console);
@@ -439,9 +434,7 @@ fn test_editor_move_cursor_to_position_y() {
 fn test_editor_goto_percentage_in_document() {
     let mut editor = get_test_editor_with_long_document();
     let console = MockConsole::default();
-    editor.process_keystroke(Key::Char('1'), &console);
-    editor.process_keystroke(Key::Char('0'), &console);
-    editor.process_keystroke(Key::Char('%'), &console);
+    process_keystrokes(&mut editor, &console, vec!['1', '0', '%']);
     assert_position_is(&editor, 0, 19); // line 20
 }
 
