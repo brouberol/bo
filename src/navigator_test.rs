@@ -287,7 +287,7 @@ fn test_find_index_of_next_word() {
                 &Boundary::End
             ),
             expected_next_word_start_index
-        )
+        );
     }
 }
 
@@ -310,7 +310,7 @@ fn test_find_index_of_next_word_with_unicode_chars() {
                 &Boundary::End
             ),
             expected_next_word_start_index
-        )
+        );
     }
 }
 
@@ -340,7 +340,7 @@ fn test_find_index_of_previous_word() {
                 &Boundary::Start
             ),
             expected_next_word_start_index
-        )
+        );
     }
 }
 
@@ -361,6 +361,6 @@ fn test_find_index_of_previous_word_with_unicode() {
                 &Boundary::Start
             ),
             expected_next_word_start_index
-        )
+        );
     }
 }

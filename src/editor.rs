@@ -13,6 +13,7 @@ const COMMAND_PREFIX: char = ':';
 const SEARCH_PREFIX: char = '/';
 const LINE_NUMBER_OFFSET: u8 = 4; // number of chars
 const START_X: u8 = LINE_NUMBER_OFFSET as u8; // index, so that's actually an offset of 5 chars
+const SPACES_PER_TAB: usize = 4;
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Position {
@@ -427,6 +428,12 @@ impl Editor {
                 self.document
                     .insert_newline(self.current_x_position(), self.current_row_index());
                 self.goto_x_y(0, self.cursor_position.y + 1, terminal);
+            }
+            Key::Char('\t') => {
+                for _ in 0..SPACES_PER_TAB {
+                    self.document.insert(' ',self.current_x_position(),self.current_row_index());
+                }
+                self.move_cursor(&Direction::Right, SPACES_PER_TAB, terminal);
             }
             Key::Char(c) => {
                 self.document
