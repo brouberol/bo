@@ -145,14 +145,14 @@ impl Document {
         if let Some(current_row) = current_row {
             if x < current_row.len().saturating_sub(1) {
                 let split_row = current_row.split(x);
-                self.rows.insert(y.saturating_add(1), split_row)
+                self.rows.insert(y.saturating_add(1), split_row);
                 // newline inserted in the middle of the row
             } else {
                 let new_row = Row::default();
                 if y == self.num_rows() || y.saturating_add(1) == self.num_rows() {
                     self.rows.push(new_row);
                 } else {
-                    self.rows.insert(y.saturating_add(1), new_row)
+                    self.rows.insert(y.saturating_add(1), new_row);
                 }
             }
         }

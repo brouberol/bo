@@ -3,6 +3,7 @@ use std::io::Error;
 use termion::color;
 use termion::event::{Event, Key, MouseEvent};
 
+
 #[derive(Default)]
 struct MockConsole {}
 
@@ -385,6 +386,16 @@ fn test_editor_edition() {
     editor.process_keystroke(Key::Char('A'), &console);
     assert_eq!(editor.mode, Mode::Insert);
     assert_position_is(&editor, 10, 0);
+}
+
+use super::{SPACES_PER_TAB};
+#[test]
+fn test_editor_insert_spaces_for_tab() {
+    let mut editor = get_test_editor();
+    let console = MockConsole::default();
+    process_keystrokes(&mut editor, &console, vec!['i', '\t']);
+    assert_position_is(&editor, SPACES_PER_TAB, 0);
+    assert_nth_row_is(&editor, 0, "    Hello world");
 }
 
 #[test]
