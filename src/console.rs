@@ -1,4 +1,5 @@
 use crate::Position;
+use std::fmt::Debug;
 use std::io::Error;
 use termion::color;
 use termion::event::{Event, MouseEvent};
@@ -27,7 +28,9 @@ impl Default for Size {
     }
 }
 
-pub trait Console {
+// Note to self: ": Debug" means that all implementations of that traut
+// must implement the Debug trait as well.
+pub trait Console: Debug {
     /// Read the next event from the console input.termion
     ///
     /// # Errors

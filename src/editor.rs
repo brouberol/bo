@@ -56,6 +56,7 @@ pub struct Editor {
     current_search_match_index: usize,
     alternate_screen: bool,
     is_dirty: bool,
+    terminal: Box<dyn Console>,
 }
 
 fn die(e: &io::Error) {
@@ -64,7 +65,7 @@ fn die(e: &io::Error) {
 }
 
 impl Editor {
-    pub fn default(filename: Option<String>) -> Self {
+    pub fn new(filename: Option<String>, terminal: Box<dyn Console>) -> Self {
         let document: Document = match filename {
             None => Document::default(),
             Some(path) => Document::open(utils::expand_tilde(&path).as_str()).unwrap_or_default(),
@@ -84,31 +85,32 @@ impl Editor {
             current_search_match_index: 0,
             alternate_screen: false,
             is_dirty: false,
+            terminal,
         }
     }
 
     /// Main screen rendering loop
-    pub fn run(&mut self, terminal: &impl Console) {
+    pub fn run(&mut self) {
         loop {
-            if let Err(error) = &self.refresh_screen(terminal) {
+            if let Err(error) = &self.refresh_screen() {
                 die(&error);
             }
-            if let Err(error) = self.process_event(terminal) {
+            if let Err(error) = self.process_event() {
                 die(&error);
             }
             if self.should_quit {
-                terminal.clear_screen();
+                self.terminal.clear_screen();
                 break;
             }
         }
     }
 
     /// Main event processing method. An event can be either be a keystroke or a mouse click
-    fn process_event(&mut self, terminal: &impl Console) -> Result<(), std::io::Error> {
-        let event = terminal.read_event()?;
+    fn process_event(&mut self) -> Result<(), std::io::Error> {
+        let event = self.terminal.read_event()?;
         match event {
-            Event::Key(pressed_key) => self.process_keystroke(pressed_key, terminal),
-            Event::Mouse(mouse_event) => self.process_mouse_event(mouse_event, terminal),
+            Event::Key(pressed_key) => self.process_keystroke(pressed_key),
+            Event::Mouse(mouse_event) => self.process_mouse_event(mouse_event),
             Event::Unsupported(_) => (),
         }
         Ok(())
@@ -117,14 +119,14 @@ impl Editor {
     /// React to a keystroke. The reaction itself depends on the editor
     /// mode (insert, command, normal) or whether the editor is currently
     /// receiving a user input command (eg: ":q", etc).
-    fn process_keystroke(&mut self, pressed_key: Key, terminal: &impl Console) {
+    fn process_keystroke(&mut self, pressed_key: Key) {
         if self.is_receiving_command() {
             // accumulate the command in the command buffer
             match pressed_key {
                 Key::Esc => self.stop_receiving_command(),
                 Key::Char('\n') => {
                     // Enter
-                    self.process_received_command(terminal);
+                    self.process_received_command();
                     self.stop_receiving_command();
                 }
                 Key::Char(c) => self.command_buffer.push(c), // accumulate keystrokes into the buffer
@@ -135,18 +137,18 @@ impl Editor {
             }
         } else {
             match self.mode {
-                Mode::Normal => self.process_normal_command(pressed_key, terminal),
-                Mode::Insert => self.process_insert_command(pressed_key, terminal),
+                Mode::Normal => self.process_normal_command(pressed_key),
+                Mode::Insert => self.process_insert_command(pressed_key),
             }
         }
     }
 
     /// React to a mouse event. If the mouse is being pressed, record
     /// the coordinates, and
-    fn process_mouse_event(&mut self, mouse_event: MouseEvent, terminal: &impl Console) {
+    fn process_mouse_event(&mut self, mouse_event: MouseEvent) {
         match mouse_event {
             MouseEvent::Press(MouseButton::Left, _, _) => self.mouse_event_buffer.push(
-                terminal
+                self.terminal
                     .get_cursor_index_from_mouse_event(mouse_event, self.cursor_position.x_offset),
             ),
             MouseEvent::Release(_, _) => {
@@ -158,14 +160,14 @@ impl Editor {
         }
     }
 
-    fn enter_insert_mode(&mut self, terminal: &impl Console) {
+    fn enter_insert_mode(&mut self) {
         self.mode = Mode::Insert;
-        terminal.set_cursor_as_steady_bar();
+        self.terminal.set_cursor_as_steady_bar();
     }
 
-    fn enter_normal_mode(&mut self, terminal: &impl Console) {
+    fn enter_normal_mode(&mut self) {
         self.mode = Mode::Normal;
-        terminal.set_cursor_as_steady_block();
+        self.terminal.set_cursor_as_steady_block();
     }
 
     fn start_receiving_command(&mut self) {
@@ -199,11 +201,11 @@ impl Editor {
 
     /// Receive a command entered by the user in the command prompt
     /// and take appropriate actions
-    fn process_received_command(&mut self, terminal: &impl Console) {
+    fn process_received_command(&mut self) {
         let command = self.command_buffer.clone();
         match self.command_buffer.chars().next().unwrap() {
             SEARCH_PREFIX => {
-                self.process_search_command(command.strip_prefix(SEARCH_PREFIX).unwrap(), terminal)
+                self.process_search_command(command.strip_prefix(SEARCH_PREFIX).unwrap())
             }
             COMMAND_PREFIX => {
                 let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
@@ -211,7 +213,7 @@ impl Editor {
                 } else if command.chars().all(char::is_numeric) {
                     // :n will get you to line n
                     let line_index = command.parse::<usize>().unwrap();
-                    self.goto_line(line_index, 0, terminal);
+                    self.goto_line(line_index, 0);
                 } else if command.split(' ').count() > 1 {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
                     match cmd_tokens[0] {
@@ -228,7 +230,7 @@ impl Editor {
                         }
                         commands::NEW => {
                             self.document = Document::new_empty(cmd_tokens[1].to_string());
-                            self.enter_insert_mode(terminal);
+                            self.enter_insert_mode();
                         }
                         _ => (),
                     }
@@ -282,7 +284,7 @@ impl Editor {
         }
     }
 
-    fn process_search_command(&mut self, search_pattern: &str, terminal: &impl Console) {
+    fn process_search_command(&mut self, search_pattern: &str) {
         self.reset_search();
         for (row_index, row) in self.document.iter().enumerate() {
             if row.contains(search_pattern) {
@@ -305,7 +307,7 @@ impl Editor {
         }
         self.display_message(format!("{} matches", self.search_matches.len()));
         self.current_search_match_index = self.search_matches.len().saturating_sub(1);
-        self.goto_next_search_match(terminal)
+        self.goto_next_search_match()
     }
 
     fn reset_search(&mut self) {
@@ -328,7 +330,7 @@ impl Editor {
     /// when the last char of the command is received. For now, only commans
     /// of the form <number>*<char> are supported and I'm not sure I'm
     /// planning to support anything more complex than that.
-    fn process_normal_command(&mut self, key: Key, terminal: &impl Console) {
+    fn process_normal_command(&mut self, key: Key) {
         if key == Key::Esc {
             self.reset_message();
             self.reset_search();
@@ -337,7 +339,7 @@ impl Editor {
             match c {
                 '0' => {
                     if self.normal_command_buffer.is_empty() {
-                        self.goto_start_or_end_of_line(&Boundary::Start, terminal);
+                        self.goto_start_or_end_of_line(&Boundary::Start);
                     } else {
                         self.normal_command_buffer.push(c.to_string());
                     }
@@ -345,25 +347,25 @@ impl Editor {
                 '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
                     self.normal_command_buffer.push(c.to_string())
                 }
-                'i' => self.enter_insert_mode(terminal),
+                'i' => self.enter_insert_mode(),
                 ':' => self.start_receiving_command(),
                 '/' => self.start_receiving_search_pattern(),
-                'G' => self.goto_start_or_end_of_document(&Boundary::End, terminal),
-                'g' => self.goto_start_or_end_of_document(&Boundary::Start, terminal),
-                '$' => self.goto_start_or_end_of_line(&Boundary::End, terminal),
-                '^' => self.goto_first_non_whitespace(terminal),
-                'H' => self.goto_first_line_of_terminal(terminal),
-                'M' => self.goto_middle_of_terminal(terminal),
-                'L' => self.goto_last_line_of_terminal(terminal),
-                'm' => self.goto_matching_closing_symbol(terminal),
-                'n' => self.goto_next_search_match(terminal),
-                'N' => self.goto_previous_search_match(terminal),
+                'G' => self.goto_start_or_end_of_document(&Boundary::End),
+                'g' => self.goto_start_or_end_of_document(&Boundary::Start),
+                '$' => self.goto_start_or_end_of_line(&Boundary::End),
+                '^' => self.goto_first_non_whitespace(),
+                'H' => self.goto_first_line_of_terminal(),
+                'M' => self.goto_middle_of_terminal(),
+                'L' => self.goto_last_line_of_terminal(),
+                'm' => self.goto_matching_closing_symbol(),
+                'n' => self.goto_next_search_match(),
+                'N' => self.goto_previous_search_match(),
                 'q' => self.revert_to_main_screen(),
                 'd' => self.delete_current_line(),
                 'x' => self.delete_current_grapheme(),
-                'o' => self.insert_newline_after_current_line(terminal),
-                'O' => self.insert_newline_before_current_line(terminal),
-                'A' => self.append_to_line(terminal),
+                'o' => self.insert_newline_after_current_line(),
+                'O' => self.insert_newline_before_current_line(),
+                'A' => self.append_to_line(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -371,33 +373,33 @@ impl Editor {
                     // and we use that value as the number of times the comamnd identified
                     // by the `c` char must be repeated.
                     let times = self.pop_normal_command_repetitions();
-                    self.process_normal_command_n_times(c, times, terminal);
+                    self.process_normal_command_n_times(c, times);
                 }
             }
         };
     }
 
     /// Execute the provided normal movement command n timess
-    fn process_normal_command_n_times(&mut self, c: char, n: usize, terminal: &impl Console) {
+    fn process_normal_command_n_times(&mut self, c: char, n: usize) {
         match c {
-            'b' => self.goto_start_or_end_of_word(&Boundary::Start, n, terminal),
-            'w' => self.goto_start_or_end_of_word(&Boundary::End, n, terminal),
-            'h' => self.move_cursor(&Direction::Left, n, terminal),
-            'j' => self.move_cursor(&Direction::Down, n, terminal),
-            'k' => self.move_cursor(&Direction::Up, n, terminal),
-            'l' => self.move_cursor(&Direction::Right, n, terminal),
-            '}' => self.goto_start_or_end_of_paragraph(&Boundary::End, n, terminal),
-            '{' => self.goto_start_or_end_of_paragraph(&Boundary::Start, n, terminal),
-            '%' => self.goto_percentage_in_document(n, terminal),
+            'b' => self.goto_start_or_end_of_word(&Boundary::Start, n),
+            'w' => self.goto_start_or_end_of_word(&Boundary::End, n),
+            'h' => self.move_cursor(&Direction::Left, n),
+            'j' => self.move_cursor(&Direction::Down, n),
+            'k' => self.move_cursor(&Direction::Up, n),
+            'l' => self.move_cursor(&Direction::Right, n),
+            '}' => self.goto_start_or_end_of_paragraph(&Boundary::End, n),
+            '{' => self.goto_start_or_end_of_paragraph(&Boundary::Start, n),
+            '%' => self.goto_percentage_in_document(n),
             _ => (),
         }
     }
 
     /// Process a command issued when the editor is in normal mode
-    fn process_insert_command(&mut self, pressed_key: Key, terminal: &impl Console) {
+    fn process_insert_command(&mut self, pressed_key: Key) {
         match pressed_key {
             Key::Esc => {
-                self.enter_normal_mode(terminal);
+                self.enter_normal_mode();
                 return;
             }
             Key::Backspace => {
@@ -412,7 +414,7 @@ impl Editor {
                             .len();
                         // Delete newline from previous row
                         self.document.delete(0, 0, self.current_row_index());
-                        self.goto_x_y(previous_line_len, self.cursor_position.y - 1, terminal);
+                        self.goto_x_y(previous_line_len, self.cursor_position.y - 1);
                     }
                 } else {
                     // Delete previous character
@@ -421,24 +423,25 @@ impl Editor {
                         self.current_x_position(),
                         self.current_row_index(),
                     );
-                    self.move_cursor(&Direction::Left, 1, terminal);
+                    self.move_cursor(&Direction::Left, 1);
                 }
             }
             Key::Char('\n') => {
                 self.document
                     .insert_newline(self.current_x_position(), self.current_row_index());
-                self.goto_x_y(0, self.cursor_position.y + 1, terminal);
+                self.goto_x_y(0, self.cursor_position.y + 1);
             }
             Key::Char('\t') => {
                 for _ in 0..SPACES_PER_TAB {
-                    self.document.insert(' ',self.current_x_position(),self.current_row_index());
+                    self.document
+                        .insert(' ', self.current_x_position(), self.current_row_index());
                 }
-                self.move_cursor(&Direction::Right, SPACES_PER_TAB, terminal);
+                self.move_cursor(&Direction::Right, SPACES_PER_TAB);
             }
             Key::Char(c) => {
                 self.document
                     .insert(c, self.current_x_position(), self.current_row_index());
-                self.move_cursor(&Direction::Right, 1, terminal);
+                self.move_cursor(&Direction::Right, 1);
             }
             _ => (),
         }
@@ -485,124 +488,112 @@ impl Editor {
     }
 
     /// Insert a newline after the current one, move cursor to it in insert mode
-    fn insert_newline_after_current_line(&mut self, terminal: &impl Console) {
+    fn insert_newline_after_current_line(&mut self) {
         let next_row_index = self.current_row_index().saturating_add(1);
         self.document
             .insert_newline(self.current_row().len(), self.current_row_index());
-        self.goto_x_y(0, next_row_index, terminal);
-        self.enter_insert_mode(terminal);
+        self.goto_x_y(0, next_row_index);
+        self.enter_insert_mode();
     }
 
     /// Insert a newline before the current one, move cursor to it in insert mode
-    fn insert_newline_before_current_line(&mut self, terminal: &impl Console) {
+    fn insert_newline_before_current_line(&mut self) {
         self.document.insert_newline(0, self.current_row_index());
-        self.goto_x_y(0, self.current_row_index(), terminal);
-        self.enter_insert_mode(terminal);
+        self.goto_x_y(0, self.current_row_index());
+        self.enter_insert_mode();
     }
 
-    fn append_to_line(&mut self, terminal: &impl Console) {
-        self.goto_start_or_end_of_line(&Boundary::End, terminal);
-        self.move_cursor(&Direction::Right, 1, terminal);
-        self.enter_insert_mode(terminal);
+    fn append_to_line(&mut self) {
+        self.goto_start_or_end_of_line(&Boundary::End);
+        self.move_cursor(&Direction::Right, 1);
+        self.enter_insert_mode();
     }
 
     /// Move the cursor to the next line after the current paraghraph, or the line
     /// before the current paragraph.
-    fn goto_start_or_end_of_paragraph(
-        &mut self,
-        boundary: &Boundary,
-        times: usize,
-        terminal: &impl Console,
-    ) {
+    fn goto_start_or_end_of_paragraph(&mut self, boundary: &Boundary, times: usize) {
         for _ in 0..times {
             let next_line_number = Navigator::find_line_number_of_start_or_end_of_paragraph(
                 &self.document,
                 self.current_line_number(),
                 boundary,
             );
-            self.goto_line(next_line_number, 0, terminal);
+            self.goto_line(next_line_number, 0);
         }
     }
 
     /// Move the cursor either to the first or last line of the document
-    fn goto_start_or_end_of_document(&mut self, boundary: &Boundary, terminal: &impl Console) {
+    fn goto_start_or_end_of_document(&mut self, boundary: &Boundary) {
         match boundary {
-            Boundary::Start => self.goto_line(1, 0, terminal),
-            Boundary::End => self.goto_line(self.document.last_line_number(), 0, terminal),
+            Boundary::Start => self.goto_line(1, 0),
+            Boundary::End => self.goto_line(self.document.last_line_number(), 0),
         }
     }
 
     /// Move the cursor either to the start or end of the line
-    fn goto_start_or_end_of_line(&mut self, boundary: &Boundary, terminal: &impl Console) {
+    fn goto_start_or_end_of_line(&mut self, boundary: &Boundary) {
         match boundary {
-            Boundary::Start => self.move_cursor_to_position_x(0, terminal),
+            Boundary::Start => self.move_cursor_to_position_x(0),
             Boundary::End => {
-                self.move_cursor_to_position_x(self.current_row().len().saturating_sub(1), terminal)
+                self.move_cursor_to_position_x(self.current_row().len().saturating_sub(1))
             }
         }
     }
 
     /// Move to the start of the next word or previous one.
-    fn goto_start_or_end_of_word(
-        &mut self,
-        boundary: &Boundary,
-        times: usize,
-        terminal: &impl Console,
-    ) {
+    fn goto_start_or_end_of_word(&mut self, boundary: &Boundary, times: usize) {
         for _ in 0..times {
             let x = Navigator::find_index_of_next_or_previous_word(
                 self.current_row(),
                 self.current_x_position(),
                 boundary,
             );
-            self.move_cursor_to_position_x(x, terminal);
+            self.move_cursor_to_position_x(x);
         }
     }
 
     /// Move the cursor to the first non whitespace character in the line
-    fn goto_first_non_whitespace(&mut self, terminal: &impl Console) {
+    fn goto_first_non_whitespace(&mut self) {
         if let Some(x) = Navigator::find_index_of_first_non_whitespace(&self.current_row()) {
-            self.move_cursor_to_position_x(x, terminal);
+            self.move_cursor_to_position_x(x);
         }
     }
 
     /// Move the cursor to the middle of the terminal
-    fn goto_middle_of_terminal(&mut self, terminal: &impl Console) {
+    fn goto_middle_of_terminal(&mut self) {
         self.goto_line(
-            terminal
+            self.terminal
                 .middle_of_screen_line_number()
                 .saturating_add(self.offset.y)
                 .saturating_add(1),
             0,
-            terminal,
         );
     }
 
     /// Move the cursor to the middle of the terminal
-    fn goto_first_line_of_terminal(&mut self, terminal: &impl Console) {
-        self.goto_line(self.offset.y.saturating_add(1), 0, terminal);
+    fn goto_first_line_of_terminal(&mut self) {
+        self.goto_line(self.offset.y.saturating_add(1), 0);
     }
 
     /// Move the cursor to the last line of the terminal
-    fn goto_last_line_of_terminal(&mut self, terminal: &impl Console) {
+    fn goto_last_line_of_terminal(&mut self) {
         self.goto_line(
-            (terminal.size().height as usize)
+            (self.terminal.size().height as usize)
                 .saturating_add(self.offset.y)
                 .saturating_add(1),
             0,
-            terminal,
         );
     }
 
     /// Move to {n}% in the file
-    fn goto_percentage_in_document(&mut self, percent: usize, terminal: &impl Console) {
+    fn goto_percentage_in_document(&mut self, percent: usize) {
         let percent = cmp::min(percent, 100);
         let line_number = (self.document.last_line_number() * percent) / 100;
-        self.goto_line(line_number, 0, terminal)
+        self.goto_line(line_number, 0)
     }
 
     /// Go to the matching closing symbol (whether that's a quote, curly/square/regular brace, etc).
-    fn goto_matching_closing_symbol(&mut self, terminal: &impl Console) {
+    fn goto_matching_closing_symbol(&mut self) {
         let current_grapheme = self.current_grapheme();
         match current_grapheme {
             "\"" | "'" | "{" | "<" | "(" | "[" => {
@@ -611,7 +602,7 @@ impl Editor {
                     &self.cursor_position,
                     &self.offset,
                 ) {
-                    self.goto_x_y(position.x, position.y, terminal);
+                    self.goto_x_y(position.x, position.y);
                 }
             }
             "}" | ">" | ")" | "]" => {
@@ -620,7 +611,7 @@ impl Editor {
                     &self.cursor_position,
                     &self.offset,
                 ) {
-                    self.goto_x_y(position.x, position.y, terminal);
+                    self.goto_x_y(position.x, position.y);
                 }
             }
             _ => (),
@@ -628,7 +619,7 @@ impl Editor {
     }
 
     /// Move to the first character of the next search match
-    fn goto_next_search_match(&mut self, terminal: &impl Console) {
+    fn goto_next_search_match(&mut self) {
         if self.search_matches.is_empty() {
             return;
         }
@@ -645,12 +636,12 @@ impl Editor {
         if let Some(search_match) = self.search_matches.get(self.current_search_match_index) {
             let x_position = search_match.0.x;
             let line_number = search_match.0.y;
-            self.goto_line(line_number, x_position, terminal);
+            self.goto_line(line_number, x_position);
         }
     }
 
     /// Move to the first character of the previous search match
-    fn goto_previous_search_match(&mut self, terminal: &impl Console) {
+    fn goto_previous_search_match(&mut self) {
         if self.search_matches.is_empty() {
             return;
         }
@@ -667,25 +658,25 @@ impl Editor {
         if let Some(search_match) = self.search_matches.get(self.current_search_match_index) {
             let line_number = search_match.0.y;
             let x_position = search_match.0.x;
-            self.goto_line(line_number, x_position, terminal);
+            self.goto_line(line_number, x_position);
         }
     }
 
     /// Move the cursor to the nth line in the file and adjust the viewport
-    fn goto_line(&mut self, line_number: usize, x_position: usize, terminal: &impl Console) {
+    fn goto_line(&mut self, line_number: usize, x_position: usize) {
         let y = line_number.saturating_sub(1);
-        self.goto_x_y(x_position, y, terminal);
+        self.goto_x_y(x_position, y);
     }
 
     /// Move the cursor to the first column of the nth line
-    fn goto_x_y(&mut self, x: usize, y: usize, terminal: &impl Console) {
-        self.move_cursor_to_position_x(x, terminal);
-        self.move_cursor_to_position_y(y, terminal);
+    fn goto_x_y(&mut self, x: usize, y: usize) {
+        self.move_cursor_to_position_x(x);
+        self.move_cursor_to_position_y(y);
     }
 
     /// Move the cursor up/down/left/right by adjusting its x/y position
-    fn move_cursor(&mut self, direction: &Direction, times: usize, terminal: &impl Console) {
-        let size = terminal.size();
+    fn move_cursor(&mut self, direction: &Direction, times: usize) {
+        let size = self.terminal.size();
         let term_height = size.height.saturating_sub(1) as usize;
         let term_width = size.width.saturating_sub(1) as usize;
         let Position {
@@ -748,10 +739,10 @@ impl Editor {
         self.offset.y = offset_y;
     }
 
-    fn move_cursor_to_position_y(&mut self, y: usize, terminal: &impl Console) {
+    fn move_cursor_to_position_y(&mut self, y: usize) {
         let max_line_number = self.document.last_line_number(); // last line number in the document
-        let term_height = terminal.size().height as usize;
-        let middle_of_screen_line_number = terminal.middle_of_screen_line_number(); // number of the line in the middle of the terminal
+        let term_height = self.terminal.size().height as usize;
+        let middle_of_screen_line_number = self.terminal.middle_of_screen_line_number(); // number of the line in the middle of the terminal
 
         let y = cmp::max(0, y);
         let y = cmp::min(y, max_line_number);
@@ -774,8 +765,8 @@ impl Editor {
         }
     }
 
-    fn move_cursor_to_position_x(&mut self, x: usize, terminal: &impl Console) {
-        let term_width = terminal.size().width as usize;
+    fn move_cursor_to_position_x(&mut self, x: usize) {
+        let term_width = self.terminal.size().width as usize;
         let x = cmp::max(0, x);
         if x > term_width {
             self.cursor_position.x = term_width - 1;
@@ -786,30 +777,30 @@ impl Editor {
         }
     }
 
-    fn refresh_screen(&mut self, terminal: &impl Console) -> Result<(), std::io::Error> {
-        terminal.hide_cursor();
+    fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
+        self.terminal.hide_cursor();
         if !self.should_quit {
             if self.alternate_screen {
-                terminal.clear_all();
-                terminal.to_alternate_screen();
-                self.draw_help_screen(terminal);
+                self.terminal.clear_all();
+                self.terminal.to_alternate_screen();
+                self.draw_help_screen();
             } else {
-                terminal.to_main_screen();
-                self.draw_rows(terminal);
+                self.terminal.to_main_screen();
+                self.draw_rows();
             }
-            self.draw_status_bar(terminal);
-            self.draw_message_bar(terminal);
+            self.draw_status_bar();
+            self.draw_message_bar();
             if self.alternate_screen {
-                terminal.set_cursor_position(&Position::top_left());
+                self.terminal.set_cursor_position(&Position::top_left());
             } else {
-                terminal.set_cursor_position(&self.cursor_position);
+                self.terminal.set_cursor_position(&self.cursor_position);
             }
         }
-        terminal.show_cursor();
-        terminal.flush()
+        self.terminal.show_cursor();
+        self.terminal.flush()
     }
 
-    fn generate_status(&self, terminal: &impl Console) -> String {
+    fn generate_status(&self) -> String {
         let dirty_marker = if self.is_dirty { " +" } else { "" };
         let left_status = format!("[{}]{} {}", self.document.filename, dirty_marker, self.mode);
         let stats = if self.config.display_stats {
@@ -831,21 +822,21 @@ impl Editor {
         );
         let right_status = format!("{} {}", stats, position);
         let right_status = right_status.trim_start();
-        let spaces =
-            " ".repeat(terminal.size().width as usize - left_status.len() - right_status.len());
+        let spaces = " "
+            .repeat(self.terminal.size().width as usize - left_status.len() - right_status.len());
         format!("{}{}{}\r", left_status, spaces, right_status)
     }
 
-    fn draw_status_bar(&self, terminal: &impl Console) {
-        terminal.set_bg_color(STATUS_BG_COLOR);
-        terminal.set_fg_color(STATUS_FG_COLOR);
-        println!("{}", self.generate_status(terminal));
-        terminal.reset_fg_color();
-        terminal.reset_bg_color();
+    fn draw_status_bar(&self) {
+        self.terminal.set_bg_color(STATUS_BG_COLOR);
+        self.terminal.set_fg_color(STATUS_FG_COLOR);
+        println!("{}", self.generate_status());
+        self.terminal.reset_fg_color();
+        self.terminal.reset_bg_color();
     }
 
-    fn draw_message_bar(&self, terminal: &impl Console) {
-        terminal.clear_current_line();
+    fn draw_message_bar(&self) {
+        self.terminal.clear_current_line();
         if self.is_receiving_command() {
             print!("{}\r", self.command_buffer)
         } else {
@@ -861,8 +852,8 @@ impl Editor {
         self.message = "".to_string();
     }
 
-    fn display_welcome_message(terminal: &impl Console) {
-        let term_width = terminal.size().width as usize;
+    fn display_welcome_message(&self) {
+        let term_width = self.terminal.size().width as usize;
         let welcome_msg = format!("{} v{}", PKG, VERSION);
         let padding_len = (term_width - welcome_msg.chars().count() - 2) / 2; // -2 because of the starting '~ '
         let padding = String::from(" ").repeat(padding_len);
@@ -871,7 +862,7 @@ impl Editor {
         println!("{}\r", padded_welcome_message);
     }
 
-    fn draw_help_screen(&mut self, terminal: &impl Console) {
+    fn draw_help_screen(&mut self) {
         let help_text = "Normal commands\r\n  \
                             j => move cursor down one row (<n>j moves it by n rows)\r\n  \
                             k => move cursor up one row (<n>k moves it by n rows)\r\n  \
@@ -913,10 +904,10 @@ impl Editor {
                             Esc => go back to normal mode";
         let help_text_lines = help_text.split('\n');
         let help_text_lines_count = help_text_lines.count();
-        let term_height = terminal.size().height;
+        let term_height = self.terminal.size().height;
         let v_padding = (term_height - 2 - help_text_lines_count as u16) / 2;
         let max_line_length = help_text.split('\n').map(str::len).max().unwrap();
-        let h_padding = " ".repeat((terminal.size().width as usize - max_line_length) / 2);
+        let h_padding = " ".repeat((self.terminal.size().width as usize - max_line_length) / 2);
         for _ in 0..=v_padding {
             println!("\r");
         }
@@ -932,26 +923,26 @@ impl Editor {
         self.display_message("Press q to quit".to_string());
     }
 
-    fn draw_rows(&self, terminal: &impl Console) {
-        let term_height = terminal.size().height;
+    fn draw_rows(&self) {
+        let term_height = self.terminal.size().height;
         for terminal_row_idx in self.offset.y..(term_height as usize + self.offset.y) {
             let line_number = terminal_row_idx.saturating_add(1);
-            terminal.clear_current_line();
+            self.terminal.clear_current_line();
             if let Some(row) = self.document.get_row(terminal_row_idx) {
-                self.draw_row(&row, line_number, terminal);
-            } else if terminal_row_idx == terminal.middle_of_screen_line_number()
+                self.draw_row(&row, line_number);
+            } else if terminal_row_idx == self.terminal.middle_of_screen_line_number()
                 && self.document.filename.is_empty()
             {
-                Editor::display_welcome_message(terminal);
+                self.display_welcome_message();
             } else {
                 println!("~\r");
             }
         }
     }
 
-    fn draw_row(&self, row: &Row, line_number: usize, terminal: &impl Console) {
+    fn draw_row(&self, row: &Row, line_number: usize) {
         let row_visible_start = self.offset.x;
-        let mut row_visible_end = terminal.size().width as usize + self.offset.x;
+        let mut row_visible_end = self.terminal.size().width as usize + self.offset.x;
         if self.cursor_position.x_offset > 0 {
             row_visible_end = row_visible_end
                 .saturating_sub(self.cursor_position.x_offset as usize)

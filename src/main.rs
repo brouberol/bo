@@ -41,7 +41,7 @@ fn main() {
     if opt.version {
         println!("{}", env!("CARGO_PKG_VERSION"));
     } else {
-        let term = Terminal::default().unwrap();
-        Editor::default(opt.file_name).run(&term);
+        let term = Box::new(Terminal::default().unwrap());
+        Editor::new(opt.file_name, term).run();
     }
 }
