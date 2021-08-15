@@ -59,6 +59,9 @@ impl Document {
     /// Returns an error if a file bearing the provided filename
     /// cannot be open.
     pub fn open(filename: &str) -> Result<Self, Error> {
+        if !path::Path::new(filename).is_file() {
+            return Ok(Self::new_empty(String::from(filename)));
+        }
         let file_contents =
             if path::Path::new(&Self::swap_filename(String::from(filename))).is_file() {
                 fs::read_to_string(Self::swap_filename(String::from(filename)))?
