@@ -64,7 +64,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Restore unsaved edits by regularly saving to a hidden swap file
 - [ ] Command history, browsable with arrows
 - [x] Support Unicode characters
-- [ ] Redraw rows when the terminal size changes 
+- [x] Redraw rows when the terminal size changes
 
 ### Long shot
 - [ ] Multiline edition support
