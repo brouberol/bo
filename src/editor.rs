@@ -156,7 +156,16 @@ impl Editor {
             ),
             MouseEvent::Release(_, _) => {
                 if !self.mouse_event_buffer.is_empty() {
-                    self.cursor_position = self.mouse_event_buffer.pop().unwrap();
+                    // Make sure that we're moving to an x/y location in which we already
+                    // have text, to avoid breaking out of the document bounds.
+                    let cursor_position = self.mouse_event_buffer.pop().unwrap();
+                    if cursor_position.y.saturating_add(1) <= self.document.num_rows() {
+                        if let Some(target_row) = self.document.get_row(cursor_position.y) {
+                            if cursor_position.x <= target_row.len() {
+                                self.cursor_position = cursor_position;
+                            }
+                        }
+                    }
                 }
             }
             _ => (),
