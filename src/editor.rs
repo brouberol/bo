@@ -14,6 +14,7 @@ const SEARCH_PREFIX: char = '/';
 const LINE_NUMBER_OFFSET: u8 = 4; // number of chars
 const START_X: u8 = LINE_NUMBER_OFFSET as u8; // index, so that's actually an offset of 5 chars
 const SPACES_PER_TAB: usize = 4;
+const SWAP_SAVE_EVERY: u8 = 100; // save to a swap file every 100 unsaved edits
 
 #[derive(Debug, Default, PartialEq)]
 pub struct Position {
@@ -57,6 +58,7 @@ pub struct Editor {
     alternate_screen: bool,
     is_dirty: bool,
     terminal: Box<dyn Console>,
+    unsaved_edits: u8,
 }
 
 fn die(e: &io::Error) {
@@ -86,6 +88,7 @@ impl Editor {
             alternate_screen: false,
             is_dirty: false,
             terminal,
+            unsaved_edits: 0,
         }
     }
 
@@ -271,8 +274,15 @@ impl Editor {
         if self.document.save().is_ok() {
             self.display_message("File saved successfully".to_string());
             self.is_dirty = false;
+            self.unsaved_edits = 0;
         } else {
             self.display_message(utils::red("Error writing to file!"));
+        }
+    }
+
+    fn save_to_swap_file(&mut self) {
+        if self.document.save_to_swap_file().is_ok() {
+            self.unsaved_edits = 0;
         }
     }
 
@@ -446,6 +456,10 @@ impl Editor {
             _ => (),
         }
         self.is_dirty = true;
+        self.unsaved_edits = self.unsaved_edits.saturating_add(1);
+        if self.unsaved_edits >= SWAP_SAVE_EVERY {
+            self.save_to_swap_file()
+        }
     }
 
     /// Return the index of the row associated to the current cursor position / vertical offset

@@ -1,8 +1,9 @@
-use crate::{Row};
+use crate::Row;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fs;
 use std::io::{Error, Write};
+use std::path;
 use std::slice::Iter;
 
 pub struct Document {
@@ -38,12 +39,33 @@ impl Document {
             filename,
         }
     }
+
+    /// # Panics
+    ///
+    /// This function will panic if the path contains a non UTF-8 character
+    #[must_use]
+    pub fn swap_filename(filename: String) -> String {
+        let filepath = path::Path::new(filename.as_str());
+        let parent = filepath.parent().unwrap();
+        let stripped_filename = filepath.file_name().unwrap();
+        let new_filename = format!(".{}.swp", stripped_filename.to_str().unwrap());
+        let joined_os_str = parent.join(new_filename);
+        let out = joined_os_str.as_os_str().to_str().unwrap_or_default();
+        String::from(out)
+    }
+
     /// # Errors
     ///
     /// Returns an error if a file bearing the provided filename
     /// cannot be open.
     pub fn open(filename: &str) -> Result<Self, Error> {
-        let file_contents = fs::read_to_string(filename)?;
+        let file_contents =
+            if path::Path::new(&Self::swap_filename(String::from(filename))).is_file() {
+                fs::read_to_string(Self::swap_filename(String::from(filename)))?
+            } else {
+                fs::read_to_string(filename)?
+            };
+
         let mut rows = Vec::new();
         for line in file_contents.lines() {
             rows.push(Row::from(line));
@@ -57,12 +79,29 @@ impl Document {
     /// # Errors
     ///
     /// Can return an error if the file can't be created or written to.
+    pub fn save_to_swap_file(&self) -> Result<(), Error> {
+        if !Self::swap_filename(self.filename.clone()).is_empty() {
+            let mut file = fs::File::create(Self::swap_filename(self.filename.clone()))?;
+            for row in &self.rows {
+                file.write_all(row.as_bytes())?;
+                file.write_all(b"\n")?;
+            }
+        }
+        Ok(())
+    }
+
+    /// # Errors
+    ///
+    /// Can return an error if the file can't be created or written to.
     pub fn save(&self) -> Result<(), Error> {
         if !self.filename.is_empty() {
             let mut file = fs::File::create(self.filename.as_str())?;
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
+            }
+            if fs::remove_file(Self::swap_filename(self.filename.clone())).is_ok() {
+                // pass
             }
         }
         Ok(())

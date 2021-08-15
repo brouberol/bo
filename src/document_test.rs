@@ -127,3 +127,15 @@ fn test_insert_newline_row_split() {
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, " world!");
 }
+
+#[test]
+fn test_document_swapfile() {
+    assert_eq!(
+        Document::swap_filename(String::from("test.txt")),
+        ".test.txt.swp"
+    );
+    assert_eq!(
+        Document::swap_filename(String::from("/home/br/code/bo/test.txt")),
+        "/home/br/code/bo/.test.txt.swp"
+    );
+}
