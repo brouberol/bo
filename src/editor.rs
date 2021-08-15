@@ -489,11 +489,8 @@ impl Editor {
     /// Delete the line currently under the cursor
     fn delete_current_line(&mut self) {
         self.document.delete_row(self.current_row_index());
-        if self.cursor_position.y > self.document.num_rows().saturating_sub(1) {
-            self.goto_line(
-                self.document.num_rows().saturating_sub(1),
-                self.cursor_position.x,
-            )
+        if self.cursor_position.y >= self.document.num_rows().saturating_sub(1) {
+            self.goto_line(self.document.num_rows(), self.cursor_position.x)
         } else {
             self.cursor_position.reset_x();
         }
