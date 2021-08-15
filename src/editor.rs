@@ -840,8 +840,11 @@ impl Editor {
         );
         let right_status = format!("{} {}", stats, position);
         let right_status = right_status.trim_start();
-        let spaces = " "
-            .repeat(self.terminal.size().width as usize - left_status.len() - right_status.len());
+        let spaces = " ".repeat(
+            (self.terminal.size().width as usize)
+                .saturating_sub(left_status.len())
+                .saturating_sub(right_status.len()),
+        );
         format!("{}{}{}\r", left_status, spaces, right_status)
     }
 
