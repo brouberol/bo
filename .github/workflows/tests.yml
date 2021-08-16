@@ -10,13 +10,56 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
 
+  # Run cargo test
+  test:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cargo build --verbose
+      run: cargo build
     - name: Run tests
       run: cargo test --verbose
+
+  # Create a github release whenever we push a new tag
+  create-release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: taiki-e/create-gh-release-action@v1
+        #with:
+          # (optional) Path to changelog.
+          #changelog: CHANGELOG.md
+        env:
+          # (required) GitHub token for creating GitHub Releases.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  # Cross compile the binary to a matrix of targets and
+  # upload the artefacts to the release.
+  upload-assets:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: create-release
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: bo
+          # (optional) On which platform to distribute the `.tar.gz` file.
+          # [default value: unix]
+          # [possible values: all, unix, windows, none]
+          tar: unix
+          # (optional) On which platform to distribute the `.zip` file.
+          # [default value: windows]
+          # [possible values: all, unix, windows, none]
+          zip: windows
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_PROFILE_RELEASE_LTO: true
