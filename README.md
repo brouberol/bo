@@ -48,7 +48,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] insert newline before/after (`o`, `O`)
 - [ ] Replace current character (`r`)
 - [ ] Replace search matches
-- [ ] Remove trailing space at save
+- [x] Remove trailing space at save
 - [x] Remove current character
 
 ### Options
