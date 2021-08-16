@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -11,6 +11,7 @@ env:
 
 jobs:
 
+  # Run cargo clippy to fish for code smells
   lint:
     runs-on: ubuntu-latest
     steps:
