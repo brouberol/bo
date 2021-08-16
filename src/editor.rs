@@ -233,6 +233,7 @@ impl Editor {
                         Some(&commands::OPEN) => {
                             if let Ok(document) = Document::open(cmd_tokens[1]) {
                                 self.document = document;
+                                self.last_saved_hash = self.document.hashed();
                                 self.reset_message();
                             } else {
                                 self.display_message(utils::red(&format!(
