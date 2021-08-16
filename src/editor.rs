@@ -95,7 +95,7 @@ impl Editor {
     /// Main screen rendering loop
     pub fn run(&mut self) {
         loop {
-            if let Err(error) = &self.refresh_screen() {
+            if let Err(error) = self.refresh_screen() {
                 die(&error);
             }
             if let Err(error) = self.process_event() {
