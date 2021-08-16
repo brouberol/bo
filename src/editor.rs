@@ -244,6 +244,10 @@ impl Editor {
                             self.document = Document::new_empty(cmd_tokens[1].to_string());
                             self.enter_insert_mode();
                         }
+                        Some(&commands::SAVE_AS) => {
+                            let new_name = cmd_tokens[1];
+                            self.save_as(new_name);
+                        }
                         _ => (),
                     }
                 } else {
@@ -292,6 +296,25 @@ impl Editor {
             self.unsaved_edits = 0;
         } else {
             self.display_message(utils::red("Error writing to file!"));
+        }
+    }
+
+    fn save_as(&mut self, new_name: &str) {
+        self.document.trim_trailing_spaces();
+        if self.cursor_position.x >= self.current_row().len() {
+            self.cursor_position.x = self.current_row().len().saturating_sub(1);
+        }
+
+        if self.document.save_as(new_name).is_ok() {
+            let old_name = &self.document.filename.clone();
+            self.display_message(format!(
+                "{} successfully saved as {}",
+                old_name, new_name
+            ));
+            self.is_dirty = false;
+            self.unsaved_edits = 0;
+        } else {
+            self.display_message(utils::red("Error changing filename"));
         }
     }
 

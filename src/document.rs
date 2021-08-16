@@ -115,6 +115,16 @@ impl Document {
         Ok(())
     }
 
+    /// # Errors
+    ///
+    /// Function to rename the name of the file
+    pub fn save_as(&self, new_name: &str) -> Result<(), Error> {
+        self.save()?;
+        fs::rename(self.filename.as_str(), new_name)?;
+
+        Ok(())
+    }
+
     #[must_use]
     pub fn get_row(&self, index: usize) -> Option<&Row> {
         self.rows.get(index)
