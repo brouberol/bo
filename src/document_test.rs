@@ -139,3 +139,10 @@ fn test_document_swapfile() {
         "/home/br/code/bo/.test.txt.swp"
     );
 }
+
+#[test]
+fn test_document_trim_trailing_spaces() {
+    let mut doc = Document::new(vec![Row::from("Hello world!    ")], "test.rs".to_string());
+    doc.trim_trailing_spaces();
+    assert_eq!(doc.rows.get(0).unwrap().string, "Hello world!");
+}

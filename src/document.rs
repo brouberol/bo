@@ -4,7 +4,7 @@ use std::fmt;
 use std::fs;
 use std::io::{Error, Write};
 use std::path;
-use std::slice::Iter;
+use std::slice::{Iter, IterMut};
 
 pub struct Document {
     rows: Vec<Row>,
@@ -93,6 +93,12 @@ impl Document {
         Ok(())
     }
 
+    pub fn trim_trailing_spaces(&mut self) {
+        for row in self.iter_mut() {
+            row.trim_end_inplace();
+        }
+    }
+
     /// # Errors
     ///
     /// Can return an error if the file can't be created or written to.
@@ -100,7 +106,7 @@ impl Document {
         if !self.filename.is_empty() {
             let mut file = fs::File::create(self.filename.as_str())?;
             for row in &self.rows {
-                file.write_all(row.trim_end().as_bytes())?;
+                file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
             }
             if fs::remove_file(Self::swap_filename(self.filename.clone())).is_ok() {
@@ -145,6 +151,11 @@ impl Document {
     #[must_use]
     pub fn iter(&self) -> Iter<Row> {
         self.rows.iter()
+    }
+
+    #[must_use]
+    pub fn iter_mut(&mut self) -> IterMut<Row> {
+        self.rows.iter_mut()
     }
 
     pub fn insert(&mut self, c: char, x: usize, y: usize) {

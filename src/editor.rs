@@ -280,6 +280,12 @@ impl Editor {
     }
 
     fn save(&mut self) {
+        // this will trim trailing spaces, which might cause the cursor to get out of bounds
+        self.document.trim_trailing_spaces();
+        if self.cursor_position.x >= self.current_row().len() {
+            self.cursor_position.x = self.current_row().len().saturating_sub(1);
+        }
+
         if self.document.save().is_ok() {
             self.display_message("File saved successfully".to_string());
             self.is_dirty = false;

@@ -88,9 +88,8 @@ impl Row {
         self.string.as_bytes()
     }
 
-    #[must_use]
-    pub fn trim_end(&self) -> &str {
-        self.string.trim_end()
+    pub fn trim_end_inplace(&mut self) {
+        self.string = String::from(self.string.trim_end());
     }
 
     /// Insert a character in the provided x index
