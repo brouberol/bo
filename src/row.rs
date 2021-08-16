@@ -88,6 +88,11 @@ impl Row {
         self.string.as_bytes()
     }
 
+    #[must_use]
+    pub fn trim_end(&self) -> &str {
+        self.string.trim_end()
+    }
+
     /// Insert a character in the provided x index
     pub fn insert(&mut self, index: usize, c: char) {
         if index >= self.len() {
