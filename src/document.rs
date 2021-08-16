@@ -100,7 +100,7 @@ impl Document {
         if !self.filename.is_empty() {
             let mut file = fs::File::create(self.filename.as_str())?;
             for row in &self.rows {
-                file.write_all(row.as_bytes())?;
+                file.write_all(row.trim_end().as_bytes())?;
                 file.write_all(b"\n")?;
             }
             if fs::remove_file(Self::swap_filename(self.filename.clone())).is_ok() {

@@ -217,7 +217,7 @@ impl Editor {
         let command = self.command_buffer.clone();
         match self.command_buffer.chars().next().unwrap() {
             SEARCH_PREFIX => {
-                self.process_search_command(command.strip_prefix(SEARCH_PREFIX).unwrap())
+                self.process_search_command(command.strip_prefix(SEARCH_PREFIX).unwrap());
             }
             COMMAND_PREFIX => {
                 let command = command.strip_prefix(COMMAND_PREFIX).unwrap_or_default();
@@ -326,7 +326,7 @@ impl Editor {
         }
         self.display_message(format!("{} matches", self.search_matches.len()));
         self.current_search_match_index = self.search_matches.len().saturating_sub(1);
-        self.goto_next_search_match()
+        self.goto_next_search_match();
     }
 
     fn reset_search(&mut self) {
@@ -364,7 +364,7 @@ impl Editor {
                     }
                 }
                 '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
-                    self.normal_command_buffer.push(c.to_string())
+                    self.normal_command_buffer.push(c.to_string());
                 }
                 'i' => self.enter_insert_mode(),
                 ':' => self.start_receiving_command(),
@@ -467,7 +467,7 @@ impl Editor {
         self.is_dirty = true;
         self.unsaved_edits = self.unsaved_edits.saturating_add(1);
         if self.unsaved_edits >= SWAP_SAVE_EVERY {
-            self.save_to_swap_file()
+            self.save_to_swap_file();
         }
     }
 
@@ -499,7 +499,7 @@ impl Editor {
     fn delete_current_line(&mut self) {
         self.document.delete_row(self.current_row_index());
         if self.cursor_position.y >= self.document.num_rows().saturating_sub(1) {
-            self.goto_line(self.document.num_rows(), self.cursor_position.x)
+            self.goto_line(self.document.num_rows(), self.cursor_position.x);
         } else {
             self.cursor_position.reset_x();
         }
@@ -562,7 +562,7 @@ impl Editor {
         match boundary {
             Boundary::Start => self.move_cursor_to_position_x(0),
             Boundary::End => {
-                self.move_cursor_to_position_x(self.current_row().len().saturating_sub(1))
+                self.move_cursor_to_position_x(self.current_row().len().saturating_sub(1));
             }
         }
     }
@@ -581,7 +581,7 @@ impl Editor {
 
     /// Move the cursor to the first non whitespace character in the line
     fn goto_first_non_whitespace(&mut self) {
-        if let Some(x) = Navigator::find_index_of_first_non_whitespace(&self.current_row()) {
+        if let Some(x) = Navigator::find_index_of_first_non_whitespace(self.current_row()) {
             self.move_cursor_to_position_x(x);
         }
     }
@@ -616,7 +616,7 @@ impl Editor {
     fn goto_percentage_in_document(&mut self, percent: usize) {
         let percent = cmp::min(percent, 100);
         let line_number = (self.document.last_line_number() * percent) / 100;
-        self.goto_line(line_number, 0)
+        self.goto_line(line_number, 0);
     }
 
     /// Go to the matching closing symbol (whether that's a quote, curly/square/regular brace, etc).
@@ -754,7 +754,7 @@ impl Editor {
                         if x < term_width {
                             x = x.saturating_add(1);
                         } else {
-                            offset_x = offset_x.saturating_add(1)
+                            offset_x = offset_x.saturating_add(1);
                         }
                     }
                 }
@@ -868,7 +868,7 @@ impl Editor {
     fn draw_message_bar(&self) {
         self.terminal.clear_current_line();
         if self.is_receiving_command() {
-            print!("{}\r", self.command_buffer)
+            print!("{}\r", self.command_buffer);
         } else {
             print!("{}\r", self.message);
         }
@@ -959,7 +959,7 @@ impl Editor {
             let line_number = terminal_row_idx.saturating_add(1);
             self.terminal.clear_current_line();
             if let Some(row) = self.document.get_row(terminal_row_idx) {
-                self.draw_row(&row, line_number);
+                self.draw_row(row, line_number);
             } else if terminal_row_idx == self.terminal.middle_of_screen_line_number()
                 && self.document.filename.is_empty()
             {
@@ -976,7 +976,7 @@ impl Editor {
         if self.cursor_position.x_offset > 0 {
             row_visible_end = row_visible_end
                 .saturating_sub(self.cursor_position.x_offset as usize)
-                .saturating_sub(1)
+                .saturating_sub(1);
         }
         let rendered_row = row.render(
             row_visible_start,
