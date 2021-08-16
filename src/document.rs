@@ -1,7 +1,9 @@
 use crate::Row;
 use std::cmp::Ordering;
+use std::collections::hash_map::DefaultHasher;
 use std::fmt;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::io::{Error, Write};
 use std::path;
 use std::slice::{Iter, IterMut};
@@ -22,6 +24,14 @@ impl Default for Document {
         Self {
             rows: vec![Row::from("")],
             filename: "".to_string(),
+        }
+    }
+}
+
+impl Hash for Document {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for row in self.iter() {
+            row.hash(state);
         }
     }
 }
@@ -219,6 +229,13 @@ impl Document {
         } else if self.rows.get(y).is_some() {
             self.rows.remove(y);
         }
+    }
+
+    #[must_use]
+    pub fn hashed(&self) -> u64 {
+        let mut s = DefaultHasher::new();
+        self.hash(&mut s);
+        s.finish()
     }
 }
 

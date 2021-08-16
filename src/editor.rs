@@ -56,7 +56,7 @@ pub struct Editor {
     search_matches: Vec<(Position, Position)>,
     current_search_match_index: usize,
     alternate_screen: bool,
-    is_dirty: bool,
+    last_saved_hash: u64,
     terminal: Box<dyn Console>,
     unsaved_edits: u8,
 }
@@ -72,6 +72,7 @@ impl Editor {
             None => Document::default(),
             Some(path) => Document::open(utils::expand_tilde(&path).as_str()).unwrap_or_default(),
         };
+        let last_saved_hash = document.hashed();
         Self {
             should_quit: false,
             cursor_position: Position::top_left(),
@@ -86,9 +87,9 @@ impl Editor {
             search_matches: vec![],
             current_search_match_index: 0,
             alternate_screen: false,
-            is_dirty: false,
             terminal,
             unsaved_edits: 0,
+            last_saved_hash,
         }
     }
 
@@ -288,8 +289,8 @@ impl Editor {
 
         if self.document.save().is_ok() {
             self.display_message("File saved successfully".to_string());
-            self.is_dirty = false;
             self.unsaved_edits = 0;
+            self.last_saved_hash = self.document.hashed();
         } else {
             self.display_message(utils::red("Error writing to file!"));
         }
@@ -302,7 +303,7 @@ impl Editor {
     }
 
     fn quit(&mut self, force: bool) {
-        if self.is_dirty && !force {
+        if self.is_dirty() && !force {
             self.display_message(utils::red("Unsaved changes! Run :q! to override"));
         } else {
             self.should_quit = true;
@@ -470,7 +471,6 @@ impl Editor {
             }
             _ => (),
         }
-        self.is_dirty = true;
         self.unsaved_edits = self.unsaved_edits.saturating_add(1);
         if self.unsaved_edits >= SWAP_SAVE_EVERY {
             self.save_to_swap_file();
@@ -810,6 +810,10 @@ impl Editor {
         }
     }
 
+    fn is_dirty(&self) -> bool {
+        self.last_saved_hash != self.document.hashed()
+    }
+
     fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
         self.terminal.hide_cursor();
         if !self.should_quit {
@@ -834,7 +838,7 @@ impl Editor {
     }
 
     fn generate_status(&self) -> String {
-        let dirty_marker = if self.is_dirty { " +" } else { "" };
+        let dirty_marker = if self.is_dirty() { " +" } else { "" };
         let left_status = format!("[{}]{} {}", self.document.filename, dirty_marker, self.mode);
         let stats = if self.config.display_stats {
             format!(
