@@ -130,12 +130,9 @@ fn test_insert_newline_row_split() {
 
 #[test]
 fn test_document_swapfile() {
+    assert_eq!(Document::swap_filename("test.txt"), ".test.txt.swp");
     assert_eq!(
-        Document::swap_filename(String::from("test.txt")),
-        ".test.txt.swp"
-    );
-    assert_eq!(
-        Document::swap_filename(String::from("/home/br/code/bo/test.txt")),
+        Document::swap_filename("/home/br/code/bo/test.txt"),
         "/home/br/code/bo/.test.txt.swp"
     );
 }

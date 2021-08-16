@@ -44,8 +44,8 @@ impl Document {
     ///
     /// This function will panic if the path contains a non UTF-8 character
     #[must_use]
-    pub fn swap_filename(filename: String) -> String {
-        let filepath = path::Path::new(filename.as_str());
+    pub fn swap_filename(filename: &str) -> String {
+        let filepath = path::Path::new(filename);
         let parent = filepath.parent().unwrap();
         let stripped_filename = filepath.file_name().unwrap();
         let new_filename = format!(".{}.swp", stripped_filename.to_str().unwrap());
@@ -62,12 +62,11 @@ impl Document {
         if !path::Path::new(filename).is_file() {
             return Ok(Self::new_empty(String::from(filename)));
         }
-        let file_contents =
-            if path::Path::new(&Self::swap_filename(String::from(filename))).is_file() {
-                fs::read_to_string(Self::swap_filename(String::from(filename)))?
-            } else {
-                fs::read_to_string(filename)?
-            };
+        let file_contents = if path::Path::new(&Self::swap_filename(filename)).is_file() {
+            fs::read_to_string(Self::swap_filename(filename))?
+        } else {
+            fs::read_to_string(filename)?
+        };
 
         let mut rows = Vec::new();
         for line in file_contents.lines() {
@@ -75,7 +74,7 @@ impl Document {
         }
         Ok(Self {
             rows,
-            filename: filename.to_string().clone(),
+            filename: filename.to_string(),
         })
     }
 
@@ -83,8 +82,8 @@ impl Document {
     ///
     /// Can return an error if the file can't be created or written to.
     pub fn save_to_swap_file(&self) -> Result<(), Error> {
-        if !Self::swap_filename(self.filename.clone()).is_empty() {
-            let mut file = fs::File::create(Self::swap_filename(self.filename.clone()))?;
+        if !Self::swap_filename(self.filename.as_str()).is_empty() {
+            let mut file = fs::File::create(Self::swap_filename(self.filename.as_str()))?;
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
@@ -109,7 +108,7 @@ impl Document {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
             }
-            if fs::remove_file(Self::swap_filename(self.filename.clone())).is_ok() {
+            if fs::remove_file(Self::swap_filename(self.filename.as_str())).is_ok() {
                 // pass
             }
         }

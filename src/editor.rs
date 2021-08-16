@@ -228,8 +228,8 @@ impl Editor {
                     self.goto_line(line_index, 0);
                 } else if command.split(' ').count() > 1 {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
-                    match cmd_tokens[0] {
-                        commands::OPEN => {
+                    match cmd_tokens.get(0) {
+                        Some(&commands::OPEN) => {
                             if let Ok(document) = Document::open(cmd_tokens[1]) {
                                 self.document = document;
                                 self.reset_message();
@@ -240,7 +240,7 @@ impl Editor {
                                 )));
                             }
                         }
-                        commands::NEW => {
+                        Some(&commands::NEW) => {
                             self.document = Document::new_empty(cmd_tokens[1].to_string());
                             self.enter_insert_mode();
                         }
@@ -488,7 +488,7 @@ impl Editor {
 
     /// Return the character currently under the cursor
     fn current_grapheme(&self) -> &str {
-        self.current_row().index(self.current_x_position())
+        self.current_row().nth_grapheme(self.current_x_position())
     }
 
     /// Return the line number associated to the current cursor position / vertical offset
@@ -898,6 +898,7 @@ impl Editor {
         println!("{}\r", padded_welcome_message);
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn draw_help_screen(&mut self) {
         let help_text = "Normal commands\r\n  \
                             j => move cursor down one row (<n>j moves it by n rows)\r\n  \

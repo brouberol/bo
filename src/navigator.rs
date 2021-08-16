@@ -49,7 +49,7 @@ impl Navigator {
         let symbol = document
             .get_row(initial_row_position)
             .unwrap()
-            .index(current_position.x.saturating_add(offset.x));
+            .nth_grapheme(current_position.x.saturating_add(offset.x));
         let mut stack = vec![symbol];
         let mut current_opening_symbol = symbol;
         matching_closing_symbols().get(&symbol)?;
@@ -61,7 +61,7 @@ impl Navigator {
                 0
             };
             for index in start_x..current_row.len() {
-                let c = current_row.index(index);
+                let c = current_row.nth_grapheme(index);
                 if c == *matching_closing_symbols()
                     .get(&current_opening_symbol)
                     .unwrap()
@@ -98,7 +98,7 @@ impl Navigator {
         let symbol = document
             .get_row(initial_row_position)
             .unwrap()
-            .index(current_position.x.saturating_add(offset.x));
+            .nth_grapheme(current_position.x.saturating_add(offset.x));
         let mut stack = vec![symbol];
         let mut current_closing_symbol = symbol;
         matching_opening_symbols().get(&symbol)?;
@@ -110,7 +110,7 @@ impl Navigator {
                 current_row.len()
             };
             for index in (0..start_x).rev() {
-                let c = current_row.index(index);
+                let c = current_row.nth_grapheme(index);
                 if c == *matching_opening_symbols()
                     .get(&current_closing_symbol)
                     .unwrap()

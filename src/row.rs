@@ -59,7 +59,7 @@ impl Row {
     }
 
     #[must_use]
-    pub fn index(&self, index: usize) -> &str {
+    pub fn nth_grapheme(&self, index: usize) -> &str {
         self.graphemes().nth(index).unwrap_or_default()
     }
 

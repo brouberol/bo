@@ -92,6 +92,7 @@ impl Console for Terminal {
         self.size().height as usize / 2
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     fn set_cursor_position(&self, position: &Position) {
         let Position {
             mut x,

@@ -35,7 +35,7 @@ fn test_row_is_empty() {
 
 #[test]
 fn test_row_index() {
-    assert_eq!(Row::from("I \u{2764} unicode!").index(2), "\u{2764}");
+    assert_eq!(Row::from("I \u{2764} unicode!").nth_grapheme(2), "\u{2764}");
 }
 
 #[test]
