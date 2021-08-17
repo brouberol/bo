@@ -1,9 +1,10 @@
 use crate::utils;
 use std::cmp;
+use std::hash::Hash;
 use std::str;
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Hash)]
 pub struct Row {
     pub string: String,
 }

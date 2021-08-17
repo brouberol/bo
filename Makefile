@@ -16,5 +16,7 @@ check:  ## Check local package and dependencies
 release:  ## Build a release binary
 	cargo build --release
 
+ci:  lint check test  ## Run all checks run by the CI
+
 help:  ## Display help
 	@grep -E '^[%a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?##"}; {printf "\033[36m%-22s\033[0m %s\n", $$1, $$2}'

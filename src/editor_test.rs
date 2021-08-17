@@ -92,6 +92,7 @@ fn get_test_editor() -> Editor {
     let console = Box::new(MockConsole::default());
     let mut editor = Editor::new(None, console);
     editor.document = get_short_document();
+    editor.last_saved_hash = editor.document.hashed();
     editor
 }
 
@@ -99,6 +100,7 @@ fn get_test_editor_with_long_document() -> Editor {
     let console = Box::new(MockConsole::default());
     let mut editor = Editor::new(None, console);
     editor.document = get_long_document();
+    editor.last_saved_hash = editor.document.hashed();
     editor
 }
 
@@ -493,18 +495,26 @@ fn test_editor_status() {
         format!("[test] NORMAL{}Ln 1, Col 1\r", " ".repeat(96))
     );
 
-    editor.is_dirty = true;
+    // insert new characters
+    process_keystrokes(&mut editor, vec!['i', 'o']);
+
     assert_eq!(
         editor.generate_status(),
-        format!("[test] + NORMAL{}Ln 1, Col 1\r", " ".repeat(94))
+        format!("[test] + INSERT{}Ln 1, Col 2\r", " ".repeat(94))
     );
-    editor.is_dirty = false;
+
+    editor.process_keystroke(Key::Esc);
+
+    assert_eq!(
+        editor.generate_status(),
+        format!("[test] + NORMAL{}Ln 1, Col 2\r", " ".repeat(94))
+    );
 
     editor.cursor_position.x = 1;
     editor.cursor_position.y = 2;
     assert_eq!(
         editor.generate_status(),
-        format!("[test] NORMAL{}Ln 3, Col 2\r", " ".repeat(96))
+        format!("[test] + NORMAL{}Ln 3, Col 2\r", " ".repeat(94))
     );
     editor.cursor_position.x = 0;
     editor.cursor_position.y = 0;
@@ -512,7 +522,7 @@ fn test_editor_status() {
     editor.config.display_stats = true;
     assert_eq!(
         editor.generate_status(),
-        format!("[test] NORMAL{}[3L/6W] Ln 1, Col 1\r", " ".repeat(88))
+        format!("[test] + NORMAL{}[3L/6W] Ln 1, Col 1\r", " ".repeat(86))
     );
 }
 
@@ -520,11 +530,14 @@ fn test_editor_status() {
 fn test_editor_quit() {
     let mut editor = get_test_editor();
     assert!(!editor.should_quit);
+    assert!(!editor.is_dirty());
     editor.quit(false);
     assert!(editor.should_quit);
 
     editor.should_quit = false;
-    editor.is_dirty = true;
+    // insert new characters
+    process_keystrokes(&mut editor, vec!['i', 'o']);
+
     assert!(!editor.should_quit);
     editor.quit(false);
     assert!(!editor.should_quit);
