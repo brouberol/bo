@@ -101,7 +101,7 @@ impl Document {
     /// # Errors
     ///
     /// Can return an error if the file can't be created or written to.
-    pub fn save(&self) -> Result<(), Error> {
+    pub fn save(&self, new_name: &str) -> Result<(), Error> {
         if !self.filename.is_empty() {
             let mut file = fs::File::create(self.filename.as_str())?;
             for row in &self.rows {
@@ -111,17 +111,10 @@ impl Document {
             if fs::remove_file(Self::swap_filename(self.filename.as_str())).is_ok() {
                 // pass
             }
+            if !new_name.is_empty() {
+                fs::rename(self.filename.as_str(), new_name)?;
+            }
         }
-        Ok(())
-    }
-
-    /// # Errors
-    ///
-    /// Function to rename the name of the file
-    pub fn save_as(&self, new_name: &str) -> Result<(), Error> {
-        self.save()?;
-        fs::rename(self.filename.as_str(), new_name)?;
-
         Ok(())
     }
 

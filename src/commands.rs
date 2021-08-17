@@ -6,5 +6,4 @@ pub const HELP: &str = "help";
 pub const OPEN: &str = "open";
 pub const NEW: &str = "new";
 pub const SAVE: &str = "w";
-pub const SAVE_AS: &str = "w";
 pub const SAVE_AND_QUIT: &str = "wq";

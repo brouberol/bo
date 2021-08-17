@@ -244,9 +244,9 @@ impl Editor {
                             self.document = Document::new_empty(cmd_tokens[1].to_string());
                             self.enter_insert_mode();
                         }
-                        Some(&commands::SAVE_AS) => {
-                            let new_name = cmd_tokens[1];
-                            self.save_as(new_name);
+                        Some(&commands::SAVE) => {
+                            let new_name = cmd_tokens[1..].join(" ");
+                            self.save(new_name.as_str());
                         }
                         _ => (),
                     }
@@ -269,9 +269,9 @@ impl Editor {
                         commands::HELP => {
                             self.alternate_screen = true;
                         }
-                        commands::SAVE => self.save(),
+                        commands::SAVE => self.save(""),
                         commands::SAVE_AND_QUIT => {
-                            self.save();
+                            self.save("");
                             self.quit(false);
                         }
                         _ => self
@@ -283,38 +283,24 @@ impl Editor {
         }
     }
 
-    fn save(&mut self) {
+    fn save(&mut self, new_name: &str) {
         // this will trim trailing spaces, which might cause the cursor to get out of bounds
         self.document.trim_trailing_spaces();
         if self.cursor_position.x >= self.current_row().len() {
             self.cursor_position.x = self.current_row().len().saturating_sub(1);
         }
 
-        if self.document.save().is_ok() {
-            self.display_message("File saved successfully".to_string());
-            self.is_dirty = false;
+        if self.document.save(new_name).is_ok() {
+            if new_name.is_empty() {
+                self.display_message("File saved successfully".to_string());
+            } else {
+                let old_name = &self.document.filename.clone();
+                self.display_message(format!("{} successfully saved as {}", old_name, new_name));
+            }
             self.unsaved_edits = 0;
+            self.last_saved_hash = self.document.hashed();
         } else {
             self.display_message(utils::red("Error writing to file!"));
-        }
-    }
-
-    fn save_as(&mut self, new_name: &str) {
-        self.document.trim_trailing_spaces();
-        if self.cursor_position.x >= self.current_row().len() {
-            self.cursor_position.x = self.current_row().len().saturating_sub(1);
-        }
-
-        if self.document.save_as(new_name).is_ok() {
-            let old_name = &self.document.filename.clone();
-            self.display_message(format!(
-                "{} successfully saved as {}",
-                old_name, new_name
-            ));
-            self.is_dirty = false;
-            self.unsaved_edits = 0;
-        } else {
-            self.display_message(utils::red("Error changing filename"));
         }
     }
 
