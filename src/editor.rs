@@ -248,7 +248,7 @@ impl Editor {
                         }
                         Some(&commands::SAVE) => {
                             let new_name = cmd_tokens[1..].join(" ");
-                            self.save(new_name.as_str());
+                            self.save(new_name.trim());
                         }
                         _ => (),
                     }
@@ -293,10 +293,14 @@ impl Editor {
         }
 
         if self.document.save(new_name).is_ok() {
-            if new_name.is_empty(){
+            if new_name.is_empty() {
                 self.display_message("File saved successfully".to_string());
             } else {
-            self.display_message(format!("{} successfully renamed as {}", self.document.filename, new_name));
+                self.display_message(format!(
+                    "{} successfully renamed as {}",
+                    self.document.filename, new_name
+                ));
+                self.document.filename = String::from(new_name);
             }
             self.unsaved_edits = 0;
             self.last_saved_hash = self.document.hashed();
