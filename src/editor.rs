@@ -952,7 +952,7 @@ impl Editor {
                             open <filename> => open a file\r\n  \
                             q               => quit bo\r\n  \
                             stats           => toggle line/word stats\r\n  \
-                            w               => save\r\n  \
+                            w    <new_name> => save\r\n  \
                             wq              => save and quit\r\n\n\
                         Insert commands\r\n  \
                             Esc => go back to normal mode";
