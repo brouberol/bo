@@ -40,7 +40,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 - [x] Create a new file
 - [x] Open an existing file
 - [x] Save file `w`
-- [ ] Rename file
+- [x] Rename file `w` `file name`
 - [x] Insert character under the cursor
 - [ ] block (word, paragraph, line, etc) with both `d` and `c`
 - [x] delete a line with `dd`
