@@ -246,6 +246,10 @@ impl Editor {
                             self.document = Document::new_empty(cmd_tokens[1].to_string());
                             self.enter_insert_mode();
                         }
+                        Some(&commands::SAVE) => {
+                            let new_name = cmd_tokens[1..].join(" ");
+                            self.save(new_name.trim());
+                        }
                         _ => (),
                     }
                 } else {
@@ -267,9 +271,9 @@ impl Editor {
                         commands::HELP => {
                             self.alternate_screen = true;
                         }
-                        commands::SAVE => self.save(),
+                        commands::SAVE => self.save(""),
                         commands::SAVE_AND_QUIT => {
-                            self.save();
+                            self.save("");
                             self.quit(false);
                         }
                         _ => self
@@ -281,15 +285,23 @@ impl Editor {
         }
     }
 
-    fn save(&mut self) {
+    fn save(&mut self, new_name: &str) {
         // this will trim trailing spaces, which might cause the cursor to get out of bounds
         self.document.trim_trailing_spaces();
         if self.cursor_position.x >= self.current_row().len() {
             self.cursor_position.x = self.current_row().len().saturating_sub(1);
         }
 
-        if self.document.save().is_ok() {
-            self.display_message("File saved successfully".to_string());
+        if self.document.save(new_name).is_ok() {
+            if new_name.is_empty() {
+                self.display_message("File saved successfully".to_string());
+            } else {
+                self.display_message(format!(
+                    "{} successfully renamed as {}",
+                    self.document.filename, new_name
+                ));
+                self.document.filename = String::from(new_name);
+            }
             self.unsaved_edits = 0;
             self.last_saved_hash = self.document.hashed();
         } else {
@@ -940,7 +952,7 @@ impl Editor {
                             open <filename> => open a file\r\n  \
                             q               => quit bo\r\n  \
                             stats           => toggle line/word stats\r\n  \
-                            w               => save\r\n  \
+                            w    <new_name> => save\r\n  \
                             wq              => save and quit\r\n\n\
                         Insert commands\r\n  \
                             Esc => go back to normal mode";
