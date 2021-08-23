@@ -2,6 +2,7 @@ use crate::{commands, utils, Boundary, Config, Console, Document, Mode, Navigato
 use std::cmp;
 use std::env;
 use std::io;
+use std::path::PathBuf;
 use termion::color;
 use termion::event::{Event, Key, MouseButton, MouseEvent};
 
@@ -70,7 +71,8 @@ impl Editor {
     pub fn new(filename: Option<String>, terminal: Box<dyn Console>) -> Self {
         let document: Document = match filename {
             None => Document::default(),
-            Some(path) => Document::open(utils::expand_tilde(&path).as_str()).unwrap_or_default(),
+            // Some(path) => Document::open(utils::expand_tilde(&path).as_str()).unwrap_or_default(),
+            Some(path) => Document::open(std::path::PathBuf::from(utils::expand_tilde(&path))).unwrap_or_default(),
         };
         let last_saved_hash = document.hashed();
         Self {
@@ -231,7 +233,7 @@ impl Editor {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
                     match cmd_tokens.get(0) {
                         Some(&commands::OPEN) => {
-                            if let Ok(document) = Document::open(cmd_tokens[1]) {
+                            if let Ok(document) = Document::open(PathBuf::from(cmd_tokens[1])) {
                                 self.document = document;
                                 self.last_saved_hash = self.document.hashed();
                                 self.reset_message();
@@ -243,7 +245,7 @@ impl Editor {
                             }
                         }
                         Some(&commands::NEW) => {
-                            self.document = Document::new_empty(cmd_tokens[1].to_string());
+                            self.document = Document::new_empty(PathBuf::from(cmd_tokens[1].to_string()));
                             self.enter_insert_mode();
                         }
                         Some(&commands::SAVE) => {
@@ -298,9 +300,9 @@ impl Editor {
             } else {
                 self.display_message(format!(
                     "{} successfully renamed as {}",
-                    self.document.filename, new_name
+                    self.document.filename.to_str().unwrap(), new_name
                 ));
-                self.document.filename = String::from(new_name);
+                self.document.filename = PathBuf::from(new_name);
             }
             self.unsaved_edits = 0;
             self.last_saved_hash = self.document.hashed();
@@ -852,7 +854,7 @@ impl Editor {
 
     fn generate_status(&self) -> String {
         let dirty_marker = if self.is_dirty() { " +" } else { "" };
-        let left_status = format!("[{}]{} {}", self.document.filename, dirty_marker, self.mode);
+        let left_status = format!("[{}]{} {}", self.document.filename.to_str().unwrap(), dirty_marker, self.mode);
         let stats = if self.config.display_stats {
             format!(
                 "[{}L/{}W]",
@@ -985,7 +987,7 @@ impl Editor {
             if let Some(row) = self.document.get_row(terminal_row_idx) {
                 self.draw_row(row, line_number);
             } else if terminal_row_idx == self.terminal.middle_of_screen_line_number()
-                && self.document.filename.is_empty()
+                && self.document.filename.to_str().unwrap().is_empty()
             {
                 self.display_welcome_message();
             } else {
