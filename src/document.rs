@@ -112,6 +112,7 @@ impl Document {
     pub fn save(&self, new_name: &str) -> Result<(), Error> {
         if self.filename.is_file() {
             let mut file = fs::File::create(self.filename.to_str().unwrap())?;
+
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
