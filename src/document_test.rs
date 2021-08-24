@@ -1,5 +1,5 @@
 use crate::{Document, Row};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[test]
 fn test_document_get_row() {
@@ -135,11 +135,11 @@ fn test_insert_newline_row_split() {
 #[test]
 fn test_document_swapfile() {
     assert_eq!(
-        Document::swap_filename("test.txt"),
+        Document::swap_filename(Path::new("test.txt")),
         PathBuf::from(".test.txt.swp")
     );
     assert_eq!(
-        Document::swap_filename("/home/br/code/bo/test.txt"),
+        Document::swap_filename(Path::new("/home/br/code/bo/test.txt")),
         PathBuf::from("/home/br/code/bo/.test.txt.swp")
     );
 }
