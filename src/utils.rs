@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::Write;
+use std::process::Command;
 use std::result::Result::Err;
 use termion::color;
 
@@ -34,6 +35,29 @@ pub fn expand_tilde(s: &str) -> String {
         return s.to_string();
     }
     s.replace("~", env!("HOME"))
+}
+
+#[must_use]
+pub fn git_head_short_ref() -> String {
+    let git_commit = Command::new("git")
+        .arg("rev-parse")
+        .arg("--short")
+        .arg("HEAD")
+        .output()
+        .expect("Failed to parse git commit");
+    String::from_utf8(git_commit.stdout)
+        .unwrap_or_default()
+        .trim_end()
+        .to_string()
+}
+
+#[must_use]
+pub fn bo_version() -> String {
+    if cfg!(debug_assertions) {
+        format!("{}-{}", env!("CARGO_PKG_VERSION"), git_head_short_ref())
+    } else {
+        env!("CARGO_PKG_VERSION").to_string()
+    }
 }
 
 #[cfg(test)]

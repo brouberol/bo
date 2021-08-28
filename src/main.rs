@@ -22,7 +22,7 @@ pub use mode::Mode;
 pub use navigator::{Boundary, Navigator};
 pub use row::Row;
 pub use terminal::Terminal;
-pub use utils::log;
+pub use utils::{bo_version, log};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "bo", about = "An opinionated text editor")]
@@ -39,7 +39,7 @@ struct Opt {
 fn main() {
     let opt = Opt::from_args();
     if opt.version {
-        println!("{}", env!("CARGO_PKG_VERSION"));
+        println!("{}", bo_version());
     } else {
         let term = Box::new(Terminal::default().unwrap());
         Editor::new(opt.file_name, term).run();
