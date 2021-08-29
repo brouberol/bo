@@ -192,13 +192,20 @@ impl Document {
         if let Some(row) = self.rows.get_mut(y) {
             // Deletion at the very start of a line means we append the current line to the previous one
             if x == 0 && from_x == 0 && y > 0 {
-                let current_row = self.rows.remove(y);
-                if let Some(previous_row) = self.rows.get_mut(y - 1) {
-                    previous_row.append(&current_row);
-                }
+                self.join_row_with_previous_one(x, y, None);
             } else {
                 row.delete(x);
             }
+        }
+    }
+
+    pub fn join_row_with_previous_one(&mut self, x: usize, y: usize, join_with: Option<char>) {
+        let current_row = self.rows.remove(y);
+        if let Some(previous_row) = self.rows.get_mut(y - 1) {
+            if let Some(join_char) = join_with {
+                previous_row.insert(x.saturating_add(1), join_char);
+            }
+            previous_row.append(&current_row);
         }
     }
 

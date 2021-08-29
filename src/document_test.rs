@@ -143,3 +143,14 @@ fn test_document_trim_trailing_spaces() {
     doc.trim_trailing_spaces();
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello world!");
 }
+
+#[test]
+fn test_document_join_row_with_previous_one() {
+    let mut doc = Document::new(
+        vec![Row::from("Hello"), Row::from("world!")],
+        PathBuf::from("test.rs"),
+    );
+    doc.join_row_with_previous_one(4, 1, Some(' '));
+    assert_eq!(doc.rows.get(0).unwrap().string, "Hello world!");
+    assert_eq!(doc.num_rows(), 1);
+}

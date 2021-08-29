@@ -15,7 +15,7 @@ const START_X: u8 = LINE_NUMBER_OFFSET as u8; // index, so that's actually an of
 const SPACES_PER_TAB: usize = 4;
 const SWAP_SAVE_EVERY: u8 = 100; // save to a swap file every 100 unsaved edits
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, Clone, Copy)]
 pub struct Position {
     pub x: usize,
     pub x_offset: u8,
@@ -404,6 +404,7 @@ impl Editor {
                 'o' => self.insert_newline_after_current_line(),
                 'O' => self.insert_newline_before_current_line(),
                 'A' => self.append_to_line(),
+                'J' => self.join_current_line_with_next_one(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -552,6 +553,22 @@ impl Editor {
         self.goto_start_or_end_of_line(&Boundary::End);
         self.move_cursor(&Direction::Right, 1);
         self.enter_insert_mode();
+    }
+
+    fn join_current_line_with_next_one(&mut self) {
+        if self.current_line_number() < self.document.num_rows() {
+            let next_line_row_index = self.cursor_position.y.saturating_add(1);
+            self.document.join_row_with_previous_one(
+                self.document
+                    .get_row(self.cursor_position.y.saturating_add(1))
+                    .unwrap()
+                    .len()
+                    .saturating_sub(1),
+                next_line_row_index,
+                Some(' '),
+            );
+            self.goto_start_or_end_of_line(&Boundary::End);
+        }
     }
 
     /// Move the cursor to the next line after the current paraghraph, or the line
@@ -943,6 +960,7 @@ impl Editor {
                             o => insert newline after current line & enter insert mode\r\n  \
                             O => insert newline before current line & enter insert mode\r\n  \
                             A => go to end of line & enter insert moder\n  \
+                            J => join the current line with the next one\n  \
                             : => open command prompt\r\n\n\
                         Prompt commands\r\n  \
                             help            => display this help screen\r\n  \

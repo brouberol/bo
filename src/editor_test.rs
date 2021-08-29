@@ -549,3 +549,12 @@ fn test_editor_quit() {
     editor.quit(true);
     assert!(editor.should_quit);
 }
+
+#[test]
+fn test_editor_join_lines() {
+    let mut editor = get_test_editor();
+    // Go to end of line and join it with the next one
+    process_keystrokes(&mut editor, vec!['$', 'J']);
+    assert_nth_row_is(&editor, 0, "Hello world Hello world!");
+    assert_eq!(editor.document.num_rows(), 2);
+}
