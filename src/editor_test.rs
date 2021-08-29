@@ -1,6 +1,7 @@
 use crate::{Console, Document, Editor, Mode, Position, Row, Size};
 use std::fmt;
 use std::io::Error;
+use std::path::PathBuf;
 use termion::color;
 use termion::event::{Event, Key, MouseEvent};
 
@@ -77,7 +78,7 @@ fn get_short_document() -> Document {
     for line in lines {
         rows.push(Row::from(line));
     }
-    Document::new(rows, "test".to_string())
+    Document::new(rows, PathBuf::from("test"))
 }
 
 fn get_long_document() -> Document {
@@ -85,7 +86,7 @@ fn get_long_document() -> Document {
     for _ in 0..200 {
         rows.push(Row::from("Some line"));
     }
-    Document::new(rows, "test".to_string())
+    Document::new(rows, PathBuf::from("test"))
 }
 
 fn get_test_editor() -> Editor {

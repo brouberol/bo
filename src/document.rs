@@ -5,17 +5,17 @@ use std::fmt;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::{Error, Write};
-use std::path;
+use std::path::{PathBuf, Path};
 use std::slice::{Iter, IterMut};
 
 pub struct Document {
     rows: Vec<Row>,
-    pub filename: String,
+    pub filename: PathBuf,
 }
 
 impl fmt::Debug for Document {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct(self.filename.as_str()).finish()
+        f.debug_struct(self.filename.to_str().unwrap()).finish()
     }
 }
 
@@ -23,7 +23,7 @@ impl Default for Document {
     fn default() -> Self {
         Self {
             rows: vec![Row::from("")],
-            filename: "".to_string(),
+            filename: PathBuf::new(),
         }
     }
 }
@@ -38,12 +38,12 @@ impl Hash for Document {
 
 impl Document {
     #[must_use]
-    pub fn new(rows: Vec<Row>, filename: String) -> Self {
+    pub fn new(rows: Vec<Row>, filename: PathBuf) -> Self {
         Self { rows, filename }
     }
 
     #[must_use]
-    pub fn new_empty(filename: String) -> Self {
+    pub fn new_empty(filename: PathBuf) -> Self {
         Self {
             rows: vec![Row::from("")],
             filename,
@@ -54,46 +54,42 @@ impl Document {
     ///
     /// This function will panic if the path contains a non UTF-8 character
     #[must_use]
-    pub fn swap_filename(filename: &str) -> String {
-        let filepath = path::Path::new(filename);
-        let parent = filepath.parent().unwrap();
-        let stripped_filename = filepath.file_name().unwrap();
+    pub fn swap_filename(filename: &Path) -> PathBuf {
+        let parent = filename.parent().unwrap();
+        let stripped_filename = filename.file_name().unwrap();
         let new_filename = format!(".{}.swp", stripped_filename.to_str().unwrap());
         let joined_os_str = parent.join(new_filename);
         let out = joined_os_str.as_os_str().to_str().unwrap_or_default();
-        String::from(out)
+        PathBuf::from(out)
     }
 
     /// # Errors
-    ///
+    /// # Panics
     /// Returns an error if a file bearing the provided filename
     /// cannot be open.
-    pub fn open(filename: &str) -> Result<Self, Error> {
-        if !path::Path::new(filename).is_file() {
-            return Ok(Self::new_empty(String::from(filename)));
+    pub fn open(filename: PathBuf) -> Result<Self, Error> {
+        if !filename.is_file() {
+            return Ok(Self::new_empty(filename));
         }
-        let file_contents = if path::Path::new(&Self::swap_filename(filename)).is_file() {
-            fs::read_to_string(Self::swap_filename(filename))?
+        let file_contents = if (&Self::swap_filename(&filename)).is_file() {
+            fs::read_to_string(Self::swap_filename(&filename))?
         } else {
-            fs::read_to_string(filename)?
+            fs::read_to_string(&filename)?
         };
 
         let mut rows = Vec::new();
         for line in file_contents.lines() {
             rows.push(Row::from(line));
         }
-        Ok(Self {
-            rows,
-            filename: filename.to_string(),
-        })
+        Ok(Self { rows, filename })
     }
 
     /// # Errors
-    ///
+    /// # Panics
     /// Can return an error if the file can't be created or written to.
     pub fn save_to_swap_file(&self) -> Result<(), Error> {
-        if !Self::swap_filename(self.filename.as_str()).is_empty() {
-            let mut file = fs::File::create(Self::swap_filename(self.filename.as_str()))?;
+        if Self::swap_filename(&self.filename).is_file() {
+            let mut file = fs::File::create(Self::swap_filename(&self.filename))?;
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
@@ -109,20 +105,21 @@ impl Document {
     }
 
     /// # Errors
-    ///
+    /// # Panics
     /// Can return an error if the file can't be created or written to.
     pub fn save(&self, new_name: &str) -> Result<(), Error> {
-        if !self.filename.is_empty() {
-            let mut file = fs::File::create(self.filename.as_str())?;
+        if self.filename.is_file() {
+            let mut file = fs::File::create(self.filename.to_str().unwrap())?;
+
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
             }
-            if fs::remove_file(Self::swap_filename(self.filename.as_str())).is_ok() {
+            if fs::remove_file(Self::swap_filename(&self.filename)).is_ok() {
                 // pass
             }
             if !new_name.is_empty() {
-                fs::rename(self.filename.as_str(), new_name)?;
+                fs::rename(self.filename.to_str().unwrap(), new_name)?;
             }
         }
         Ok(())

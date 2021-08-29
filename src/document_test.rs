@@ -1,10 +1,11 @@
 use crate::{Document, Row};
+use std::path::{Path, PathBuf};
 
 #[test]
 fn test_document_get_row() {
     let doc = Document::new(
         vec![Row::from("Hello"), Row::from("world!")],
-        "test.rs".to_string(),
+        PathBuf::from("test.rs"),
     );
     assert_eq!(doc.get_row(0).unwrap().string, "Hello".to_string());
     assert_eq!(doc.get_row(1).unwrap().string, "world!".to_string());
@@ -13,15 +14,18 @@ fn test_document_get_row() {
 
 #[test]
 fn test_document_is_empty() {
-    assert!(Document::new(vec![], "test.rs".to_string(),).is_empty());
-    assert!(!Document::new(vec![Row::from("Hello")], "test.rs".to_string()).is_empty());
+    assert!(Document::new(vec![], PathBuf::from("test.rs")).is_empty());
+    assert!(!Document::new(vec![Row::from("Hello")], PathBuf::from("test.rs")).is_empty());
 }
 
 #[test]
 fn test_document_num_rows() {
-    assert_eq!(Document::new(vec![], "test.rs".to_string()).num_rows(), 0);
     assert_eq!(
-        Document::new(vec![Row::from("")], "test.rs".to_string()).num_rows(),
+        Document::new(vec![], PathBuf::from("test.rs")).num_rows(),
+        0
+    );
+    assert_eq!(
+        Document::new(vec![Row::from("")], PathBuf::from("test.rs")).num_rows(),
         1
     );
 }
@@ -31,7 +35,7 @@ fn test_document_num_words() {
     assert_eq!(
         Document::new(
             vec![Row::from("Hello world"), Row::from("dear reviewer!")],
-            "test.rs".to_string()
+            PathBuf::from("test.rs")
         )
         .num_words(),
         4
@@ -43,7 +47,7 @@ fn test_document_row_for_line_number() {
     let row1 = Row::from("Hello world");
     let row2 = Row::from("dear reviewer!");
     assert_eq!(
-        Document::new(vec![row1, row2], "test.rs".to_string())
+        Document::new(vec![row1, row2], PathBuf::from("test.rs"))
             .row_for_line_number(1)
             .unwrap()
             .string,
@@ -58,7 +62,7 @@ fn test_document_last_line_number() {
     assert_eq!(
         Document::new(
             vec![Row::from("Hello world"), Row::from("dear reviewer!")],
-            "test.rs".to_string()
+            PathBuf::from("test.rs")
         )
         .last_line_number(),
         2
@@ -69,7 +73,7 @@ fn test_document_last_line_number() {
 fn test_document_insert() {
     let mut doc = Document::new(
         vec![Row::from("Hello"), Row::from("world!")],
-        "test.rs".to_string(),
+        PathBuf::from("test.rs"),
     );
     doc.insert(' ', 6, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
@@ -82,7 +86,7 @@ fn test_document_insert() {
 fn test_document_delete() {
     let mut doc = Document::new(
         vec![Row::from("Hello"), Row::from("world!")],
-        "test.rs".to_string(),
+        PathBuf::from("test.rs"),
     );
     doc.delete(5, 6, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
@@ -95,7 +99,7 @@ fn test_document_delete() {
 fn test_document_delete_at_start_of_line() {
     let mut doc = Document::new(
         vec![Row::from("Hello"), Row::from("world!")],
-        "test.rs".to_string(),
+        PathBuf::from("test.rs"),
     );
     doc.delete(0, 0, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Helloworld!");
@@ -106,7 +110,7 @@ fn test_document_delete_at_start_of_line() {
 fn test_insert_newline() {
     let mut doc = Document::new(
         vec![Row::from("Hello"), Row::from("world!")],
-        "test.rs".to_string(),
+        PathBuf::from("test.rs"),
     );
     doc.insert_newline(0, 0);
     assert_eq!(doc.rows.get(0).unwrap().string, "");
@@ -122,7 +126,7 @@ fn test_insert_newline() {
 
 #[test]
 fn test_insert_newline_row_split() {
-    let mut doc = Document::new(vec![Row::from("Hello world!")], "test.rs".to_string());
+    let mut doc = Document::new(vec![Row::from("Hello world!")], PathBuf::from("test.rs"));
     doc.insert_newline(5, 0);
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, " world!");
@@ -130,16 +134,22 @@ fn test_insert_newline_row_split() {
 
 #[test]
 fn test_document_swapfile() {
-    assert_eq!(Document::swap_filename("test.txt"), ".test.txt.swp");
     assert_eq!(
-        Document::swap_filename("/home/br/code/bo/test.txt"),
-        "/home/br/code/bo/.test.txt.swp"
+        Document::swap_filename(Path::new("test.txt")),
+        PathBuf::from(".test.txt.swp")
+    );
+    assert_eq!(
+        Document::swap_filename(Path::new("/home/br/code/bo/test.txt")),
+        PathBuf::from("/home/br/code/bo/.test.txt.swp")
     );
 }
 
 #[test]
 fn test_document_trim_trailing_spaces() {
-    let mut doc = Document::new(vec![Row::from("Hello world!    ")], "test.rs".to_string());
+    let mut doc = Document::new(
+        vec![Row::from("Hello world!    ")],
+        PathBuf::from("test.rs"),
+    );
     doc.trim_trailing_spaces();
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello world!");
 }

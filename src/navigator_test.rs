@@ -1,4 +1,5 @@
 use crate::{Boundary, Document, Navigator, Position, Row};
+use std::path::PathBuf;
 
 fn test_document() -> Document {
     Document::new(
@@ -7,7 +8,7 @@ fn test_document() -> Document {
             Row::from(""),
             Row::from("Test line 2"),
         ],
-        "test.txt".to_string(),
+        PathBuf::from("test.txt"),
     )
 }
 
@@ -29,7 +30,7 @@ fn test_find_index_of_first_non_whitespace() {
 
 #[test]
 fn test_find_matching_closing_symbol() {
-    let doc = Document::new(vec![Row::from("fn test() {}")], "test.txt".to_string());
+    let doc = Document::new(vec![Row::from("fn test() {}")], PathBuf::from("test.txt"));
     assert_eq!(
         Navigator::find_matching_closing_symbol(
             &doc,
@@ -59,7 +60,7 @@ fn test_find_matching_closing_symbol_multiline() {
             Row::from("  return 2;"),
             Row::from("};"),
         ],
-        "test.txt".to_string(),
+        PathBuf::from("test.txt"),
     );
     assert_eq!(
         Navigator::find_matching_closing_symbol(
@@ -85,7 +86,7 @@ fn test_find_matching_closing_symbol_multiline() {
 
 #[test]
 fn test_find_matching_closing_symbol_no_match() {
-    let doc = Document::new(vec![Row::from("fn test( {}")], "test.txt".to_string());
+    let doc = Document::new(vec![Row::from("fn test( {}")], PathBuf::from("test.txt"));
     assert_eq!(
         Navigator::find_matching_closing_symbol(
             &doc,
@@ -106,7 +107,7 @@ fn test_find_matching_closing_symbol_no_match() {
 
 #[test]
 fn test_find_matching_opening_symbol() {
-    let doc = Document::new(vec![Row::from("fn test() {}")], "test.txt".to_string());
+    let doc = Document::new(vec![Row::from("fn test() {}")], PathBuf::from("test.txt"));
     assert_eq!(
         Navigator::find_matching_opening_symbol(
             &doc,
@@ -137,7 +138,7 @@ fn test_find_matching_opening_symbol_multiline() {
             Row::from("  return 2;"),
             Row::from("};"),
         ],
-        "test.txt".to_string(),
+        PathBuf::from("test.txt"),
     );
     assert_eq!(
         Navigator::find_matching_opening_symbol(
@@ -163,7 +164,7 @@ fn test_find_matching_opening_symbol_multiline() {
 
 #[test]
 fn test_find_matching_opening_symbol_no_match() {
-    let doc = Document::new(vec![Row::from("fn test) {}")], "test.txt".to_string());
+    let doc = Document::new(vec![Row::from("fn test) {}")], PathBuf::from("test.txt"));
     assert_eq!(
         Navigator::find_matching_opening_symbol(
             &doc,
