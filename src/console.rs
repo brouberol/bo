@@ -35,7 +35,7 @@ pub trait Console: Debug {
     ///
     /// # Errors
     /// Will return an error if an event can't be read from the console input.
-    fn read_event(&self) -> Result<Event, Error>;
+    fn read_event(&mut self) -> Result<Event, Error>;
 
     fn clear_screen(&self);
 

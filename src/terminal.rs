@@ -11,6 +11,7 @@ use termion::screen::{AlternateScreen, ToAlternateScreen, ToMainScreen};
 
 pub struct Terminal {
     _stdout: AlternateScreen<MouseTerminal<RawTerminal<std::io::Stdout>>>,
+    stdin_event_stream: termion::input::Events<io::Stdin>,
 }
 
 impl fmt::Debug for Terminal {
@@ -38,9 +39,9 @@ impl Console for Terminal {
     /// # Errors
     ///
     /// Returns an error if a event can't be read
-    fn read_event(&self) -> Result<Event, std::io::Error> {
+    fn read_event(&mut self) -> Result<Event, std::io::Error> {
         loop {
-            let opt_key = io::stdin().lock().events().next();
+            let opt_key = self.stdin_event_stream.next();
             // at that point, event is a Result<Event, Error>, as the Option was unwrapped
             if let Some(event) = opt_key {
                 return event;
@@ -144,6 +145,7 @@ impl Terminal {
     pub fn default() -> Result<Self, std::io::Error> {
         Ok(Self {
             _stdout: AlternateScreen::from(MouseTerminal::from(stdout().into_raw_mode()?)),
+            stdin_event_stream: io::stdin().events(),
         })
     }
 }

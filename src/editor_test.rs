@@ -9,7 +9,7 @@ use termion::event::{Event, Key, MouseEvent};
 struct MockConsole {}
 
 impl Console for MockConsole {
-    fn read_event(&self) -> Result<Event, Error> {
+    fn read_event(&mut self) -> Result<Event, Error> {
         Ok(Event::Key(Key::Char('r')))
     }
 
