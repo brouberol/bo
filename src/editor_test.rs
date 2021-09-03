@@ -54,7 +54,7 @@ impl Console for MockConsole {
         self.size().height as usize / 2
     }
 
-    fn set_cursor_position(&self, _position: &Position) {}
+    fn set_cursor_position(&self, _position: &Position, _row_prefix_length: u8) {}
 
     #[must_use]
     fn get_cursor_index_from_mouse_event(
@@ -106,7 +106,7 @@ fn get_test_editor_with_long_document() -> Editor {
 }
 
 fn assert_position_is(editor: &Editor, x: usize, y: usize) {
-    assert_eq!(editor.cursor_position, Position { x, x_offset: 0, y });
+    assert_eq!(editor.cursor_position, Position { x, y });
 }
 
 fn assert_nth_row_is(editor: &Editor, n: usize, s: &str) {
@@ -219,42 +219,9 @@ fn test_editor_search() {
     assert_eq!(
         editor.search_matches,
         vec![
-            (
-                Position {
-                    x: 6,
-                    x_offset: 0,
-                    y: 1
-                },
-                Position {
-                    x: 12,
-                    x_offset: 0,
-                    y: 1
-                }
-            ),
-            (
-                Position {
-                    x: 6,
-                    x_offset: 0,
-                    y: 2
-                },
-                Position {
-                    x: 12,
-                    x_offset: 0,
-                    y: 2
-                }
-            ),
-            (
-                Position {
-                    x: 6,
-                    x_offset: 0,
-                    y: 3
-                },
-                Position {
-                    x: 12,
-                    x_offset: 0,
-                    y: 3
-                }
-            )
+            (Position { x: 6, y: 1 }, Position { x: 12, y: 1 }),
+            (Position { x: 6, y: 2 }, Position { x: 12, y: 2 }),
+            (Position { x: 6, y: 3 }, Position { x: 12, y: 3 })
         ]
     );
     assert_eq!(editor.message, "Match 1/3");
@@ -413,11 +380,11 @@ fn test_editor_move_cursor_to_position_x() {
     assert_position_is(&editor, 0, 0);
     editor.move_cursor_to_position_x(1);
     assert_position_is(&editor, 1, 0);
-    assert_eq!(editor.offset.x, 0);
+    assert_eq!(editor.offset.columns, 0);
 
     editor.move_cursor_to_position_x(140);
     assert_position_is(&editor, 119, 0);
-    assert_eq!(editor.offset.x, 21);
+    assert_eq!(editor.offset.columns, 21);
 }
 
 #[test]
@@ -425,27 +392,27 @@ fn test_editor_move_cursor_to_position_y() {
     let mut editor = get_test_editor_with_long_document();
 
     assert_position_is(&editor, 0, 0);
-    assert_eq!(editor.offset.y, 0);
+    assert_eq!(editor.offset.rows, 0);
 
     editor.move_cursor_to_position_y(10);
     assert_position_is(&editor, 0, 10);
-    assert_eq!(editor.offset.y, 0);
+    assert_eq!(editor.offset.rows, 0);
 
     editor.move_cursor_to_position_y(200);
     assert_position_is(&editor, 0, 80);
-    assert_eq!(editor.offset.y, 120);
+    assert_eq!(editor.offset.rows, 120);
 
     editor.move_cursor_to_position_y(110);
     assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.y, 70);
+    assert_eq!(editor.offset.rows, 70);
 
     editor.move_cursor_to_position_y(112);
     assert_position_is(&editor, 0, 42);
-    assert_eq!(editor.offset.y, 70);
+    assert_eq!(editor.offset.rows, 70);
 
     editor.move_cursor_to_position_y(180);
     assert_position_is(&editor, 0, 60);
-    assert_eq!(editor.offset.y, 120);
+    assert_eq!(editor.offset.rows, 120);
 }
 
 #[test]
@@ -462,19 +429,19 @@ fn test_editor_navigate_long_document() {
 
     editor.move_cursor_to_position_y(110);
     assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.y, 70);
+    assert_eq!(editor.offset.rows, 70);
 
     editor.process_keystroke(Key::Char('H'));
     assert_position_is(&editor, 0, 0);
-    assert_eq!(editor.offset.y, 70);
+    assert_eq!(editor.offset.rows, 70);
 
     editor.process_keystroke(Key::Char('M'));
     assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.y, 70);
+    assert_eq!(editor.offset.rows, 70);
 
     editor.process_keystroke(Key::Char('L'));
     assert_position_is(&editor, 0, 80);
-    assert_eq!(editor.offset.y, 70);
+    assert_eq!(editor.offset.rows, 70);
 }
 
 #[test]

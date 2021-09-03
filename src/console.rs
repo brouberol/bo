@@ -69,7 +69,7 @@ pub trait Console: Debug {
 
     fn get_cursor_index_from_mouse_event(&self, mouse_event: MouseEvent, x_offset: u8) -> Position;
 
-    fn set_cursor_position(&self, position: &Position);
+    fn set_cursor_position(&self, position: &Position, row_prefix_length: u8);
 
     fn set_cursor_as_steady_bar(&self);
 

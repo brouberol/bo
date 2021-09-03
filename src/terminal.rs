@@ -9,6 +9,22 @@ use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, ToAlternateScreen, ToMainScreen};
 
+#[derive(Debug, PartialEq)]
+pub struct AnsiPosition {
+    pub x: u16,
+    pub y: u16,
+}
+
+impl From<Position> for AnsiPosition {
+    #[allow(clippy::cast_possible_truncation)]
+    fn from(p: Position) -> Self {
+        Self {
+            x: (p.x as u16).saturating_add(1),
+            y: (p.y as u16).saturating_add(1),
+        }
+    }
+}
+
 pub struct Terminal {
     _stdout: AlternateScreen<MouseTerminal<RawTerminal<std::io::Stdout>>>,
     stdin_event_stream: termion::input::Events<io::Stdin>,
@@ -93,36 +109,39 @@ impl Console for Terminal {
         self.size().height as usize / 2
     }
 
-    #[allow(clippy::cast_possible_truncation)]
-    fn set_cursor_position(&self, position: &Position) {
-        let Position {
-            mut x,
-            mut y,
-            mut x_offset,
-        } = position;
+    fn set_cursor_position(&self, position: &Position, mut row_prefix_length: u8) {
+        let ansi_position = AnsiPosition::from(*position);
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
-        x_offset += if x_offset > 0 { 1 } else { 0 };
-        x = x.saturating_add(1);
-        x = cmp::min(x.saturating_add(x_offset.into()), self.size().width.into());
-        y = y.saturating_add(1);
-        y = cmp::min(y, self.size().height.into());
-        print!("{}", termion::cursor::Goto(x as u16, y as u16));
+        row_prefix_length += if row_prefix_length > 0 { 1 } else { 0 };
+        print!(
+            "{}",
+            termion::cursor::Goto(
+                cmp::min(
+                    ansi_position.x.saturating_add(row_prefix_length.into()),
+                    self.size().width
+                ),
+                cmp::min(ansi_position.y, self.size().height)
+            )
+        );
     }
 
     #[must_use]
-    fn get_cursor_index_from_mouse_event(&self, mouse_event: MouseEvent, x_offset: u8) -> Position {
+    fn get_cursor_index_from_mouse_event(
+        &self,
+        mouse_event: MouseEvent,
+        row_prefix_length: u8,
+    ) -> Position {
         if let MouseEvent::Press(_, x, y) = mouse_event {
-            let offset_adjustment: u8 = if x_offset > 0 {
-                x_offset.saturating_add(1)
+            let offset_adjustment: u8 = if row_prefix_length > 0 {
+                row_prefix_length.saturating_add(1)
             } else {
                 0
             };
-            Position {
-                x: x.saturating_sub(1)
-                    .saturating_sub(u16::from(offset_adjustment)) as usize,
-                y: y.saturating_sub(1) as usize,
-                x_offset,
-            }
+            let ansi_position = AnsiPosition {
+                x: x.saturating_sub(u16::from(offset_adjustment)),
+                y,
+            };
+            Position::from(ansi_position)
         } else {
             Position::top_left()
         }
@@ -149,3 +168,7 @@ impl Terminal {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "./terminal_test.rs"]
+mod terminal_test;

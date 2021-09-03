@@ -17,11 +17,11 @@ use structopt::StructOpt;
 pub use config::Config;
 pub use console::{Console, Size};
 pub use document::Document;
-pub use editor::Position;
+pub use editor::{Position, ViewportOffset};
 pub use mode::Mode;
 pub use navigator::{Boundary, Navigator};
 pub use row::Row;
-pub use terminal::Terminal;
+pub use terminal::{AnsiPosition, Terminal};
 pub use utils::{bo_version, log};
 
 #[derive(Debug, StructOpt)]

@@ -1,4 +1,6 @@
-use crate::{commands, utils, Boundary, Config, Console, Document, Mode, Navigator, Row};
+use crate::{
+    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Mode, Navigator, Row,
+};
 use std::cmp;
 use std::env;
 use std::io;
@@ -19,7 +21,6 @@ const SWAP_SAVE_EVERY: u8 = 100; // save to a swap file every 100 unsaved edits
 #[derive(Debug, Default, PartialEq, Clone, Copy)]
 pub struct Position {
     pub x: usize,
-    pub x_offset: u8,
     pub y: usize,
 }
 
@@ -31,6 +32,21 @@ impl Position {
     pub fn top_left() -> Self {
         Self::default()
     }
+}
+
+impl From<AnsiPosition> for Position {
+    fn from(p: AnsiPosition) -> Self {
+        Self {
+            x: p.x.saturating_sub(1) as usize,
+            y: p.y.saturating_sub(1) as usize,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ViewportOffset {
+    pub rows: usize,
+    pub columns: usize,
 }
 
 #[derive(Debug)]
@@ -46,7 +62,7 @@ pub struct Editor {
     should_quit: bool,
     cursor_position: Position,
     document: Document,
-    offset: Position,
+    offset: ViewportOffset,
     message: String,
     mode: Mode,
     command_buffer: String,
@@ -59,6 +75,7 @@ pub struct Editor {
     last_saved_hash: u64,
     terminal: Box<dyn Console>,
     unsaved_edits: u8,
+    row_prefix_length: u8,
 }
 
 fn die(e: &io::Error) {
@@ -79,7 +96,7 @@ impl Editor {
             should_quit: false,
             cursor_position: Position::top_left(),
             document,
-            offset: Position::default(),
+            offset: ViewportOffset::default(),
             message: "".to_string(),
             mode: Mode::Normal,
             command_buffer: "".to_string(),
@@ -92,6 +109,7 @@ impl Editor {
             terminal,
             unsaved_edits: 0,
             last_saved_hash,
+            row_prefix_length: 0,
         }
     }
 
@@ -155,7 +173,7 @@ impl Editor {
         match mouse_event {
             MouseEvent::Press(MouseButton::Left, _, _) => self.mouse_event_buffer.push(
                 self.terminal
-                    .get_cursor_index_from_mouse_event(mouse_event, self.cursor_position.x_offset),
+                    .get_cursor_index_from_mouse_event(mouse_event, self.row_prefix_length),
             ),
             MouseEvent::Release(_, _) => {
                 if !self.mouse_event_buffer.is_empty() {
@@ -262,7 +280,7 @@ impl Editor {
                         commands::LINE_NUMBERS => {
                             self.config.display_line_numbers =
                                 Config::toggle(self.config.display_line_numbers);
-                            self.cursor_position.x_offset = if self.config.display_line_numbers {
+                            self.row_prefix_length = if self.config.display_line_numbers {
                                 START_X
                             } else {
                                 0
@@ -348,14 +366,12 @@ impl Editor {
                     let match_start = Position {
                         x: match_start_index,
                         y: row_index.saturating_add(1), // terminal line number, 1-bases
-                        x_offset: 0,
                     };
                     let match_end = Position {
                         x: match_start_index
                             .saturating_add(1)
                             .saturating_add(search_pattern.len()),
                         y: row_index.saturating_add(1),
-                        x_offset: 0,
                     };
                     self.search_matches.push((match_start, match_end));
                 }
@@ -510,11 +526,11 @@ impl Editor {
 
     /// Return the index of the row associated to the current cursor position / vertical offset
     fn current_row_index(&self) -> usize {
-        self.cursor_position.y.saturating_add(self.offset.y)
+        self.cursor_position.y.saturating_add(self.offset.rows)
     }
 
     fn current_x_position(&self) -> usize {
-        self.cursor_position.x.saturating_add(self.offset.x)
+        self.cursor_position.x.saturating_add(self.offset.columns)
     }
 
     /// Return the character currently under the cursor
@@ -644,7 +660,7 @@ impl Editor {
         self.goto_line(
             self.terminal
                 .middle_of_screen_line_number()
-                .saturating_add(self.offset.y)
+                .saturating_add(self.offset.rows)
                 .saturating_add(1),
             0,
         );
@@ -652,14 +668,14 @@ impl Editor {
 
     /// Move the cursor to the middle of the terminal
     fn goto_first_line_of_terminal(&mut self) {
-        self.goto_line(self.offset.y.saturating_add(1), 0);
+        self.goto_line(self.offset.rows.saturating_add(1), 0);
     }
 
     /// Move the cursor to the last line of the terminal
     fn goto_last_line_of_terminal(&mut self) {
         self.goto_line(
             (self.terminal.size().height as usize)
-                .saturating_add(self.offset.y)
+                .saturating_add(self.offset.rows)
                 .saturating_add(1),
             0,
         );
@@ -759,16 +775,11 @@ impl Editor {
         let size = self.terminal.size();
         let term_height = size.height.saturating_sub(1) as usize;
         let term_width = size.width.saturating_sub(1) as usize;
-        let Position {
-            mut x,
-            mut y,
-            x_offset: _,
-        } = self.cursor_position;
+        let Position { mut x, mut y } = self.cursor_position;
 
-        let Position {
-            x: mut offset_x,
-            y: mut offset_y,
-            x_offset: _,
+        let ViewportOffset {
+            columns: mut offset_x,
+            rows: mut offset_y,
         } = self.offset;
 
         for _ in 0..times {
@@ -815,8 +826,8 @@ impl Editor {
         }
         self.cursor_position.x = x;
         self.cursor_position.y = y;
-        self.offset.x = offset_x;
-        self.offset.y = offset_y;
+        self.offset.columns = offset_x;
+        self.offset.rows = offset_y;
     }
 
     fn move_cursor_to_position_y(&mut self, y: usize) {
@@ -828,19 +839,19 @@ impl Editor {
         let y = cmp::min(y, max_line_number);
         if y < middle_of_screen_line_number {
             // move to the first "half-view" of the document
-            self.offset.y = 0;
+            self.offset.rows = 0;
             self.cursor_position.y = y;
         } else if y > max_line_number - middle_of_screen_line_number {
             // move to the last "half view" of the document
-            self.offset.y = max_line_number - term_height;
-            self.cursor_position.y = y.saturating_sub(self.offset.y);
-        } else if self.offset.y <= y && y <= self.offset.y + term_height {
+            self.offset.rows = max_line_number - term_height;
+            self.cursor_position.y = y.saturating_sub(self.offset.rows);
+        } else if self.offset.rows <= y && y <= self.offset.rows + term_height {
             // move around in the same view
-            self.cursor_position.y = y.saturating_sub(self.offset.y);
+            self.cursor_position.y = y.saturating_sub(self.offset.rows);
         } else {
             // move to another view in the document, and position the cursor at the
             // middle of the terminal/view.
-            self.offset.y = y - middle_of_screen_line_number;
+            self.offset.rows = y - middle_of_screen_line_number;
             self.cursor_position.y = middle_of_screen_line_number;
         }
     }
@@ -850,10 +861,10 @@ impl Editor {
         let x = cmp::max(0, x);
         if x > term_width {
             self.cursor_position.x = term_width - 1;
-            self.offset.x = x - term_width - self.offset.x + 1;
+            self.offset.columns = x - term_width - self.offset.columns + 1;
         } else {
             self.cursor_position.x = x;
-            self.offset.x = 0;
+            self.offset.columns = 0;
         }
     }
 
@@ -875,9 +886,11 @@ impl Editor {
             self.draw_status_bar();
             self.draw_message_bar();
             if self.alternate_screen {
-                self.terminal.set_cursor_position(&Position::top_left());
+                self.terminal
+                    .set_cursor_position(&Position::top_left(), self.row_prefix_length);
             } else {
-                self.terminal.set_cursor_position(&self.cursor_position);
+                self.terminal
+                    .set_cursor_position(&self.cursor_position, self.row_prefix_length);
             }
         }
         self.terminal.show_cursor();
@@ -911,7 +924,7 @@ impl Editor {
             self.current_line_number(),
             self.cursor_position
                 .x
-                .saturating_add(self.offset.x)
+                .saturating_add(self.offset.columns)
                 .saturating_add(1),
         );
         let right_status = format!("{} {}", stats, position);
@@ -1024,7 +1037,7 @@ impl Editor {
 
     fn draw_rows(&self) {
         let term_height = self.terminal.size().height;
-        for terminal_row_idx in self.offset.y..(term_height as usize + self.offset.y) {
+        for terminal_row_idx in self.offset.rows..(term_height as usize + self.offset.rows) {
             let line_number = terminal_row_idx.saturating_add(1);
             self.terminal.clear_current_line();
             if let Some(row) = self.document.get_row(terminal_row_idx) {
@@ -1045,18 +1058,18 @@ impl Editor {
     }
 
     fn draw_row(&self, row: &Row, line_number: usize) {
-        let row_visible_start = self.offset.x;
-        let mut row_visible_end = self.terminal.size().width as usize + self.offset.x;
-        if self.cursor_position.x_offset > 0 {
+        let row_visible_start = self.offset.columns;
+        let mut row_visible_end = self.terminal.size().width as usize + self.offset.columns;
+        if self.row_prefix_length > 0 {
             row_visible_end = row_visible_end
-                .saturating_sub(self.cursor_position.x_offset as usize)
+                .saturating_sub(self.row_prefix_length as usize)
                 .saturating_sub(1);
         }
         let rendered_row = row.render(
             row_visible_start,
             row_visible_end,
             line_number,
-            self.cursor_position.x_offset as usize,
+            self.row_prefix_length as usize,
         );
         println!("{}\r", rendered_row);
     }

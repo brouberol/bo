@@ -1,4 +1,4 @@
-use crate::{Document, Position, Row};
+use crate::{Document, Position, Row, ViewportOffset};
 use std::cmp;
 use std::collections::HashMap;
 
@@ -42,14 +42,14 @@ impl Navigator {
     pub fn find_matching_closing_symbol(
         document: &Document,
         current_position: &Position,
-        offset: &Position,
+        offset: &ViewportOffset,
     ) -> Option<Position> {
-        let initial_col_position = current_position.x.saturating_add(offset.x);
-        let initial_row_position = current_position.y.saturating_add(offset.y);
+        let initial_col_position = current_position.x.saturating_add(offset.columns);
+        let initial_row_position = current_position.y.saturating_add(offset.rows);
         let symbol = document
             .get_row(initial_row_position)
             .unwrap()
-            .nth_grapheme(current_position.x.saturating_add(offset.x));
+            .nth_grapheme(current_position.x.saturating_add(offset.columns));
         let mut stack = vec![symbol];
         let mut current_opening_symbol = symbol;
         matching_closing_symbols().get(&symbol)?;
@@ -68,11 +68,7 @@ impl Navigator {
                 {
                     stack.pop();
                     if stack.is_empty() {
-                        return Some(Position {
-                            x: index,
-                            y,
-                            x_offset: 0,
-                        });
+                        return Some(Position { x: index, y });
                     }
                     current_opening_symbol = *stack.last().unwrap();
                 } else if matching_closing_symbols().contains_key(&c) {
@@ -91,14 +87,14 @@ impl Navigator {
     pub fn find_matching_opening_symbol(
         document: &Document,
         current_position: &Position,
-        offset: &Position,
+        offset: &ViewportOffset,
     ) -> Option<Position> {
-        let initial_col_position = current_position.x.saturating_add(offset.x);
-        let initial_row_position = current_position.y.saturating_add(offset.y);
+        let initial_col_position = current_position.x.saturating_add(offset.columns);
+        let initial_row_position = current_position.y.saturating_add(offset.rows);
         let symbol = document
             .get_row(initial_row_position)
             .unwrap()
-            .nth_grapheme(current_position.x.saturating_add(offset.x));
+            .nth_grapheme(current_position.x.saturating_add(offset.columns));
         let mut stack = vec![symbol];
         let mut current_closing_symbol = symbol;
         matching_opening_symbols().get(&symbol)?;
@@ -117,11 +113,7 @@ impl Navigator {
                 {
                     stack.pop();
                     if stack.is_empty() {
-                        return Some(Position {
-                            x: index,
-                            y,
-                            x_offset: 0,
-                        });
+                        return Some(Position { x: index, y });
                     }
                     current_closing_symbol = *stack.last().unwrap();
                 } else if matching_opening_symbols().contains_key(&c) {

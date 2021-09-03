@@ -1,4 +1,4 @@
-use crate::{Boundary, Document, Navigator, Position, Row};
+use crate::{Boundary, Document, Navigator, Position, Row, ViewportOffset};
 use std::path::PathBuf;
 
 fn test_document() -> Document {
@@ -34,22 +34,13 @@ fn test_find_matching_closing_symbol() {
     assert_eq!(
         Navigator::find_matching_closing_symbol(
             &doc,
-            &Position {
-                x: 7,
-                y: 0,
-                x_offset: 0
-            },
-            &Position {
-                x: 0,
-                y: 0,
-                x_offset: 0
+            &Position { x: 7, y: 0 },
+            &ViewportOffset {
+                columns: 0,
+                rows: 0
             },
         ),
-        Some(Position {
-            x: 8,
-            y: 0,
-            x_offset: 0
-        })
+        Some(Position { x: 8, y: 0 })
     );
 }
 #[test]
@@ -65,22 +56,13 @@ fn test_find_matching_closing_symbol_multiline() {
     assert_eq!(
         Navigator::find_matching_closing_symbol(
             &doc,
-            &Position {
-                x: 10,
-                y: 0,
-                x_offset: 0,
-            },
-            &Position {
-                x: 0,
-                y: 0,
-                x_offset: 0
+            &Position { x: 10, y: 0 },
+            &ViewportOffset {
+                columns: 0,
+                rows: 0
             },
         ),
-        Some(Position {
-            x: 0,
-            y: 2,
-            x_offset: 0
-        })
+        Some(Position { x: 0, y: 2 })
     );
 }
 
@@ -90,16 +72,11 @@ fn test_find_matching_closing_symbol_no_match() {
     assert_eq!(
         Navigator::find_matching_closing_symbol(
             &doc,
-            &Position {
-                x: 7,
-                y: 0,
-                x_offset: 0
-            },
-            &Position {
-                x: 0,
-                y: 0,
-                x_offset: 0
-            },
+            &Position { x: 7, y: 0 },
+            &ViewportOffset {
+                columns: 0,
+                rows: 0
+            }
         ),
         None
     );
@@ -111,22 +88,13 @@ fn test_find_matching_opening_symbol() {
     assert_eq!(
         Navigator::find_matching_opening_symbol(
             &doc,
-            &Position {
-                x: 11,
-                y: 0,
-                x_offset: 0
-            },
-            &Position {
-                x: 0,
-                y: 0,
-                x_offset: 0
-            },
+            &Position { x: 11, y: 0 },
+            &ViewportOffset {
+                columns: 0,
+                rows: 0
+            }
         ),
-        Some(Position {
-            x: 10,
-            y: 0,
-            x_offset: 0
-        })
+        Some(Position { x: 10, y: 0 })
     );
 }
 
@@ -143,22 +111,13 @@ fn test_find_matching_opening_symbol_multiline() {
     assert_eq!(
         Navigator::find_matching_opening_symbol(
             &doc,
-            &Position {
-                x: 0,
-                y: 2,
-                x_offset: 0
-            },
-            &Position {
-                x: 0,
-                y: 0,
-                x_offset: 0
-            },
+            &Position { x: 0, y: 2 },
+            &ViewportOffset {
+                columns: 0,
+                rows: 0
+            }
         ),
-        Some(Position {
-            x: 10,
-            y: 0,
-            x_offset: 0
-        })
+        Some(Position { x: 10, y: 0 })
     );
 }
 
@@ -168,16 +127,11 @@ fn test_find_matching_opening_symbol_no_match() {
     assert_eq!(
         Navigator::find_matching_opening_symbol(
             &doc,
-            &Position {
-                x: 7,
-                y: 0,
-                x_offset: 0
-            },
-            &Position {
-                x: 0,
-                y: 0,
-                x_offset: 0
-            },
+            &Position { x: 7, y: 0 },
+            &ViewportOffset {
+                columns: 0,
+                rows: 0
+            }
         ),
         None
     );
