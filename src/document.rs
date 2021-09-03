@@ -88,7 +88,9 @@ impl Document {
     /// # Panics
     /// Can return an error if the file can't be created or written to.
     pub fn save_to_swap_file(&self) -> Result<(), Error> {
-        if Self::swap_filename(&self.filename).is_file() {
+        if !self.filename.to_str().unwrap_or_default().is_empty()
+            && Self::swap_filename(&self.filename).is_file()
+        {
             let mut file = fs::File::create(Self::swap_filename(&self.filename))?;
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
