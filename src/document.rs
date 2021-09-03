@@ -108,7 +108,7 @@ impl Document {
     /// # Panics
     /// Can return an error if the file can't be created or written to.
     pub fn save(&self, new_name: &str) -> Result<(), Error> {
-        if self.filename.is_file() {
+        if self.filename != PathBuf::new() {
             let mut file = fs::File::create(self.filename.to_str().unwrap())?;
 
             for row in &self.rows {
