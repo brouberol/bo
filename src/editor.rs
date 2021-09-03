@@ -1019,6 +1019,11 @@ impl Editor {
                 self.draw_row(row, line_number);
             } else if terminal_row_idx == self.terminal.middle_of_screen_line_number()
                 && self.document.filename.to_str().unwrap().is_empty()
+                && self
+                    .document
+                    .get_row(0)
+                    .unwrap_or(&Row::default())
+                    .is_empty()
             {
                 self.display_welcome_message();
             } else {
