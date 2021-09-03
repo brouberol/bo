@@ -294,24 +294,31 @@ impl Editor {
         if self.cursor_position.x >= self.current_row().len() {
             self.cursor_position.x = self.current_row().len().saturating_sub(1);
         }
-
-        if self.document.save(new_name).is_ok() {
-            if new_name.is_empty() {
-                self.display_message("File saved successfully".to_string());
+        let initial_filename = self.document.filename.clone();
+        if new_name.is_empty() {
+            if self.document.filename.is_none() {
+                self.display_message(utils::red("No file name"));
+            } else if self.document.save().is_ok() {
+                self.display_message("File successfully saved".to_string());
             } else {
-                if self.document.filename.to_str().is_some()
-                    && self.document.filename.to_str().unwrap().is_empty()
-                {
-                    self.display_message(format!("Buffer saved to {}", new_name));
-                } else {
-                    self.display_message(format!(
-                        "{} successfully renamed to {}",
-                        self.document.filename.to_str().unwrap(),
-                        new_name
-                    ));
-                }
-                self.document.filename = PathBuf::from(new_name);
+                self.display_message(utils::red("Error writing to file!"));
             }
+        } else if self.document.save_as(new_name).is_ok() {
+            if initial_filename.is_none() {
+                self.display_message(format!("Buffer saved to {}", new_name));
+            } else {
+                self.display_message(format!(
+                    "{} successfully renamed to {}",
+                    self.document
+                        .filename
+                        .as_ref()
+                        .unwrap()
+                        .to_str()
+                        .unwrap_or_default(),
+                    new_name
+                ));
+            }
+            self.document.filename = Some(PathBuf::from(new_name));
             self.unsaved_edits = 0;
             self.last_saved_hash = self.document.hashed();
         } else {
@@ -881,7 +888,12 @@ impl Editor {
         let dirty_marker = if self.is_dirty() { " +" } else { "" };
         let left_status = format!(
             "[{}]{} {}",
-            self.document.filename.to_str().unwrap(),
+            self.document
+                .filename
+                .as_ref()
+                .unwrap_or(&PathBuf::from("No Name"))
+                .to_str()
+                .unwrap_or_default(),
             dirty_marker,
             self.mode
         );
@@ -1018,7 +1030,7 @@ impl Editor {
             if let Some(row) = self.document.get_row(terminal_row_idx) {
                 self.draw_row(row, line_number);
             } else if terminal_row_idx == self.terminal.middle_of_screen_line_number()
-                && self.document.filename.to_str().unwrap().is_empty()
+                && self.document.filename.is_none()
                 && self
                     .document
                     .get_row(0)

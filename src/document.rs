@@ -10,12 +10,13 @@ use std::slice::{Iter, IterMut};
 
 pub struct Document {
     rows: Vec<Row>,
-    pub filename: PathBuf,
+    pub filename: Option<PathBuf>,
 }
 
 impl fmt::Debug for Document {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct(self.filename.to_str().unwrap()).finish()
+        f.debug_struct(self.filename.as_ref().unwrap().to_str().unwrap_or_default())
+            .finish()
     }
 }
 
@@ -23,7 +24,7 @@ impl Default for Document {
     fn default() -> Self {
         Self {
             rows: vec![Row::from("")],
-            filename: PathBuf::new(),
+            filename: None,
         }
     }
 }
@@ -39,14 +40,17 @@ impl Hash for Document {
 impl Document {
     #[must_use]
     pub fn new(rows: Vec<Row>, filename: PathBuf) -> Self {
-        Self { rows, filename }
+        Self {
+            rows,
+            filename: Some(filename),
+        }
     }
 
     #[must_use]
     pub fn new_empty(filename: PathBuf) -> Self {
         Self {
             rows: vec![Row::from("")],
-            filename,
+            filename: Some(filename),
         }
     }
 
@@ -81,17 +85,19 @@ impl Document {
         for line in file_contents.lines() {
             rows.push(Row::from(line));
         }
-        Ok(Self { rows, filename })
+        Ok(Self {
+            rows,
+            filename: Some(filename),
+        })
     }
 
     /// # Errors
     /// # Panics
     /// Can return an error if the file can't be created or written to.
     pub fn save_to_swap_file(&self) -> Result<(), Error> {
-        if !self.filename.to_str().unwrap_or_default().is_empty()
-            && Self::swap_filename(&self.filename).is_file()
+        if self.filename.is_some() && Self::swap_filename(self.filename.as_ref().unwrap()).is_file()
         {
-            let mut file = fs::File::create(Self::swap_filename(&self.filename))?;
+            let mut file = fs::File::create(Self::swap_filename(self.filename.as_ref().unwrap()))?;
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
@@ -109,22 +115,31 @@ impl Document {
     /// # Errors
     /// # Panics
     /// Can return an error if the file can't be created or written to.
-    pub fn save(&self, new_name: &str) -> Result<(), Error> {
-        if self.filename != PathBuf::new() {
-            let mut file = fs::File::create(self.filename.to_str().unwrap())?;
+    pub fn save(&self) -> Result<(), Error> {
+        if self.filename.is_some() {
+            let filename = &self.filename.as_ref().unwrap();
+            let mut file = fs::File::create(filename)?;
 
             for row in &self.rows {
                 file.write_all(row.as_bytes())?;
                 file.write_all(b"\n")?;
             }
-            if fs::remove_file(Self::swap_filename(&self.filename)).is_ok() {
+            if fs::remove_file(Self::swap_filename(filename)).is_ok() {
                 // pass
-            }
-            if !new_name.is_empty() {
-                fs::rename(self.filename.to_str().unwrap(), new_name)?;
             }
         }
         Ok(())
+    }
+
+    /// # Errors
+    /// # Panics
+    /// Can return an error if the file can't be created or written to.
+    pub fn save_as(&mut self, new_name: &str) -> Result<(), Error> {
+        if self.filename.is_some() && !new_name.is_empty() {
+            fs::rename(self.filename.as_ref().unwrap(), new_name)?;
+        }
+        self.filename = Some(PathBuf::from(new_name));
+        self.save()
     }
 
     #[must_use]
