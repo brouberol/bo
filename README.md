@@ -4,6 +4,8 @@
 
 My (WIP) personal text editor for prose.
 
+https://user-images.githubusercontent.com/480131/131999617-61acc5a2-4055-4cd1-9da1-134ee9e075b4.mp4
+
 ## Why?
 The goals for `bo` are the following:
 
