@@ -5,7 +5,7 @@ use std::fmt;
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::io::{Error, Write};
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::slice::{Iter, IterMut};
 
 pub struct Document {

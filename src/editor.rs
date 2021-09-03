@@ -71,7 +71,8 @@ impl Editor {
         let document: Document = match filename {
             None => Document::default(),
             // Some(path) => Document::open(utils::expand_tilde(&path).as_str()).unwrap_or_default(),
-            Some(path) => Document::open(std::path::PathBuf::from(utils::expand_tilde(&path))).unwrap_or_default(),
+            Some(path) => Document::open(std::path::PathBuf::from(utils::expand_tilde(&path)))
+                .unwrap_or_default(),
         };
         let last_saved_hash = document.hashed();
         Self {
@@ -244,7 +245,8 @@ impl Editor {
                             }
                         }
                         Some(&commands::NEW) => {
-                            self.document = Document::new_empty(PathBuf::from(cmd_tokens[1].to_string()));
+                            self.document =
+                                Document::new_empty(PathBuf::from(cmd_tokens[1].to_string()));
                             self.enter_insert_mode();
                         }
                         Some(&commands::SAVE) => {
@@ -877,7 +879,12 @@ impl Editor {
 
     fn generate_status(&self) -> String {
         let dirty_marker = if self.is_dirty() { " +" } else { "" };
-        let left_status = format!("[{}]{} {}", self.document.filename.to_str().unwrap(), dirty_marker, self.mode);
+        let left_status = format!(
+            "[{}]{} {}",
+            self.document.filename.to_str().unwrap(),
+            dirty_marker,
+            self.mode
+        );
         let stats = if self.config.display_stats {
             format!(
                 "[{}L/{}W]",
