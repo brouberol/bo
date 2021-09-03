@@ -297,10 +297,17 @@ impl Editor {
             if new_name.is_empty() {
                 self.display_message("File saved successfully".to_string());
             } else {
-                self.display_message(format!(
-                    "{} successfully renamed as {}",
-                    self.document.filename.to_str().unwrap(), new_name
-                ));
+                if self.document.filename.to_str().is_some()
+                    && self.document.filename.to_str().unwrap().is_empty()
+                {
+                    self.display_message(format!("Buffer saved to {}", new_name));
+                } else {
+                    self.display_message(format!(
+                        "{} successfully renamed to {}",
+                        self.document.filename.to_str().unwrap(),
+                        new_name
+                    ));
+                }
                 self.document.filename = PathBuf::from(new_name);
             }
             self.unsaved_edits = 0;
