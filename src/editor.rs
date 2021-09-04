@@ -1,6 +1,8 @@
 use crate::{
     commands, utils, AnsiPosition, Boundary, Config, Console, Document, Mode, Navigator, Row,
 };
+use serde::ser::{SerializeStruct, Serializer};
+use serde::Serialize;
 use std::cmp;
 use std::env;
 use std::io;
@@ -18,7 +20,7 @@ const START_X: u8 = LINE_NUMBER_OFFSET as u8; // index, so that's actually an of
 const SPACES_PER_TAB: usize = 4;
 const SWAP_SAVE_EVERY: u8 = 100; // save to a swap file every 100 unsaved edits
 
-#[derive(Debug, Default, PartialEq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Clone, Copy, Serialize)]
 pub struct Position {
     pub x: usize,
     pub y: usize,
@@ -43,7 +45,7 @@ impl From<AnsiPosition> for Position {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct ViewportOffset {
     pub rows: usize,
     pub columns: usize,
@@ -81,6 +83,30 @@ pub struct Editor {
 fn die(e: &io::Error) {
     print!("{}", termion::clear::All);
     panic!("{}", e);
+}
+
+impl Serialize for Editor {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("Editor", 10)?;
+        s.serialize_field("cursor_position", &self.cursor_position)?;
+        s.serialize_field("offset", &self.offset)?;
+        s.serialize_field("mode", format!("{}", self.mode).as_str())?;
+        s.serialize_field("command_buffer", &self.command_buffer)?;
+        s.serialize_field("normal_command_buffer", &self.normal_command_buffer)?;
+        s.serialize_field("search_matches", &self.search_matches)?;
+        s.serialize_field(
+            "current_search_match_index",
+            &self.current_search_match_index,
+        )?;
+        s.serialize_field("unsaved_edits", &self.unsaved_edits)?;
+        s.serialize_field("last_saved_hash", &self.last_saved_hash)?;
+        s.serialize_field("row_prefix_length", &self.row_prefix_length)?;
+        s.serialize_field("document", &self.document)?;
+        s.end()
+    }
 }
 
 impl Editor {
@@ -296,6 +322,11 @@ impl Editor {
                         commands::SAVE_AND_QUIT => {
                             self.save("");
                             self.quit(false);
+                        }
+                        commands::DEBUG => {
+                            if let Ok(state) = serde_json::to_string_pretty(&self) {
+                                utils::log(state.as_str());
+                            }
                         }
                         _ => self
                             .display_message(utils::red(&format!("Unknown command '{}'", command))),

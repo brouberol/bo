@@ -1,4 +1,5 @@
 use crate::Row;
+use serde::Serialize;
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
 use std::fmt;
@@ -8,6 +9,7 @@ use std::io::{Error, Write};
 use std::path::{Path, PathBuf};
 use std::slice::{Iter, IterMut};
 
+#[derive(Serialize)]
 pub struct Document {
     rows: Vec<Row>,
     pub filename: Option<PathBuf>,

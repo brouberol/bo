@@ -1,10 +1,11 @@
 use crate::utils;
+use serde::Serialize;
 use std::cmp;
 use std::hash::Hash;
 use std::str;
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Debug, Default, Hash)]
+#[derive(Debug, Default, Hash, Serialize)]
 pub struct Row {
     pub string: String,
 }
