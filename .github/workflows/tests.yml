@@ -32,7 +32,7 @@ jobs:
   # Create a github release whenever we push a new tag
   create-release:
     needs: [test, lint]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && github.repository_owner == 'brouberol'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -47,7 +47,7 @@ jobs:
   # Cross compile the binary to a matrix of targets and
   # upload the artefacts to the release.
   upload-assets:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && github.repository_owner == 'brouberol'
     needs: create-release
     strategy:
       matrix:
