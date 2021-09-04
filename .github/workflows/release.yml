@@ -1,9 +1,6 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - v[0-9]+.*
   workflow_run:
     workflows: ["CI"]
     branches: [main]
@@ -14,7 +11,7 @@ on:
 jobs:
   # Create a github release whenever we push a new tag
   create-release:
-    if: github.repository_owner == 'brouberol' && ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.repository_owner == 'brouberol' && ${{ github.event.workflow_run.conclusion == 'success' }} && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -29,7 +26,7 @@ jobs:
   # Cross compile the binary to a matrix of targets and
   # upload the artefacts to the release.
   upload-assets:
-    if: github.repository_owner == 'brouberol' && ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: github.repository_owner == 'brouberol' && ${{ github.event.workflow_run.conclusion == 'success' }} && startsWith(github.ref, 'refs/tags/')
     needs: create-release
     strategy:
       matrix:
