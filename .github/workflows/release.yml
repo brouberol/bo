@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v[0-9]+.*
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types:
+      - completed
+
+
+jobs:
+  # Create a github release whenever we push a new tag
+  create-release:
+    if: github.repository_owner == 'brouberol' && ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          title: $version
+          changelog: CHANGELOG.md
+        env:
+          # (required) GitHub token for creating GitHub Releases.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  # Cross compile the binary to a matrix of targets and
+  # upload the artefacts to the release.
+  upload-assets:
+    if: github.repository_owner == 'brouberol' && ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: create-release
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: bo
+          # (optional) On which platform to distribute the `.tar.gz` file.
+          # [default value: unix]
+          # [possible values: all, unix, windows, none]
+          tar: unix
+          # (optional) On which platform to distribute the `.zip` file.
+          # [default value: windows]
+          # [possible values: all, unix, windows, none]
+          zip: windows
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_PROFILE_RELEASE_LTO: true
