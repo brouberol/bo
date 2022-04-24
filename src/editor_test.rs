@@ -189,6 +189,24 @@ fn test_editor_process_keystroke_navigation() {
 }
 
 #[test]
+fn test_editor_change_x_position_when_moving_down_or_up() {
+    let mut editor = get_test_editor();
+
+    assert_position_is(&editor, 0, 0);
+
+    // move to 3rd line "Hello world!!"
+    process_command(&mut editor, ":3");
+    // move at the end of the line
+    editor.process_keystroke(Key::Char('$'));
+    assert_position_is(&editor, 12, 2);
+
+    // move up to 2nd line "Hello world!", shorter than "Hello world!".
+    // After having moved, the cursor should be on the last "!" and not after it
+    editor.process_keystroke(Key::Char('k'));
+    assert_position_is(&editor, 11, 1);
+}
+
+#[test]
 fn test_editor_help_command() {
     let mut editor = get_test_editor();
 

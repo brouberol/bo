@@ -618,9 +618,9 @@ impl Editor {
     }
 
     fn append_to_line(&mut self) {
+        self.enter_insert_mode();
         self.goto_start_or_end_of_line(&Boundary::End);
         self.move_cursor(&Direction::Right, 1);
-        self.enter_insert_mode();
     }
 
     fn join_current_line_with_next_one(&mut self) {
@@ -858,10 +858,18 @@ impl Editor {
                 }
             }
         }
-        self.cursor_position.x = x;
         self.cursor_position.y = y;
         self.offset.columns = offset_x;
         self.offset.rows = offset_y;
+
+        // if we move from a line to another in normal mode, and the previous x position
+        // would cause teh cursor to be placed outside of the destination line x boundary,
+        // we make sure to place the cursor on the last character of the line.
+        if self.mode == Mode::Normal {
+            self.cursor_position.x = cmp::min(self.current_row().len().saturating_sub(1), x);
+        } else {
+            self.cursor_position.x = x;
+        }
     }
 
     fn move_cursor_to_position_y(&mut self, y: usize) {
