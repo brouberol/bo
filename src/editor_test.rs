@@ -1,3 +1,4 @@
+use super::SPACES_PER_TAB;
 use crate::{Console, Document, Editor, Mode, Position, Row, Size};
 use std::fmt;
 use std::io::Error;
@@ -381,7 +382,6 @@ fn test_editor_edition() {
     assert_position_is(&editor, 10, 0);
 }
 
-use super::SPACES_PER_TAB;
 #[test]
 fn test_editor_insert_spaces_for_tab() {
     let mut editor = get_test_editor();
