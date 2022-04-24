@@ -2,7 +2,7 @@
 .DEFAULT_GOAL = help
 
 test:  ## Run the unit tests
-	cargo test
+	RUST_BACKTRACE=1 cargo test
 
 lint:  ## Check for clippy warnings
 	cargo clippy --all-targets --all-features -- -D warnings
