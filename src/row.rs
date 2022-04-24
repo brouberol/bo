@@ -35,7 +35,6 @@ impl Row {
         format!("{}{}", prefix, visible)
     }
 
-    #[must_use]
     pub fn chars(&self) -> std::str::Chars {
         self.string.chars()
     }
@@ -124,6 +123,7 @@ impl Row {
         self.string = format!("{}{}", self.string, other.string);
     }
 
+    #[must_use]
     pub fn split(&mut self, at: usize) -> Self {
         let before: String = self.graphemes().take(at).collect();
         let after: String = self.graphemes().skip(at).collect();
