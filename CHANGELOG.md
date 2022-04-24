@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org).
 
-## [0.3.1]
+## Unreleased
+
+## [0.3.2] - 2022/04/24
+
+### Improvements
+- When moving from a line to a shorter one, we now make sure the cursor don't overflow it by moving it to the last character when necessary.
+- Display backtrackes on failing tests.
+
+### Fixes
+- The hash of the last saved document is always updated when the save is successful, saving us from having to run `:q!` on a freshly saved doc.
+
+## [0.3.1] - 2021/09/05
 
 ### Features
 - Trailing spaces are now removed on save. Thanks @ilmanzo !
@@ -61,7 +72,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
 - Many offset/insertion related bugs were fixed
 
 
-[Unreleased]: https://github.com/brouberol/bo/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/brouberol/bo/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/brouberol/bo/compare/v0.3.1...0.3.2
 [0.3.1]: https://github.com/brouberol/bo/compare/v0.3.0...0.3.1
 [0.3.0]: https://github.com/brouberol/bo/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/brouberol/bo/compare/v0.1.0...v0.2.0
