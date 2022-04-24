@@ -34,7 +34,7 @@ pub fn expand_tilde(s: &str) -> String {
     if !s.starts_with('~') {
         return s.to_string();
     }
-    s.replace("~", env!("HOME"))
+    s.replace('~', env!("HOME"))
 }
 
 #[must_use]
