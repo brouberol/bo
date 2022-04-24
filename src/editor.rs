@@ -347,10 +347,13 @@ impl Editor {
         if new_name.is_empty() {
             if self.document.filename.is_none() {
                 self.display_message(utils::red("No file name"));
+                return;
             } else if self.document.save().is_ok() {
                 self.display_message("File successfully saved".to_string());
+                self.last_saved_hash = self.document.hashed();
             } else {
                 self.display_message(utils::red("Error writing to file!"));
+                return;
             }
         } else if self.document.save_as(new_name).is_ok() {
             if initial_filename.is_none() {
@@ -368,11 +371,11 @@ impl Editor {
                 ));
             }
             self.document.filename = Some(PathBuf::from(new_name));
-            self.unsaved_edits = 0;
-            self.last_saved_hash = self.document.hashed();
         } else {
             self.display_message(utils::red("Error writing to file!"));
         }
+        self.unsaved_edits = 0;
+        self.last_saved_hash = self.document.hashed();
     }
 
     fn save_to_swap_file(&mut self) {
