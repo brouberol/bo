@@ -4,7 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## [Unreleased]
+
+### Features
+- Introduce the `o` short command to open a file
+
+### Improvments
+- Format the help sections titles in bold and automatically generate the help text
+
+### Fixes
+- Prevent crashes by using saturating arithmetic operations
+- Prevent wrong jumps when inserting/deleting a line after the first half view
+- Fix a bug preventing `bo` from being used as the `git` editor
 
 ## [0.3.2] - 2022/04/24
 
