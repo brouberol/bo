@@ -515,12 +515,15 @@ impl Editor {
                 if self.cursor_position.x == 0 {
                     if self.cursor_position.y > 0 {
                         let previous_line_len = self
-                            .get_row(self.cursor_position.y.saturating_sub(1))
+                            .get_row(self.current_row_index().saturating_sub(1))
                             .unwrap()
                             .len();
                         // Delete newline from previous row
                         self.document.delete(0, 0, self.current_row_index());
-                        self.goto_x_y(previous_line_len, self.cursor_position.y.saturating_sub(1));
+                        self.goto_x_y(
+                            previous_line_len,
+                            self.current_row_index().saturating_sub(1),
+                        );
                     }
                 } else {
                     // Delete previous character
@@ -535,7 +538,7 @@ impl Editor {
             Key::Char('\n') => {
                 self.document
                     .insert_newline(self.current_x_position(), self.current_row_index());
-                self.goto_x_y(0, self.cursor_position.y + 1);
+                self.goto_x_y(0, self.current_row_index().saturating_add(1));
             }
             Key::Char('\t') => {
                 for _ in 0..SPACES_PER_TAB {

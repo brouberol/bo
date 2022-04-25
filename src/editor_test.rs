@@ -114,6 +114,10 @@ fn assert_nth_row_is(editor: &Editor, n: usize, s: &str) {
     assert_eq!(editor.document.get_row(n).unwrap().string, String::from(s));
 }
 
+fn assert_current_line_is(editor: &Editor, s: &str) {
+    assert_eq!(editor.current_row().string, String::from(s));
+}
+
 fn process_keystrokes(editor: &mut Editor, keys: Vec<char>) {
     for c in keys {
         editor.process_keystroke(Key::Char(c));
@@ -543,4 +547,32 @@ fn test_editor_join_lines() {
     process_keystrokes(&mut editor, vec!['$', 'J']);
     assert_nth_row_is(&editor, 0, "Hello world Hello world!");
     assert_eq!(editor.document.num_rows(), 2);
+}
+
+#[test]
+fn test_editor_edit_long_document() {
+    let mut editor = get_test_editor_with_long_document();
+    editor.move_cursor_to_position_y(110);
+    assert_position_is(&editor, 0, 40);
+    assert_eq!(editor.offset.rows, 70);
+
+    // Go to Insert mode and append a new line
+    editor.process_keystroke(Key::Char('o'));
+    assert_position_is(&editor, 0, 41);
+    assert_eq!(editor.offset.rows, 70);
+
+    // write some text
+    process_keystrokes(&mut editor, vec!['d', 'e', 'r', 'p']);
+    assert_current_line_is(&editor, "derp");
+    assert_position_is(&editor, 4, 41);
+
+    // enter newline
+    editor.process_keystroke(Key::Char('\n'));
+    assert_position_is(&editor, 0, 42);
+    assert_current_line_is(&editor, "");
+
+    // delete line
+    editor.process_keystroke(Key::Backspace);
+    assert_position_is(&editor, 4, 41);
+    assert_current_line_is(&editor, "derp");
 }
