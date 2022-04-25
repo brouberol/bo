@@ -162,8 +162,11 @@ impl Terminal {
     /// will return an error if the terminal size can't be acquired
     /// or if the stdout cannot be put into raw mode.
     pub fn default() -> Result<Self, std::io::Error> {
+        let mut term_stdout = stdout();
+        write!(term_stdout, "{}", termion::cursor::Goto(1, 1))?;
+        term_stdout.flush()?;
         Ok(Self {
-            _stdout: AlternateScreen::from(MouseTerminal::from(stdout().into_raw_mode()?)),
+            _stdout: AlternateScreen::from(MouseTerminal::from(term_stdout.into_raw_mode()?)),
             stdin_event_stream: io::stdin().events(),
         })
     }
