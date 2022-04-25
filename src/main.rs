@@ -19,7 +19,7 @@ pub use config::Config;
 pub use console::{Console, Size};
 pub use document::Document;
 pub use editor::{Position, ViewportOffset};
-pub use help::{Help, HelpSection};
+pub use help::{Help, Section};
 pub use mode::Mode;
 pub use navigator::{Boundary, Navigator};
 pub use row::Row;

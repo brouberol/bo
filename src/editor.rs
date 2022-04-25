@@ -119,7 +119,7 @@ impl Editor {
                 .unwrap_or_default(),
         };
         let last_saved_hash = document.hashed();
-        let help_message = Help::new().format();
+        let help_message = Help::default().format();
         Self {
             should_quit: false,
             cursor_position: Position::top_left(),
@@ -278,8 +278,8 @@ impl Editor {
                     self.goto_line(line_index, 0);
                 } else if command.split(' ').count() > 1 {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
-                    match cmd_tokens.get(0).unwrap_or(&"") {
-                        &commands::OPEN | &commands::OPEN_SHORT => {
+                    match *cmd_tokens.get(0).unwrap_or(&"") {
+                        commands::OPEN | commands::OPEN_SHORT => {
                             if let Ok(document) = Document::open(PathBuf::from(cmd_tokens[1])) {
                                 self.document = document;
                                 self.last_saved_hash = self.document.hashed();
@@ -291,12 +291,12 @@ impl Editor {
                                 )));
                             }
                         }
-                        &commands::NEW => {
+                        commands::NEW => {
                             self.document =
                                 Document::new_empty(PathBuf::from(cmd_tokens[1].to_string()));
                             self.enter_insert_mode();
                         }
-                        &commands::SAVE => {
+                        commands::SAVE => {
                             let new_name = cmd_tokens[1..].join(" ");
                             self.save(new_name.trim());
                         }

@@ -1,12 +1,12 @@
 use crate::utils;
 use std::collections::HashMap;
 
-pub struct HelpSection {
+pub struct Section {
     pub title: String,
     pub entries: HashMap<&'static str, &'static str>,
 }
 
-impl HelpSection {
+impl Section {
     /// Returns the size of the biggest entry key in the section
     fn max_entry_key_size(&self) -> usize {
         if let Some(key) = self.entries.keys().max_by_key(|k| k.len()) {
@@ -16,6 +16,7 @@ impl HelpSection {
         }
     }
 
+    #[must_use]
     pub fn format(&self) -> String {
         let title_str = utils::as_bold(self.title.as_str());
         let mut body: Vec<String> = Vec::new();
@@ -30,14 +31,15 @@ impl HelpSection {
     }
 }
 pub struct Help {
-    pub sections: Vec<HelpSection>,
+    pub sections: Vec<Section>,
 }
 
 impl Help {
+    #[must_use]
     pub fn new() -> Help {
         Help {
             sections: vec![
-                HelpSection {
+                Section {
                     title: String::from("Normal commands"),
                     entries: HashMap::from([
                         ("j", "move cursor down one row (<n>j moves it by n rows)"),
@@ -85,7 +87,7 @@ impl Help {
                         (":", "open command prompt"),
                     ]),
                 },
-                HelpSection {
+                Section {
                     title: String::from("Prompt commands"),
                     entries: HashMap::from([
                         ("help", "display this help screen"),
@@ -98,23 +100,28 @@ impl Help {
                         ("wq", "save and quit"),
                     ]),
                 },
-                HelpSection {
+                Section {
                     title: String::from("Insert commands"),
                     entries: HashMap::from([("Esc", "go back to normal mode")]),
                 },
             ],
         }
     }
-}
 
-impl Help {
+    #[must_use]
     pub fn format(&self) -> String {
         let mut out: Vec<String> = Vec::new();
         for section in &self.sections {
             let section_format = section.format();
             out.push(section_format);
         }
-        format!("{}", out.join("\n\n"))
+        out.join("\n\n")
+    }
+}
+
+impl Default for Help {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
