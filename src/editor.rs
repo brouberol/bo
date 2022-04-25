@@ -885,7 +885,7 @@ impl Editor {
             self.cursor_position.y = y;
         } else if y > max_line_number - middle_of_screen_line_number {
             // move to the last "half view" of the document
-            self.offset.rows = max_line_number - term_height;
+            self.offset.rows = max_line_number.saturating_sub(term_height);
             self.cursor_position.y = y.saturating_sub(self.offset.rows);
         } else if self.offset.rows <= y && y <= self.offset.rows + term_height {
             // move around in the same view
