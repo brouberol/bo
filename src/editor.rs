@@ -515,13 +515,12 @@ impl Editor {
                 if self.cursor_position.x == 0 {
                     if self.cursor_position.y > 0 {
                         let previous_line_len = self
-                            .document
-                            .get_row(self.cursor_position.y - 1)
+                            .get_row(self.cursor_position.y.saturating_sub(1))
                             .unwrap()
                             .len();
                         // Delete newline from previous row
                         self.document.delete(0, 0, self.current_row_index());
-                        self.goto_x_y(previous_line_len, self.cursor_position.y - 1);
+                        self.goto_x_y(previous_line_len, self.cursor_position.y.saturating_sub(1));
                     }
                 } else {
                     // Delete previous character
@@ -883,7 +882,7 @@ impl Editor {
             // move to the first "half-view" of the document
             self.offset.rows = 0;
             self.cursor_position.y = y;
-        } else if y > max_line_number - middle_of_screen_line_number {
+        } else if y > max_line_number.saturating_sub(middle_of_screen_line_number) {
             // move to the last "half view" of the document
             self.offset.rows = max_line_number.saturating_sub(term_height);
             self.cursor_position.y = y.saturating_sub(self.offset.rows);
@@ -893,7 +892,7 @@ impl Editor {
         } else {
             // move to another view in the document, and position the cursor at the
             // middle of the terminal/view.
-            self.offset.rows = y - middle_of_screen_line_number;
+            self.offset.rows = y.saturating_sub(middle_of_screen_line_number);
             self.cursor_position.y = middle_of_screen_line_number;
         }
     }
@@ -902,8 +901,11 @@ impl Editor {
         let term_width = self.terminal.size().width as usize;
         let x = cmp::max(0, x);
         if x > term_width {
-            self.cursor_position.x = term_width - 1;
-            self.offset.columns = x - term_width - self.offset.columns + 1;
+            self.cursor_position.x = term_width.saturating_sub(1);
+            self.offset.columns = x
+                .saturating_sub(term_width)
+                .saturating_sub(self.offset.columns)
+                .saturating_add(1);
         } else {
             self.cursor_position.x = x;
             self.offset.columns = 0;
@@ -1007,7 +1009,10 @@ impl Editor {
     fn display_welcome_message(&self) {
         let term_width = self.terminal.size().width as usize;
         let welcome_msg = format!("{} v{}", PKG, utils::bo_version());
-        let padding_len = (term_width - welcome_msg.chars().count() - 2) / 2; // -2 because of the starting '~ '
+        let padding_len = term_width
+            .saturating_sub(welcome_msg.chars().count())
+            .saturating_sub(2) // -2 because of the starting '~ '
+            .saturating_div(2);
         let padding = String::from(" ").repeat(padding_len);
         let mut padded_welcome_message = format!("~ {}{}{}", padding, welcome_msg, padding);
         padded_welcome_message.truncate(term_width); // make it fit on screen
@@ -1059,7 +1064,10 @@ impl Editor {
         let help_text_lines = help_text.split('\n');
         let help_text_lines_count = help_text_lines.count();
         let term_height = self.terminal.size().height;
-        let v_padding = (term_height - 2 - help_text_lines_count as u16) / 2;
+        let v_padding = (term_height
+            .saturating_sub(2)
+            .saturating_sub(help_text_lines_count as u16))
+        .saturating_div(2);
         let max_line_length = help_text.split('\n').map(str::len).max().unwrap();
         let h_padding = " ".repeat((self.terminal.size().width as usize - max_line_length) / 2);
         for _ in 0..=v_padding {
