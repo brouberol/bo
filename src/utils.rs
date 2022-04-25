@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Write;
 use std::process::Command;
 use std::result::Result::Err;
-use termion::color;
+use termion::{color, style};
 
 /// # Panics
 ///
@@ -58,6 +58,10 @@ pub fn bo_version() -> String {
     } else {
         env!("CARGO_PKG_VERSION").to_string()
     }
+}
+
+pub fn as_bold(message: &str) -> String {
+    format!("{}{}{}", style::Bold, message, style::Reset)
 }
 
 #[cfg(test)]

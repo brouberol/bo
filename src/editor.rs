@@ -1032,13 +1032,16 @@ impl Editor {
 
     #[allow(clippy::cast_possible_truncation)]
     fn draw_help_screen(&mut self) {
-        let help_text = "Normal commands\r\n  \
+        let normal_cmds = utils::as_bold("Normal commands");
+        let prompt_cmds = utils::as_bold("Prompt commands");
+        let insert_cmds = utils::as_bold("Insert commands");
+        let help_text = format!("{normal_cmds}\r\n  \
                             j => move cursor down one row (<n>j moves it by n rows)\r\n  \
                             k => move cursor up one row (<n>k moves it by n rows)\r\n  \
                             h => move cursor left (<n>h moves it n times)\r\n  \
                             l => move cursor right (<n>l moves it n times)\r\n  \
-                            } => move to the end of the current paragraph (<n>} moves n times)\r\n  \
-                            { => move to the start of the current paragraph (<n>{ moves n times)\r\n  \
+                            }} => move to the end of the current paragraph (<n>}} moves n times)\r\n  \
+                            {{ => move to the start of the current paragraph (<n>{{ moves n times)\r\n  \
                             w => move to the end of the current word (<n>w moves n times)\r\n  \
                             b => move to the start of the current word (<n>b moves n times)\r\n  \
                             i => switch to insert mode\r\n  \
@@ -1061,7 +1064,7 @@ impl Editor {
                             A => go to end of line & enter insert moder\n  \
                             J => join the current line with the next one\n  \
                             : => open command prompt\r\n\n\
-                        Prompt commands\r\n  \
+                        {prompt_cmds}\r\n  \
                             help              => display this help screen\r\n  \
                             ln                => toggle line numbers\r\n  \
                             new    <filename> => open a new file\r\n  \
@@ -1070,8 +1073,8 @@ impl Editor {
                             stats             => toggle line/word stats\r\n  \
                             w    <new_name>   => save\r\n  \
                             wq                => save and quit\r\n\n\
-                        Insert commands\r\n  \
-                            Esc => go back to normal mode";
+                        {insert_cmds}\r\n  \
+                            Esc => go back to normal mode");
         let help_text_lines = help_text.split('\n');
         let help_text_lines_count = help_text_lines.count();
         let term_height = self.terminal.size().height;
