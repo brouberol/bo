@@ -275,8 +275,8 @@ impl Editor {
                     self.goto_line(line_index, 0);
                 } else if command.split(' ').count() > 1 {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
-                    match cmd_tokens.get(0) {
-                        Some(&commands::OPEN) => {
+                    match cmd_tokens.get(0).unwrap_or(&"") {
+                        &commands::OPEN | &commands::OPEN_SHORT => {
                             if let Ok(document) = Document::open(PathBuf::from(cmd_tokens[1])) {
                                 self.document = document;
                                 self.last_saved_hash = self.document.hashed();
@@ -288,16 +288,19 @@ impl Editor {
                                 )));
                             }
                         }
-                        Some(&commands::NEW) => {
+                        &commands::NEW => {
                             self.document =
                                 Document::new_empty(PathBuf::from(cmd_tokens[1].to_string()));
                             self.enter_insert_mode();
                         }
-                        Some(&commands::SAVE) => {
+                        &commands::SAVE => {
                             let new_name = cmd_tokens[1..].join(" ");
                             self.save(new_name.trim());
                         }
-                        _ => (),
+                        _ => self.display_message(utils::red(&format!(
+                            "Unknown command '{}'",
+                            cmd_tokens[0]
+                        ))),
                     }
                 } else {
                     match command {
@@ -1059,14 +1062,14 @@ impl Editor {
                             J => join the current line with the next one\n  \
                             : => open command prompt\r\n\n\
                         Prompt commands\r\n  \
-                            help            => display this help screen\r\n  \
-                            ln              => toggle line numbers\r\n  \
-                            new  <filename> => open a new file\r\n  \
-                            open <filename> => open a file\r\n  \
-                            q               => quit bo\r\n  \
-                            stats           => toggle line/word stats\r\n  \
-                            w    <new_name> => save\r\n  \
-                            wq              => save and quit\r\n\n\
+                            help              => display this help screen\r\n  \
+                            ln                => toggle line numbers\r\n  \
+                            new    <filename> => open a new file\r\n  \
+                            open/o <filename> => open a file\r\n  \
+                            q                 => quit bo\r\n  \
+                            stats             => toggle line/word stats\r\n  \
+                            w    <new_name>   => save\r\n  \
+                            wq                => save and quit\r\n\n\
                         Insert commands\r\n  \
                             Esc => go back to normal mode";
         let help_text_lines = help_text.split('\n');
