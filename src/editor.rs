@@ -1,5 +1,5 @@
 use crate::{
-    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Mode, Navigator, Row,
+    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Help, Mode, Navigator, Row,
 };
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
@@ -78,6 +78,7 @@ pub struct Editor {
     terminal: Box<dyn Console>,
     unsaved_edits: u8,
     row_prefix_length: u8,
+    help_message: String,
 }
 
 fn die(e: &io::Error) {
@@ -118,6 +119,7 @@ impl Editor {
                 .unwrap_or_default(),
         };
         let last_saved_hash = document.hashed();
+        let help_message = Help::new().format();
         Self {
             should_quit: false,
             cursor_position: Position::top_left(),
@@ -136,6 +138,7 @@ impl Editor {
             unsaved_edits: 0,
             last_saved_hash,
             row_prefix_length: 0,
+            help_message,
         }
     }
 
@@ -1032,62 +1035,19 @@ impl Editor {
 
     #[allow(clippy::cast_possible_truncation)]
     fn draw_help_screen(&mut self) {
-        let normal_cmds = utils::as_bold("Normal commands");
-        let prompt_cmds = utils::as_bold("Prompt commands");
-        let insert_cmds = utils::as_bold("Insert commands");
-        let help_text = format!("{normal_cmds}\r\n  \
-                            j => move cursor down one row (<n>j moves it by n rows)\r\n  \
-                            k => move cursor up one row (<n>k moves it by n rows)\r\n  \
-                            h => move cursor left (<n>h moves it n times)\r\n  \
-                            l => move cursor right (<n>l moves it n times)\r\n  \
-                            }} => move to the end of the current paragraph (<n>}} moves n times)\r\n  \
-                            {{ => move to the start of the current paragraph (<n>{{ moves n times)\r\n  \
-                            w => move to the end of the current word (<n>w moves n times)\r\n  \
-                            b => move to the start of the current word (<n>b moves n times)\r\n  \
-                            i => switch to insert mode\r\n  \
-                            g => go to beginining of document\r\n  \
-                            G => go to end of document\r\n  \
-                            0 => go to first character in line\r\n  \
-                            ^ => go to first non-whitespace character in line\r\n  \
-                            $ => go to end of line\r\n  \
-                            H => go to first line in screen\r\n  \
-                            M => go to line in the middle of the screen\r\n  \
-                            L => go to last line in screen\r\n  \
-                           n% => move to n% in the file\r\n  \
-                            / => open search prompt\r\n  \
-                            n => go to next search match\r\n  \
-                            N => go to previous search match\r\n  \
-                            d => delete current line\r\n  \
-                            x => delete current character\r\n  \
-                            o => insert newline after current line & enter insert mode\r\n  \
-                            O => insert newline before current line & enter insert mode\r\n  \
-                            A => go to end of line & enter insert moder\n  \
-                            J => join the current line with the next one\n  \
-                            : => open command prompt\r\n\n\
-                        {prompt_cmds}\r\n  \
-                            help              => display this help screen\r\n  \
-                            ln                => toggle line numbers\r\n  \
-                            new    <filename> => open a new file\r\n  \
-                            open/o <filename> => open a file\r\n  \
-                            q                 => quit bo\r\n  \
-                            stats             => toggle line/word stats\r\n  \
-                            w    <new_name>   => save\r\n  \
-                            wq                => save and quit\r\n\n\
-                        {insert_cmds}\r\n  \
-                            Esc => go back to normal mode");
-        let help_text_lines = help_text.split('\n');
+        let help_text_lines = self.help_message.split('\n');
         let help_text_lines_count = help_text_lines.count();
         let term_height = self.terminal.size().height;
         let v_padding = (term_height
             .saturating_sub(2)
             .saturating_sub(help_text_lines_count as u16))
         .saturating_div(2);
-        let max_line_length = help_text.split('\n').map(str::len).max().unwrap();
+        let max_line_length = self.help_message.split('\n').map(str::len).max().unwrap();
         let h_padding = " ".repeat((self.terminal.size().width as usize - max_line_length) / 2);
         for _ in 0..=v_padding {
             println!("\r");
         }
-        for line in help_text.split('\n') {
+        for line in self.help_message.split('\n') {
             println!("{}{}\r", h_padding, line);
         }
         for _ in 0..=v_padding {
