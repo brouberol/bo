@@ -207,7 +207,7 @@ impl Editor {
                     // have text, to avoid breaking out of the document bounds.
                     let cursor_position = self.mouse_event_buffer.pop().unwrap();
                     if cursor_position.y.saturating_add(1) <= self.document.num_rows() {
-                        if let Some(target_row) = self.document.get_row(cursor_position.y) {
+                        if let Some(target_row) = self.get_row(cursor_position.y) {
                             if cursor_position.x <= target_row.len() {
                                 self.cursor_position = cursor_position;
                             }
@@ -557,6 +557,11 @@ impl Editor {
         }
     }
 
+    /// Return the row located at the provide row index if it exists
+    fn get_row(&self, index: usize) -> Option<&Row> {
+        self.document.get_row(index)
+    }
+
     /// Return the index of the row associated to the current cursor position / vertical offset
     fn current_row_index(&self) -> usize {
         self.cursor_position.y.saturating_add(self.offset.rows)
@@ -578,7 +583,7 @@ impl Editor {
 
     /// Return the Row object associated to the current cursor position / vertical offset
     fn current_row(&self) -> &Row {
-        self.document.get_row(self.current_row_index()).unwrap()
+        self.get_row(self.current_row_index()).unwrap()
     }
 
     /// Delete the line currently under the cursor
@@ -1090,15 +1095,11 @@ impl Editor {
         for terminal_row_idx in self.offset.rows..(term_height as usize + self.offset.rows) {
             let line_number = terminal_row_idx.saturating_add(1);
             self.terminal.clear_current_line();
-            if let Some(row) = self.document.get_row(terminal_row_idx) {
+            if let Some(row) = self.get_row(terminal_row_idx) {
                 self.draw_row(row, line_number);
             } else if terminal_row_idx == self.terminal.middle_of_screen_line_number()
                 && self.document.filename.is_none()
-                && self
-                    .document
-                    .get_row(0)
-                    .unwrap_or(&Row::default())
-                    .is_empty()
+                && self.get_row(0).unwrap_or(&Row::default()).is_empty()
             {
                 self.display_welcome_message();
             } else {
