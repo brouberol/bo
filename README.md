@@ -1,6 +1,6 @@
 # bo
 
-[![Tests](https://github.com/brouberol/bo/actions/workflows/tests.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/tests.yml)
+[![Tests](https://github.com/brouberol/bo/actions/workflows/tests.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/tests.yml) ![Coverage](https://github-brouberol-coverage.s3.eu-west-3.amazonaws.com/bo/flat.svg)
 
 My (WIP) personal text editor for prose.
 
