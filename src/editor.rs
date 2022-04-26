@@ -944,11 +944,22 @@ impl Editor {
             self.draw_status_bar();
             self.draw_message_bar();
             if self.alternate_screen {
-                self.terminal
-                    .set_cursor_position(&Position::top_left(), self.row_prefix_length);
+                self.terminal.set_cursor_position_in_text_area(
+                    &Position::top_left(),
+                    self.row_prefix_length,
+                );
+            }
+            // if a command is being typed, put the cursor in the bottom bar
+            else if self.is_receiving_command() {
+                self.terminal.set_cursor_position_anywhere(&Position {
+                    x: self.command_buffer.len(),
+                    y: self.terminal.size().height as usize,
+                });
             } else {
-                self.terminal
-                    .set_cursor_position(&self.cursor_position, self.row_prefix_length);
+                self.terminal.set_cursor_position_in_text_area(
+                    &self.cursor_position,
+                    self.row_prefix_length,
+                );
             }
         }
         self.terminal.show_cursor();
@@ -1017,7 +1028,7 @@ impl Editor {
     }
 
     fn reset_message(&mut self) {
-        self.message = "".to_string();
+        self.message = String::from("");
     }
 
     fn display_welcome_message(&self) {

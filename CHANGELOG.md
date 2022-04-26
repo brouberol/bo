@@ -8,8 +8,9 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ### Features
 - Introduce the `o` short command to open a file
+- Display cursor in the message bar while typing a command
 
-### Improvments
+### Improvements
 - Format the help sections titles in bold and automatically generate the help text
 
 ### Fixes
@@ -57,7 +58,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ### Improvements
 - Display a marker in in the status bar if the file has unsaved changes
-- The terminal size is re-computed at each event, so we can re-draw the editor if the terminal size changed 
+- The terminal size is re-computed at each event, so we can re-draw the editor if the terminal size changed
 
 ### Fixes
 - Prevent `d` from deleting the last line in the document
@@ -69,7 +70,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ### Features
 - New `NORMAL` mode commands:
-  * 
+  *
 - New `:help` command, displays the user manual
 - `:open <filename>` opens a file
 - `:w` saves the file

@@ -55,7 +55,9 @@ impl Console for MockConsole {
         self.size().height as usize / 2
     }
 
-    fn set_cursor_position(&self, _position: &Position, _row_prefix_length: u8) {}
+    fn set_cursor_position_in_text_area(&self, _position: &Position, _row_prefix_length: u8) {}
+
+    fn set_cursor_position_anywhere(&self, _position: &Position) {}
 
     #[must_use]
     fn get_cursor_index_from_mouse_event(

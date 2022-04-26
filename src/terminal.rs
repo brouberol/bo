@@ -109,18 +109,34 @@ impl Console for Terminal {
         self.size().height as usize / 2
     }
 
-    fn set_cursor_position(&self, position: &Position, mut row_prefix_length: u8) {
+    fn set_cursor_position_in_text_area(&self, position: &Position, mut row_prefix_length: u8) {
         let ansi_position = AnsiPosition::from(*position);
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
         row_prefix_length += if row_prefix_length > 0 { 1 } else { 0 };
+        let console_size = self.size();
         print!(
             "{}",
             termion::cursor::Goto(
                 cmp::min(
                     ansi_position.x.saturating_add(row_prefix_length.into()),
-                    self.size().width
+                    console_size.width
                 ),
-                cmp::min(ansi_position.y, self.size().height)
+                cmp::min(ansi_position.y, console_size.height)
+            )
+        );
+    }
+
+    fn set_cursor_position_anywhere(&self, position: &Position) {
+        let ansi_position = AnsiPosition::from(*position);
+        let console_size = self.size();
+        print!(
+            "{}",
+            termion::cursor::Goto(
+                cmp::min(ansi_position.x, console_size.width),
+                cmp::min(
+                    ansi_position.y.saturating_add(2), // delta_y = 2 to account for the last 2 lines (status + message bars)
+                    console_size.height.saturating_add(2)
+                )
             )
         );
     }
