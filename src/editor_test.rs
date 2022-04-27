@@ -1,8 +1,11 @@
 use super::SPACES_PER_TAB;
-use crate::{Console, Document, Editor, Mode, Position, Row, Size};
+use crate::{AnsiPosition, Console, Document, Editor, Mode, Position, Row, Size};
 use std::fmt;
+use std::fs;
 use std::io::Error;
+use std::io::Write;
 use std::path::PathBuf;
+use tempfile::NamedTempFile;
 use termion::color;
 use termion::event::{Event, Key, MouseEvent};
 
@@ -263,6 +266,10 @@ fn test_editor_search() {
     editor.process_keystroke(Key::Char('n'));
     assert_eq!(editor.current_search_match_index, 0);
     assert_position_is(&editor, 6, 0);
+
+    editor.process_keystroke(Key::Char('N'));
+    assert_eq!(editor.current_search_match_index, 2);
+    assert_position_is(&editor, 6, 2);
 
     editor.process_keystroke(Key::Esc);
     assert!(editor.search_matches.is_empty());
@@ -577,4 +584,198 @@ fn test_editor_edit_long_document() {
     editor.process_keystroke(Key::Backspace);
     assert_position_is(&editor, 4, 41);
     assert_current_line_is(&editor, "derp");
+}
+
+#[test]
+fn test_position_from_ansiposition() {
+    let ap = AnsiPosition { x: 10, y: 8 }; // 1-indexed
+    let p = Position::from(ap); // 0-indexed
+    assert_eq!(p.x, 9);
+    assert_eq!(p.y, 7);
+}
+
+#[test]
+fn test_editor_serialize() {
+    let editor = get_test_editor();
+    let serialized_editor = serde_json::to_string_pretty(&editor).unwrap();
+    assert_eq!(
+        serialized_editor,
+        r#"{
+  "cursor_position": {
+    "x": 0,
+    "y": 0
+  },
+  "offset": {
+    "rows": 0,
+    "columns": 0
+  },
+  "mode": "NORMAL",
+  "command_buffer": "",
+  "normal_command_buffer": [],
+  "search_matches": [],
+  "current_search_match_index": 0,
+  "unsaved_edits": 0,
+  "last_saved_hash": 6894519061004685273,
+  "row_prefix_length": 0,
+  "document": {
+    "rows": [
+      {
+        "string": "Hello world"
+      },
+      {
+        "string": "Hello world!"
+      },
+      {
+        "string": "Hello world!!"
+      }
+    ],
+    "filename": "test"
+  }
+}"#
+    );
+}
+
+#[test]
+fn test_open_existing_file() {
+    let console = Box::new(MockConsole::default());
+    let mut f = NamedTempFile::new().unwrap();
+    f.write_all("Hello\nHello!\nHello!!\n".as_bytes()).unwrap();
+    let f_name_pathbuf: PathBuf = f.path().to_path_buf();
+    let f_name_str: String = f_name_pathbuf.to_str().unwrap().to_string(); // gawd
+    let editor = Editor::new(Some(f_name_str), console);
+    assert_eq!(editor.document.filename, Some(f_name_pathbuf));
+}
+
+#[test]
+fn test_stop_receiving_command_after_processing_esc_key() {
+    let mut editor = get_test_editor();
+    editor.process_keystroke(Key::Char(':'));
+    assert!(editor.is_receiving_command());
+    editor.process_keystroke(Key::Esc);
+    assert!(!editor.is_receiving_command());
+}
+
+#[test]
+fn test_process_backspace_mid_receiving_command() {
+    let mut editor = get_test_editor();
+    process_keystrokes(&mut editor, vec![':', 'o']);
+    assert!(editor.is_receiving_command());
+    assert_eq!(editor.command_buffer, String::from(":o"));
+    editor.process_keystroke(Key::Backspace);
+    assert!(editor.is_receiving_command());
+    assert_eq!(editor.command_buffer, String::from(":"));
+}
+
+#[test]
+fn test_open_non_existing_file() {
+    let mut editor = get_test_editor();
+    process_command(&mut editor, ":o nope.txt");
+    // the file will be opened but unsaved
+    assert_eq!(editor.document.filename, Some(PathBuf::from("nope.txt")));
+}
+
+#[test]
+fn test_new_file() {
+    let mut editor = get_test_editor();
+    process_command(&mut editor, ":new nope.txt");
+    // the file will be opened but unsaved
+    assert_eq!(editor.document.filename, Some(PathBuf::from("nope.txt")));
+}
+
+#[test]
+fn test_save_file() {
+    let console = Box::new(MockConsole::default());
+    let f = NamedTempFile::new().unwrap();
+    let f_name_pathbuf: PathBuf = f.path().to_path_buf();
+    let f_name_str: String = f_name_pathbuf.to_str().unwrap().to_string(); // gawd
+    let mut editor = Editor::new(Some(f_name_str), console);
+
+    process_keystrokes(&mut editor, vec!['i', 'h', 'e', 'l', 'l', 'o']);
+    editor.process_keystroke(Key::Esc);
+    process_command(&mut editor, ":w");
+    assert_eq!(editor.unsaved_edits, 0);
+
+    let content = fs::read_to_string(f).unwrap();
+    assert_eq!(content, "hello\n");
+}
+
+#[test]
+fn test_save_file_trim_whitespaces() {
+    let console = Box::new(MockConsole::default());
+    let f = NamedTempFile::new().unwrap();
+    let f_name_pathbuf: PathBuf = f.path().to_path_buf();
+    let f_name_str: String = f_name_pathbuf.to_str().unwrap().to_string(); // gawd
+    let mut editor = Editor::new(Some(f_name_str), console);
+
+    process_keystrokes(&mut editor, vec!['i', ' ', 'h', 'e', 'l', 'l', 'o', ' ']);
+    editor.process_keystroke(Key::Esc);
+    process_command(&mut editor, ":w");
+    assert_eq!(editor.unsaved_edits, 0);
+
+    let content = fs::read_to_string(f).unwrap();
+    assert_eq!(content, " hello\n"); // trailing whitespace has been removed
+}
+
+#[test]
+fn test_display_line_numbers() {
+    let mut editor = get_test_editor();
+    assert!(!editor.config.display_line_numbers);
+    process_command(&mut editor, ":ln");
+    assert!(editor.config.display_line_numbers);
+    process_command(&mut editor, ":ln");
+    assert!(!editor.config.display_line_numbers);
+}
+
+#[test]
+fn test_display_stats() {
+    let mut editor = get_test_editor();
+    assert!(!editor.config.display_stats);
+    process_command(&mut editor, ":stats");
+    assert!(editor.config.display_stats);
+    process_command(&mut editor, ":stats");
+    assert!(!editor.config.display_stats);
+}
+
+#[test]
+fn test_go_to_start_of_line() {
+    let mut editor = get_test_editor();
+    editor.process_keystroke(Key::Char('w'));
+    assert_position_is(&editor, 6, 0);
+    editor.process_keystroke(Key::Char('0'));
+    assert_position_is(&editor, 0, 0);
+}
+
+#[test]
+fn test_goto_matching_closing_symbol() {
+    let mut editor = get_test_editor();
+    editor.process_keystroke(Key::Char('A'));
+    process_keystrokes(&mut editor, vec!['(', 'o', 'h', ')']);
+    let first_line_content = editor.document.get_row(0).unwrap().string.clone();
+    assert_eq!(first_line_content.chars().nth(11), Some('('));
+    assert_eq!(first_line_content.chars().nth(14), Some(')'));
+    editor.cursor_position = Position { x: 11, y: 0 }; // first paren
+    editor.process_keystroke(Key::Esc);
+    editor.process_keystroke(Key::Char('m'));
+    assert_position_is(&editor, 14, 0);
+}
+
+#[test]
+fn test_move_by_paragraph() {
+    let mut editor = get_test_editor();
+    assert_position_is(&editor, 0, 0);
+    editor.process_keystroke(Key::Char('}'));
+    assert_position_is(&editor, 0, 2);
+    editor.process_keystroke(Key::Char('{'));
+    assert_position_is(&editor, 0, 0);
+}
+
+#[test]
+fn test_delete_last_line() {
+    let mut editor = get_test_editor();
+    assert_eq!(editor.document.num_rows(), 3);
+    editor.process_keystroke(Key::Char('G'));
+    assert_position_is(&editor, 0, 2);
+    editor.process_keystroke(Key::Char('d'));
+    assert_eq!(editor.document.num_rows(), 2);
+    assert_position_is(&editor, 0, 1);
 }
