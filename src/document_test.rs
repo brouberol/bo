@@ -83,6 +83,17 @@ fn test_document_insert() {
 }
 
 #[test]
+fn test_document_insert_newline_at_the_end() {
+    let mut doc = Document::new(
+        vec![Row::from("Hello"), Row::from("world!")],
+        PathBuf::from("test.rs"),
+    );
+    assert_eq!(doc.num_rows(), 2);
+    doc.insert_newline(6, 1);
+    assert_eq!(doc.num_rows(), 3);
+}
+
+#[test]
 fn test_document_delete() {
     let mut doc = Document::new(
         vec![Row::from("Hello"), Row::from("world!")],
@@ -104,6 +115,17 @@ fn test_document_delete_at_start_of_line() {
     doc.delete(0, 0, 1);
     assert_eq!(doc.rows.get(0).unwrap().string, "Helloworld!");
     assert!(doc.rows.get(1).is_none());
+}
+
+#[test]
+fn test_document_delete_all_rows() {
+    let mut doc = Document::new(
+        vec![Row::from("Hello"), Row::from("world!")],
+        PathBuf::from("test.rs"),
+    );
+    doc.delete_row(1);
+    doc.delete_row(0);
+    assert_eq!(doc.get_row(0).unwrap().string, "");
 }
 
 #[test]
