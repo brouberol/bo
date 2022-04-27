@@ -16,7 +16,7 @@ use editor::Editor;
 use structopt::StructOpt;
 
 pub use config::Config;
-pub use console::{Console, Size};
+pub use console::{Console, ConsoleSize};
 pub use document::Document;
 pub use editor::{Position, ViewportOffset};
 pub use help::{Help, Section};

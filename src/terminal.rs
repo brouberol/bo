@@ -1,4 +1,4 @@
-use crate::{Console, Position, Size};
+use crate::{Console, ConsoleSize, Position};
 use std::cmp;
 use std::fmt;
 use std::io::{self, stdout, Write};
@@ -101,8 +101,8 @@ impl Console for Terminal {
         print!("{}", termion::clear::All);
     }
 
-    fn size(&self) -> Size {
-        Size::from(termion::terminal_size().unwrap_or_default())
+    fn size(&self) -> ConsoleSize {
+        ConsoleSize::from(termion::terminal_size().unwrap_or_default())
     }
 
     fn middle_of_screen_line_number(&self) -> usize {
@@ -113,15 +113,15 @@ impl Console for Terminal {
         let ansi_position = AnsiPosition::from(*position);
         // hiding the fact that the terminal position is 1-based, while preventing an overflow
         row_prefix_length += if row_prefix_length > 0 { 1 } else { 0 };
-        let console_size = self.size();
+        let text_area_size = self.size().restrict_to_text_area();
         print!(
             "{}",
             termion::cursor::Goto(
                 cmp::min(
                     ansi_position.x.saturating_add(row_prefix_length.into()),
-                    console_size.width
+                    text_area_size.width
                 ),
-                cmp::min(ansi_position.y, console_size.height)
+                cmp::min(ansi_position.y, text_area_size.height)
             )
         );
     }

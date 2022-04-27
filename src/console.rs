@@ -5,25 +5,36 @@ use termion::color;
 use termion::event::{Event, MouseEvent};
 
 #[derive(Debug)]
-pub struct Size {
+#[allow(clippy::module_name_repetitions)]
+pub struct ConsoleSize {
     pub height: u16,
     pub width: u16,
 }
 
-impl From<(u16, u16)> for Size {
+impl From<(u16, u16)> for ConsoleSize {
     fn from(t: (u16, u16)) -> Self {
         Self {
-            height: t.1.saturating_sub(2), // to leave space for the status/message bars
+            height: t.1,
             width: t.0,
         }
     }
 }
 
-impl Default for Size {
+impl Default for ConsoleSize {
     fn default() -> Self {
         Self {
             height: 80,
             width: 120,
+        }
+    }
+}
+
+impl ConsoleSize {
+    #[must_use]
+    pub fn restrict_to_text_area(&self) -> Self {
+        Self {
+            height: self.height.saturating_sub(2),
+            width: self.width,
         }
     }
 }
@@ -63,7 +74,7 @@ pub trait Console: Debug {
 
     fn clear_all(&self);
 
-    fn size(&self) -> Size;
+    fn size(&self) -> ConsoleSize;
 
     fn middle_of_screen_line_number(&self) -> usize;
 

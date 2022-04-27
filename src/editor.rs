@@ -1071,7 +1071,7 @@ impl Editor {
     }
 
     fn draw_rows(&self) {
-        let term_height = self.terminal.size().height;
+        let term_height = self.terminal.size().restrict_to_text_area().height;
         for terminal_row_idx in self.offset.rows..(term_height as usize + self.offset.rows) {
             let line_number = terminal_row_idx.saturating_add(1);
             self.terminal.clear_current_line();

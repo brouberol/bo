@@ -1,5 +1,5 @@
 use super::SPACES_PER_TAB;
-use crate::{AnsiPosition, Console, Document, Editor, Mode, Position, Row, Size};
+use crate::{AnsiPosition, Console, ConsoleSize, Document, Editor, Mode, Position, Row};
 use std::fmt;
 use std::fs;
 use std::io::Error;
@@ -50,8 +50,8 @@ impl Console for MockConsole {
 
     fn set_cursor_as_steady_block(&self) {}
 
-    fn size(&self) -> Size {
-        Size::default()
+    fn size(&self) -> ConsoleSize {
+        ConsoleSize::default()
     }
 
     fn middle_of_screen_line_number(&self) -> usize {
