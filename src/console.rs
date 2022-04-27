@@ -13,7 +13,7 @@ pub struct Size {
 impl From<(u16, u16)> for Size {
     fn from(t: (u16, u16)) -> Self {
         Self {
-            height: t.1,
+            height: t.1.saturating_sub(2), // to leave space for the status/message bars
             width: t.0,
         }
     }

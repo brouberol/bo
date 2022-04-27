@@ -121,10 +121,7 @@ impl Console for Terminal {
                     ansi_position.x.saturating_add(row_prefix_length.into()),
                     console_size.width
                 ),
-                cmp::min(
-                    ansi_position.y.saturating_sub(2), // delta_y = 2 to account for the last 2 lines (status + message bars),
-                    console_size.height.saturating_sub(2)
-                )
+                cmp::min(ansi_position.y, console_size.height)
             )
         );
     }
@@ -136,7 +133,10 @@ impl Console for Terminal {
             "{}",
             termion::cursor::Goto(
                 cmp::min(ansi_position.x, console_size.width),
-                cmp::min(ansi_position.y, console_size.height)
+                cmp::min(
+                    ansi_position.y.saturating_add(2), // delta_y = 2 to account for the last 2 lines (status + message bars)
+                    console_size.height.saturating_add(2)
+                )
             )
         );
     }
