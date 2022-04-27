@@ -54,8 +54,10 @@ jobs:
       if: github.ref_name != 'main'
       run: |
         set -eu
-        total=$(cat ${COV_REPORT_DIR}/badges/flat.svg | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
-        curl -s "https://brouberol:${GITHUB_TOKEN}@api.github.com/repos/brouberol/bo/statuses/${COMMIT_SHA}" -d "{\"state\": \"success\",\"target_url\": \"https://github.com/brouberol/bo/pull/${PULL_NUMBER}/checks?check_run_id=${RUN_ID}\",\"description\": \"${total}%\",\"context\": \"Measured coverage\"}"
+        main_cov=$(
+          curl -s "http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/badges/flat.svg" | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
+        branch_cov=$(cat ${COV_REPORT_DIR}/badges/flat.svg | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
+        curl -s "https://brouberol:${GITHUB_TOKEN}@api.github.com/repos/brouberol/bo/statuses/${COMMIT_SHA}" -d "{\"state\": \"success\",\"target_url\": \"https://github.com/brouberol/bo/pull/${PULL_NUMBER}/checks?check_run_id=${RUN_ID}\",\"description\": \"${main_cov}% -> ${branch_cov}%\",\"context\": \"Measured coverage\"}"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
