@@ -54,8 +54,19 @@ impl Console for MockConsole {
         ConsoleSize::default()
     }
 
+    fn text_area_size(&self) -> ConsoleSize {
+        ConsoleSize {
+            height: 78,
+            width: 120,
+        }
+    }
+
     fn middle_of_screen_line_number(&self) -> usize {
-        self.size().height as usize / 2
+        self.text_area_size().height as usize / 2
+    }
+
+    fn bottom_of_screen_line_number(&self) -> usize {
+        self.text_area_size().height as usize
     }
 
     fn set_cursor_position_in_text_area(&self, _position: &Position, _row_prefix_length: u8) {}
@@ -430,20 +441,20 @@ fn test_editor_move_cursor_to_position_y() {
     assert_eq!(editor.offset.rows, 0);
 
     editor.move_cursor_to_position_y(200);
-    assert_position_is(&editor, 0, 80);
-    assert_eq!(editor.offset.rows, 120);
+    assert_position_is(&editor, 0, 78);
+    assert_eq!(editor.offset.rows, 122);
 
     editor.move_cursor_to_position_y(110);
-    assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.rows, 70);
+    assert_position_is(&editor, 0, 39);
+    assert_eq!(editor.offset.rows, 71);
 
     editor.move_cursor_to_position_y(112);
-    assert_position_is(&editor, 0, 42);
-    assert_eq!(editor.offset.rows, 70);
+    assert_position_is(&editor, 0, 41);
+    assert_eq!(editor.offset.rows, 71);
 
     editor.move_cursor_to_position_y(180);
-    assert_position_is(&editor, 0, 60);
-    assert_eq!(editor.offset.rows, 120);
+    assert_position_is(&editor, 0, 58);
+    assert_eq!(editor.offset.rows, 122);
 }
 
 #[test]
@@ -459,20 +470,20 @@ fn test_editor_navigate_long_document() {
     let mut editor = get_test_editor_with_long_document();
 
     editor.move_cursor_to_position_y(110);
-    assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.rows, 70);
+    assert_position_is(&editor, 0, 39);
+    assert_eq!(editor.offset.rows, 71);
 
     editor.process_keystroke(Key::Char('H'));
     assert_position_is(&editor, 0, 0);
-    assert_eq!(editor.offset.rows, 70);
+    assert_eq!(editor.offset.rows, 71);
 
     editor.process_keystroke(Key::Char('M'));
-    assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.rows, 70);
+    assert_position_is(&editor, 0, 38);
+    assert_eq!(editor.offset.rows, 71);
 
     editor.process_keystroke(Key::Char('L'));
-    assert_position_is(&editor, 0, 80);
-    assert_eq!(editor.offset.rows, 70);
+    assert_position_is(&editor, 0, 77);
+    assert_eq!(editor.offset.rows, 71);
 }
 
 #[test]
@@ -561,28 +572,38 @@ fn test_editor_join_lines() {
 #[test]
 fn test_editor_edit_long_document() {
     let mut editor = get_test_editor_with_long_document();
-    editor.move_cursor_to_position_y(110);
-    assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.rows, 70);
+    assert_eq!(editor.document.num_rows(), 200);
+    assert_eq!(editor.mode, Mode::Normal);
+    editor.move_cursor_to_position_y(110); // line 111
+    assert_position_is(&editor, 0, 39);
+    // terminal height is 78, and we're positioned at row 39, meaning
+    // offset is 110 - 39 = 71
+    assert_eq!(editor.offset.rows, 71);
 
     // Go to Insert mode and append a new line
     editor.process_keystroke(Key::Char('o'));
-    assert_position_is(&editor, 0, 41);
-    assert_eq!(editor.offset.rows, 70);
+    assert_eq!(editor.mode, Mode::Insert);
+    assert_eq!(editor.document.num_rows(), 201);
+    assert_position_is(&editor, 0, 40);
+    assert_eq!(editor.offset.rows, 71);
 
     // write some text
     process_keystrokes(&mut editor, vec!['d', 'e', 'r', 'p']);
+    assert_eq!(editor.document.num_rows(), 201);
     assert_current_line_is(&editor, "derp");
-    assert_position_is(&editor, 4, 41);
+    assert_position_is(&editor, 4, 40);
+    assert_eq!(editor.offset.rows, 71);
 
     // enter newline
     editor.process_keystroke(Key::Char('\n'));
-    assert_position_is(&editor, 0, 42);
+    assert_eq!(editor.document.num_rows(), 202);
+    assert_position_is(&editor, 0, 41);
+    assert_eq!(editor.offset.rows, 71);
     assert_current_line_is(&editor, "");
 
     // delete line
     editor.process_keystroke(Key::Backspace);
-    assert_position_is(&editor, 4, 41);
+    assert_position_is(&editor, 4, 40);
     assert_current_line_is(&editor, "derp");
 }
 

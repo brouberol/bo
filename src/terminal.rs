@@ -105,8 +105,16 @@ impl Console for Terminal {
         ConsoleSize::from(termion::terminal_size().unwrap_or_default())
     }
 
+    fn text_area_size(&self) -> ConsoleSize {
+        self.size().restrict_to_text_area()
+    }
+
     fn middle_of_screen_line_number(&self) -> usize {
-        self.size().height as usize / 2
+        self.text_area_size().height as usize / 2
+    }
+
+    fn bottom_of_screen_line_number(&self) -> usize {
+        self.text_area_size().height as usize
     }
 
     fn set_cursor_position_in_text_area(&self, position: &Position, mut row_prefix_length: u8) {

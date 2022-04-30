@@ -707,8 +707,7 @@ impl Editor {
         self.goto_line(
             self.terminal
                 .middle_of_screen_line_number()
-                .saturating_add(self.offset.rows)
-                .saturating_add(1),
+                .saturating_add(self.offset.rows),
             0,
         );
     }
@@ -721,9 +720,9 @@ impl Editor {
     /// Move the cursor to the last line of the terminal
     fn goto_last_line_of_terminal(&mut self) {
         self.goto_line(
-            (self.terminal.size().height as usize)
-                .saturating_add(self.offset.rows)
-                .saturating_add(1),
+            self.terminal
+                .bottom_of_screen_line_number()
+                .saturating_add(self.offset.rows),
             0,
         );
     }
@@ -887,21 +886,22 @@ impl Editor {
 
     fn move_cursor_to_position_y(&mut self, y: usize) {
         let max_line_number = self.document.last_line_number(); // last line number in the document
-        let term_height = self.terminal.size().height as usize;
+        let term_height = self.terminal.bottom_of_screen_line_number();
         let middle_of_screen_line_number = self.terminal.middle_of_screen_line_number(); // number of the line in the middle of the terminal
 
         let y = cmp::max(0, y);
         let y = cmp::min(y, max_line_number);
-        if y < middle_of_screen_line_number {
+
+        if self.offset.rows <= y && y <= self.offset.rows + term_height {
+            // move around in the same view
+            self.cursor_position.y = y.saturating_sub(self.offset.rows);
+        } else if y < middle_of_screen_line_number {
             // move to the first "half-view" of the document
             self.offset.rows = 0;
             self.cursor_position.y = y;
-        } else if y > max_line_number.saturating_sub(middle_of_screen_line_number) {
+        } else if y >= max_line_number.saturating_sub(middle_of_screen_line_number) {
             // move to the last "half view" of the document
             self.offset.rows = max_line_number.saturating_sub(term_height);
-            self.cursor_position.y = y.saturating_sub(self.offset.rows);
-        } else if self.offset.rows <= y && y <= self.offset.rows + term_height {
-            // move around in the same view
             self.cursor_position.y = y.saturating_sub(self.offset.rows);
         } else {
             // move to another view in the document, and position the cursor at the

@@ -76,7 +76,11 @@ pub trait Console: Debug {
 
     fn size(&self) -> ConsoleSize;
 
+    fn text_area_size(&self) -> ConsoleSize;
+
     fn middle_of_screen_line_number(&self) -> usize;
+
+    fn bottom_of_screen_line_number(&self) -> usize;
 
     fn get_cursor_index_from_mouse_event(&self, mouse_event: MouseEvent, x_offset: u8) -> Position;
 

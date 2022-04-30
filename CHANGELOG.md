@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 - Format the help sections titles in bold and automatically generate the help text
 
 ### Fixes
+- Fix erratic behavior when navigating into the current view, caused by using the terminal size and not the text area size
 - Prevent crashes by using saturating arithmetic operations
 - Prevent wrong jumps when inserting/deleting a line after the first half view
 - Fix a bug preventing `bo` from being used as the `git` editor
