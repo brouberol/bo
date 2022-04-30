@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 - Display cursor in the message bar while typing a command
 
 ### Improvements
+- Move the cursor to the top left position when opening a new file
 - Format the help sections titles in bold and automatically generate the help text
 
 ### Fixes

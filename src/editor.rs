@@ -284,6 +284,7 @@ impl Editor {
                                 self.document = document;
                                 self.last_saved_hash = self.document.hashed();
                                 self.reset_message();
+                                self.cursor_position = Position::default();
                             } else {
                                 self.display_message(utils::red(&format!(
                                     "{} not found",
