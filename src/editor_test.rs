@@ -480,6 +480,12 @@ fn test_editor_move_cursor_to_position_y() {
     // y = 181 - 122 - 1 = 58 (-1 because y is a rowindex)
     assert_position_is(&editor, 0, 58);
     assert_eq!(editor.offset.rows, 122);
+
+    // We move to the first half view from the last
+    editor.move_cursor_to_position_y(RowIndex::new(10));
+    assert_position_is(&editor, 0, 10);
+    assert_eq!(editor.current_line_number(), LineNumber::new(11));
+    assert_eq!(editor.offset.rows, 0);
 }
 
 #[test]
@@ -832,4 +838,23 @@ fn test_delete_last_line() {
     editor.process_keystroke(Key::Char('d'));
     assert_eq!(editor.document.num_rows(), 2);
     assert_position_is(&editor, 0, 1);
+}
+
+#[test]
+fn test_process_command_not_found() {
+    let mut editor = get_test_editor();
+    process_command(&mut editor, ":nope");
+    assert_eq!(editor.message, r#"[38;5;1mUnknown command 'nope'[39m"#);
+}
+
+#[test]
+fn test_save_and_quit() {
+    let mut editor = get_test_editor();
+    process_keystrokes(&mut editor, vec!['G', 'o', 'd', 'e', 'r', 'p']);
+    editor.process_keystroke(Key::Esc);
+    assert_eq!(editor.unsaved_edits, 4);
+    assert!(!editor.should_quit);
+    process_command(&mut editor, ":wq");
+    assert_eq!(editor.unsaved_edits, 0);
+    assert!(editor.should_quit);
 }
