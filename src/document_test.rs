@@ -1,4 +1,4 @@
-use crate::{Document, Row};
+use crate::{Document, LineNumber, Row, RowIndex};
 use std::path::{Path, PathBuf};
 
 #[test]
@@ -7,9 +7,15 @@ fn test_document_get_row() {
         vec![Row::from("Hello"), Row::from("world!")],
         PathBuf::from("test.rs"),
     );
-    assert_eq!(doc.get_row(0).unwrap().string, "Hello".to_string());
-    assert_eq!(doc.get_row(1).unwrap().string, "world!".to_string());
-    assert!(doc.get_row(2).is_none());
+    assert_eq!(
+        doc.get_row(RowIndex::new(0)).unwrap().string,
+        "Hello".to_string()
+    );
+    assert_eq!(
+        doc.get_row(RowIndex::new(1)).unwrap().string,
+        "world!".to_string()
+    );
+    assert!(doc.get_row(RowIndex::new(2)).is_none());
 }
 
 #[test]
@@ -48,13 +54,17 @@ fn test_document_row_for_line_number() {
     let row2 = Row::from("dear reviewer!");
     assert_eq!(
         Document::new(vec![row1, row2], PathBuf::from("test.rs"))
-            .row_for_line_number(1)
+            .row_for_line_number(LineNumber::new(1))
             .unwrap()
             .string,
         "Hello world"
     );
-    assert!(Document::default().row_for_line_number(1).is_some());
-    assert!(Document::default().row_for_line_number(2).is_none());
+    assert!(Document::default()
+        .row_for_line_number(LineNumber::new(1))
+        .is_some());
+    assert!(Document::default()
+        .row_for_line_number(LineNumber::new(2))
+        .is_none());
 }
 
 #[test]
@@ -65,7 +75,7 @@ fn test_document_last_line_number() {
             PathBuf::from("test.rs")
         )
         .last_line_number(),
-        2
+        LineNumber::new(2)
     );
 }
 
@@ -75,10 +85,10 @@ fn test_document_insert() {
         vec![Row::from("Hello"), Row::from("world!")],
         PathBuf::from("test.rs"),
     );
-    doc.insert(' ', 6, 1);
+    doc.insert(' ', 6, RowIndex::new(1));
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, "world! ");
-    doc.insert('W', 0, 2);
+    doc.insert('W', 0, RowIndex::new(2));
     assert_eq!(doc.rows.get(2).unwrap().string, "W");
 }
 
@@ -89,7 +99,7 @@ fn test_document_insert_newline_at_the_end() {
         PathBuf::from("test.rs"),
     );
     assert_eq!(doc.num_rows(), 2);
-    doc.insert_newline(6, 1);
+    doc.insert_newline(6, RowIndex::new(1));
     assert_eq!(doc.num_rows(), 3);
 }
 
@@ -99,10 +109,10 @@ fn test_document_delete() {
         vec![Row::from("Hello"), Row::from("world!")],
         PathBuf::from("test.rs"),
     );
-    doc.delete(5, 6, 1);
+    doc.delete(5, 6, RowIndex::new(1));
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, "world");
-    doc.delete(2, 6, 1);
+    doc.delete(2, 6, RowIndex::new(1));
     assert_eq!(doc.rows.get(1).unwrap().string, "wold");
 }
 
@@ -112,7 +122,7 @@ fn test_document_delete_at_start_of_line() {
         vec![Row::from("Hello"), Row::from("world!")],
         PathBuf::from("test.rs"),
     );
-    doc.delete(0, 0, 1);
+    doc.delete(0, 0, RowIndex::new(1));
     assert_eq!(doc.rows.get(0).unwrap().string, "Helloworld!");
     assert!(doc.rows.get(1).is_none());
 }
@@ -123,9 +133,9 @@ fn test_document_delete_all_rows() {
         vec![Row::from("Hello"), Row::from("world!")],
         PathBuf::from("test.rs"),
     );
-    doc.delete_row(1);
-    doc.delete_row(0);
-    assert_eq!(doc.get_row(0).unwrap().string, "");
+    doc.delete_row(RowIndex::new(1));
+    doc.delete_row(RowIndex::new(0));
+    assert_eq!(doc.get_row(RowIndex::new(0)).unwrap().string, "");
 }
 
 #[test]
@@ -134,12 +144,12 @@ fn test_insert_newline() {
         vec![Row::from("Hello"), Row::from("world!")],
         PathBuf::from("test.rs"),
     );
-    doc.insert_newline(0, 0);
+    doc.insert_newline(0, RowIndex::new(0));
     assert_eq!(doc.rows.get(0).unwrap().string, "");
     assert_eq!(doc.rows.get(1).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(2).unwrap().string, "world!");
 
-    doc.insert_newline(0, 2);
+    doc.insert_newline(0, RowIndex::new(2));
     assert_eq!(doc.rows.get(0).unwrap().string, "");
     assert_eq!(doc.rows.get(1).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(2).unwrap().string, "");
@@ -149,7 +159,7 @@ fn test_insert_newline() {
 #[test]
 fn test_insert_newline_row_split() {
     let mut doc = Document::new(vec![Row::from("Hello world!")], PathBuf::from("test.rs"));
-    doc.insert_newline(5, 0);
+    doc.insert_newline(5, RowIndex::new(0));
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello");
     assert_eq!(doc.rows.get(1).unwrap().string, " world!");
 }
@@ -182,7 +192,7 @@ fn test_document_join_row_with_previous_one() {
         vec![Row::from("Hello"), Row::from("world!")],
         PathBuf::from("test.rs"),
     );
-    doc.join_row_with_previous_one(4, 1, Some(' '));
+    doc.join_row_with_previous_one(4, RowIndex::new(1), Some(' '));
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello world!");
     assert_eq!(doc.num_rows(), 1);
 }

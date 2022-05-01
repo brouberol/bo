@@ -1,4 +1,4 @@
-use crate::Row;
+use crate::{LineNumber, Row, RowIndex};
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::collections::hash_map::DefaultHasher;
@@ -144,8 +144,12 @@ impl Document {
     }
 
     #[must_use]
-    pub fn get_row(&self, index: usize) -> Option<&Row> {
-        self.rows.get(index)
+    pub fn get_row(&self, index: RowIndex) -> Option<&Row> {
+        self.rows.get(index.value)
+    }
+
+    pub fn remove_row(&mut self, index: RowIndex) -> Row {
+        self.rows.remove(index.value)
     }
 
     #[must_use]
@@ -165,14 +169,14 @@ impl Document {
 
     /// Get the document row corresponding to a given line number
     #[must_use]
-    pub fn row_for_line_number(&self, line_number: usize) -> Option<&Row> {
-        self.get_row(line_number.saturating_sub(1))
+    pub fn row_for_line_number(&self, line_number: LineNumber) -> Option<&Row> {
+        self.get_row(RowIndex::from(line_number))
     }
 
     /// Return the line number of the last line in the file
     #[must_use]
-    pub fn last_line_number(&self) -> usize {
-        self.num_rows()
+    pub fn last_line_number(&self) -> LineNumber {
+        LineNumber::new(self.num_rows())
     }
 
     #[must_use]
@@ -185,28 +189,28 @@ impl Document {
         self.rows.iter_mut()
     }
 
-    pub fn insert(&mut self, c: char, x: usize, y: usize) {
-        match y.cmp(&self.num_rows()) {
+    pub fn insert(&mut self, c: char, x: usize, y: RowIndex) {
+        match y.value.cmp(&self.num_rows()) {
             Ordering::Equal | Ordering::Greater => {
                 let mut row = Row::default();
                 row.insert(0, c);
                 self.rows.push(row);
             }
             Ordering::Less => {
-                if let Some(row) = self.rows.get_mut(y) {
+                if let Some(row) = self.rows.get_mut(y.value) {
                     row.insert(x, c);
                 }
             }
         }
     }
 
-    pub fn delete(&mut self, x: usize, from_x: usize, y: usize) {
-        if y >= self.num_rows() {
+    pub fn delete(&mut self, x: usize, from_x: usize, y: RowIndex) {
+        if y.value >= self.num_rows() {
             return;
         }
-        if let Some(row) = self.rows.get_mut(y) {
+        if let Some(row) = self.rows.get_mut(y.value) {
             // Deletion at the very start of a line means we append the current line to the previous one
-            if x == 0 && from_x == 0 && y > 0 {
+            if x == 0 && from_x == 0 && y.value > 0 {
                 self.join_row_with_previous_one(x, y, None);
             } else {
                 row.delete(x);
@@ -214,9 +218,9 @@ impl Document {
         }
     }
 
-    pub fn join_row_with_previous_one(&mut self, x: usize, y: usize, join_with: Option<char>) {
-        let current_row = self.rows.remove(y);
-        if let Some(previous_row) = self.rows.get_mut(y - 1) {
+    pub fn join_row_with_previous_one(&mut self, x: usize, y: RowIndex, join_with: Option<char>) {
+        let current_row = self.remove_row(y);
+        if let Some(previous_row) = self.rows.get_mut(y.value.saturating_sub(1)) {
             if let Some(join_char) = join_with {
                 previous_row.insert(x.saturating_add(1), join_char);
             }
@@ -224,35 +228,35 @@ impl Document {
         }
     }
 
-    pub fn insert_newline(&mut self, x: usize, y: usize) {
-        if y > self.num_rows() {
+    pub fn insert_newline(&mut self, x: usize, y: RowIndex) {
+        if y.value > self.num_rows() {
             return;
         }
-        let current_row = self.rows.get_mut(y);
+        let current_row = self.rows.get_mut(y.value);
         if let Some(current_row) = current_row {
             if x < current_row.len().saturating_sub(1) {
                 let split_row = current_row.split(x);
-                self.rows.insert(y.saturating_add(1), split_row);
+                self.rows.insert(y.next().value, split_row);
                 // newline inserted in the middle of the row
             } else {
                 let new_row = Row::default();
-                if y == self.num_rows() || y.saturating_add(1) == self.num_rows() {
+                if y.value == self.num_rows() || y.next().value == self.num_rows() {
                     self.rows.push(new_row);
                 } else {
-                    self.rows.insert(y.saturating_add(1), new_row);
+                    self.rows.insert(y.next().value, new_row);
                 }
             }
         }
     }
 
-    pub fn delete_row(&mut self, y: usize) {
-        if y > self.num_rows() {
+    pub fn delete_row(&mut self, index: RowIndex) {
+        if index.value > self.num_rows() {
         } else if self.num_rows() == 1 {
             if let Some(row) = self.rows.get_mut(0) {
                 row.string = "".to_string();
             }
-        } else if self.rows.get(y).is_some() {
-            self.rows.remove(y);
+        } else if self.get_row(index).is_some() {
+            self.remove_row(index);
         }
     }
 

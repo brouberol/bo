@@ -1,4 +1,4 @@
-use crate::{Console, ConsoleSize, Position};
+use crate::{Console, ConsoleSize, LineNumber, Position};
 use std::cmp;
 use std::fmt;
 use std::io::{self, stdout, Write};
@@ -109,12 +109,12 @@ impl Console for Terminal {
         self.size().restrict_to_text_area()
     }
 
-    fn middle_of_screen_line_number(&self) -> usize {
-        self.text_area_size().height as usize / 2
+    fn middle_of_screen_line_number(&self) -> LineNumber {
+        LineNumber::new(self.text_area_size().height as usize / 2)
     }
 
-    fn bottom_of_screen_line_number(&self) -> usize {
-        self.text_area_size().height as usize
+    fn bottom_of_screen_line_number(&self) -> LineNumber {
+        LineNumber::new(self.text_area_size().height as usize)
     }
 
     fn set_cursor_position_in_text_area(&self, position: &Position, mut row_prefix_length: u8) {

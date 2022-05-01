@@ -1,4 +1,4 @@
-use crate::{Boundary, Document, Navigator, Position, Row, ViewportOffset};
+use crate::{Boundary, Document, LineNumber, Navigator, Position, Row, ViewportOffset};
 use std::path::PathBuf;
 
 fn test_document() -> Document {
@@ -141,14 +141,13 @@ fn test_find_matching_opening_symbol_no_match() {
 /// Make sure that the end of the current paragraph is on the
 /// next all-whitespace line.
 fn test_find_line_number_of_end_of_paragraph() {
-    let current_line_number = 1;
     assert_eq!(
         Navigator::find_line_number_of_start_or_end_of_paragraph(
             &test_document(),
-            current_line_number,
+            LineNumber::new(1),
             &Boundary::End
         ),
-        2
+        LineNumber::new(2)
     );
 }
 
@@ -176,7 +175,7 @@ fn test_find_line_number_of_start_of_paragraph() {
             test_document().last_line_number(),
             &Boundary::Start
         ),
-        2
+        LineNumber::new(2)
     );
 }
 
@@ -187,10 +186,10 @@ fn test_find_line_number_of_start_of_paragraph_when_at_first_line() {
     assert_eq!(
         Navigator::find_line_number_of_start_or_end_of_paragraph(
             &test_document(),
-            1,
+            LineNumber::new(1),
             &Boundary::Start
         ),
-        1
+        LineNumber::new(1)
     );
 }
 

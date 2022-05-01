@@ -1,5 +1,6 @@
 use super::SPACES_PER_TAB;
-use crate::{AnsiPosition, Console, ConsoleSize, Document, Editor, Mode, Position, Row};
+use crate::LineNumber;
+use crate::{AnsiPosition, Console, ConsoleSize, Document, Editor, Mode, Position, Row, RowIndex};
 use std::fmt;
 use std::fs;
 use std::io::Error;
@@ -61,12 +62,12 @@ impl Console for MockConsole {
         }
     }
 
-    fn middle_of_screen_line_number(&self) -> usize {
-        self.text_area_size().height as usize / 2
+    fn middle_of_screen_line_number(&self) -> LineNumber {
+        LineNumber::new(self.text_area_size().height as usize / 2)
     }
 
-    fn bottom_of_screen_line_number(&self) -> usize {
-        self.text_area_size().height as usize
+    fn bottom_of_screen_line_number(&self) -> LineNumber {
+        LineNumber::new(self.text_area_size().height as usize)
     }
 
     fn set_cursor_position_in_text_area(&self, _position: &Position, _row_prefix_length: u8) {}
@@ -127,7 +128,10 @@ fn assert_position_is(editor: &Editor, x: usize, y: usize) {
 }
 
 fn assert_nth_row_is(editor: &Editor, n: usize, s: &str) {
-    assert_eq!(editor.document.get_row(n).unwrap().string, String::from(s));
+    assert_eq!(
+        editor.document.get_row(RowIndex::new(n)).unwrap().string,
+        String::from(s)
+    );
 }
 
 fn assert_current_line_is(editor: &Editor, s: &str) {
@@ -245,7 +249,7 @@ fn test_editor_goto_line() {
     assert_position_is(&editor, 0, 0);
     process_command(&mut editor, ":2");
     assert_position_is(&editor, 0, 1);
-    assert_eq!(editor.current_line_number(), 2);
+    assert_eq!(editor.current_line_number(), LineNumber::new(2));
 }
 
 #[test]
@@ -333,19 +337,25 @@ fn test_editor_navigation() {
 fn test_editor_deletion() {
     let mut editor = get_test_editor();
 
-    editor.goto_x_y(1, 1);
+    editor.goto_x_y(1, RowIndex::new(1));
     editor.process_keystroke(Key::Char('i'));
     editor.process_keystroke(Key::Backspace);
     assert_eq!(editor.document.num_rows(), 3);
-    assert_eq!(editor.document.get_row(1).unwrap().string, "ello world!");
-    editor.goto_x_y(0, 1);
+    assert_eq!(
+        editor.document.get_row(RowIndex::new(1)).unwrap().string,
+        "ello world!"
+    );
+    editor.goto_x_y(0, RowIndex::new(1));
     editor.process_keystroke(Key::Backspace);
     assert_eq!(editor.document.num_rows(), 2);
     assert_eq!(
-        editor.document.get_row(0).unwrap().string,
+        editor.document.get_row(RowIndex::new(0)).unwrap().string,
         "Hello worldello world!"
     );
-    assert_eq!(editor.document.get_row(1).unwrap().string, "Hello world!!");
+    assert_eq!(
+        editor.document.get_row(RowIndex::new(1)).unwrap().string,
+        "Hello world!!"
+    );
 }
 
 #[test]
@@ -370,7 +380,7 @@ fn test_editor_edition() {
     editor.process_keystroke(Key::Char('d'));
     assert_eq!(editor.document.num_rows(), 4);
 
-    editor.goto_x_y(0, 1);
+    editor.goto_x_y(0, RowIndex::new(1));
     editor.process_keystroke(Key::Char('i'));
     assert_eq!(editor.mode, Mode::Insert);
     process_keystrokes(&mut editor, vec!['b', 'o', 'o', 'p']);
@@ -387,7 +397,7 @@ fn test_editor_edition() {
     assert_eq!(editor.document.num_rows(), 3);
     assert_nth_row_is(&editor, 0, "Hello worldboo");
 
-    editor.goto_x_y(11, 0);
+    editor.goto_x_y(11, RowIndex::new(0));
     assert_position_is(&editor, 11, 0);
     assert_eq!(editor.document.num_rows(), 3);
     editor.process_keystroke(Key::Char('\n'));
@@ -396,7 +406,7 @@ fn test_editor_edition() {
     assert_nth_row_is(&editor, 1, "boo");
     assert_position_is(&editor, 0, 1);
 
-    editor.goto_x_y(0, 0);
+    editor.goto_x_y(0, RowIndex::new(0));
     editor.process_keystroke(Key::Esc);
     editor.process_keystroke(Key::Char('x'));
     assert_nth_row_is(&editor, 0, "ello world");
@@ -436,23 +446,38 @@ fn test_editor_move_cursor_to_position_y() {
     assert_position_is(&editor, 0, 0);
     assert_eq!(editor.offset.rows, 0);
 
-    editor.move_cursor_to_position_y(10);
+    editor.move_cursor_to_position_y(RowIndex::new(10));
     assert_position_is(&editor, 0, 10);
+    assert_eq!(editor.current_line_number(), LineNumber::new(11));
     assert_eq!(editor.offset.rows, 0);
 
-    editor.move_cursor_to_position_y(200);
-    assert_position_is(&editor, 0, 78);
+    editor.move_cursor_to_position_y(RowIndex::new(199));
+    assert_eq!(editor.current_line_number(), LineNumber::new(200));
+    assert_eq!(editor.current_row_index(), RowIndex::new(199));
+    // The editor is 78 lines high, and line 78 <--> row 77
+    // and offset 122 + row 77 = row 199
+    assert_position_is(&editor, 0, 77);
     assert_eq!(editor.offset.rows, 122);
 
-    editor.move_cursor_to_position_y(110);
-    assert_position_is(&editor, 0, 39);
-    assert_eq!(editor.offset.rows, 71);
+    editor.move_cursor_to_position_y(RowIndex::new(110));
+    assert_eq!(editor.current_line_number(), LineNumber::new(111));
+    // The editor is 78 lines high, and its middle line is L39,
+    // which means row 38, and row 38 + offset 72 = row 110
+    assert_position_is(&editor, 0, 38);
+    assert_eq!(editor.offset.rows, 72);
 
-    editor.move_cursor_to_position_y(112);
-    assert_position_is(&editor, 0, 41);
-    assert_eq!(editor.offset.rows, 71);
+    // We stay in the same view
+    editor.move_cursor_to_position_y(RowIndex::new(112));
+    assert_position_is(&editor, 0, 40);
+    assert_eq!(editor.offset.rows, 72);
 
-    editor.move_cursor_to_position_y(180);
+    // We move to the last view
+    editor.move_cursor_to_position_y(RowIndex::new(180));
+    assert_eq!(editor.current_line_number(), LineNumber::new(181));
+    // we see the last 78 lines, meaning the lines we see start at line
+    // 200 - 78 = 122, and end at line 200.
+    // Moving to line 181 means that we are located at the position
+    // y = 181 - 122 - 1 = 58 (-1 because y is a rowindex)
     assert_position_is(&editor, 0, 58);
     assert_eq!(editor.offset.rows, 122);
 }
@@ -469,28 +494,30 @@ fn test_editor_goto_percentage_in_document() {
 fn test_editor_navigate_long_document() {
     let mut editor = get_test_editor_with_long_document();
 
-    editor.move_cursor_to_position_y(110);
-    assert_position_is(&editor, 0, 39);
-    assert_eq!(editor.offset.rows, 71);
+    editor.move_cursor_to_position_y(RowIndex::new(110));
+    // The terminal is 78 lines high, middle line = 39, so middle
+    // row = 38
+    assert_position_is(&editor, 0, 38);
+    assert_eq!(editor.offset.rows, 72);
 
     editor.process_keystroke(Key::Char('H'));
     assert_position_is(&editor, 0, 0);
-    assert_eq!(editor.offset.rows, 71);
+    assert_eq!(editor.offset.rows, 72);
 
     editor.process_keystroke(Key::Char('M'));
     assert_position_is(&editor, 0, 38);
-    assert_eq!(editor.offset.rows, 71);
+    assert_eq!(editor.offset.rows, 72);
 
     editor.process_keystroke(Key::Char('L'));
     assert_position_is(&editor, 0, 77);
-    assert_eq!(editor.offset.rows, 71);
+    assert_eq!(editor.offset.rows, 72);
 }
 
 #[test]
 fn test_editor_simple_utilities() {
     let editor = get_test_editor();
-    assert_eq!(editor.current_row_index(), 0);
-    assert_eq!(editor.current_line_number(), 1);
+    assert_eq!(editor.current_row_index(), RowIndex::new(0));
+    assert_eq!(editor.current_line_number(), LineNumber::new(1));
     assert_eq!(editor.current_x_position(), 0);
     assert_eq!(editor.current_grapheme(), "H");
     assert_eq!(editor.current_row().string, "Hello world");
@@ -574,36 +601,37 @@ fn test_editor_edit_long_document() {
     let mut editor = get_test_editor_with_long_document();
     assert_eq!(editor.document.num_rows(), 200);
     assert_eq!(editor.mode, Mode::Normal);
-    editor.move_cursor_to_position_y(110); // line 111
-    assert_position_is(&editor, 0, 39);
-    // terminal height is 78, and we're positioned at row 39, meaning
-    // offset is 110 - 39 = 71
-    assert_eq!(editor.offset.rows, 71);
+    editor.move_cursor_to_position_y(RowIndex::new(110));
+    // line 111
+    // terminal height is 78, and we're positioned at line 39, meaning
+    // row 38, offset is 110 - 38 = 72
+    assert_position_is(&editor, 0, 38);
+    assert_eq!(editor.offset.rows, 72);
 
     // Go to Insert mode and append a new line
     editor.process_keystroke(Key::Char('o'));
     assert_eq!(editor.mode, Mode::Insert);
     assert_eq!(editor.document.num_rows(), 201);
-    assert_position_is(&editor, 0, 40);
-    assert_eq!(editor.offset.rows, 71);
+    assert_position_is(&editor, 0, 39);
+    assert_eq!(editor.offset.rows, 72);
 
     // write some text
     process_keystrokes(&mut editor, vec!['d', 'e', 'r', 'p']);
     assert_eq!(editor.document.num_rows(), 201);
     assert_current_line_is(&editor, "derp");
-    assert_position_is(&editor, 4, 40);
-    assert_eq!(editor.offset.rows, 71);
+    assert_position_is(&editor, 4, 39);
+    assert_eq!(editor.offset.rows, 72);
 
     // enter newline
     editor.process_keystroke(Key::Char('\n'));
     assert_eq!(editor.document.num_rows(), 202);
-    assert_position_is(&editor, 0, 41);
-    assert_eq!(editor.offset.rows, 71);
+    assert_position_is(&editor, 0, 40);
+    assert_eq!(editor.offset.rows, 72);
     assert_current_line_is(&editor, "");
 
     // delete line
     editor.process_keystroke(Key::Backspace);
-    assert_position_is(&editor, 4, 40);
+    assert_position_is(&editor, 4, 39);
     assert_current_line_is(&editor, "derp");
 }
 
@@ -771,7 +799,12 @@ fn test_goto_matching_closing_symbol() {
     let mut editor = get_test_editor();
     editor.process_keystroke(Key::Char('A'));
     process_keystrokes(&mut editor, vec!['(', 'o', 'h', ')']);
-    let first_line_content = editor.document.get_row(0).unwrap().string.clone();
+    let first_line_content = editor
+        .document
+        .get_row(RowIndex::new(0))
+        .unwrap()
+        .string
+        .clone();
     assert_eq!(first_line_content.chars().nth(11), Some('('));
     assert_eq!(first_line_content.chars().nth(14), Some(')'));
     editor.cursor_position = Position { x: 11, y: 0 }; // first paren

@@ -1,4 +1,4 @@
-use crate::Position;
+use crate::{LineNumber, Position};
 use std::fmt::Debug;
 use std::io::Error;
 use termion::color;
@@ -78,9 +78,9 @@ pub trait Console: Debug {
 
     fn text_area_size(&self) -> ConsoleSize;
 
-    fn middle_of_screen_line_number(&self) -> usize;
+    fn middle_of_screen_line_number(&self) -> LineNumber;
 
-    fn bottom_of_screen_line_number(&self) -> usize;
+    fn bottom_of_screen_line_number(&self) -> LineNumber;
 
     fn get_cursor_index_from_mouse_event(&self, mouse_event: MouseEvent, x_offset: u8) -> Position;
 

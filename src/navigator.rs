@@ -1,4 +1,4 @@
-use crate::{Document, Position, Row, ViewportOffset};
+use crate::{Document, LineNumber, Position, Row, RowIndex, ViewportOffset};
 use std::cmp;
 use std::collections::HashMap;
 
@@ -47,14 +47,14 @@ impl Navigator {
         let initial_col_position = current_position.x.saturating_add(offset.columns);
         let initial_row_position = current_position.y.saturating_add(offset.rows);
         let symbol = document
-            .get_row(initial_row_position)
+            .get_row(RowIndex::new(initial_row_position))
             .unwrap()
             .nth_grapheme(current_position.x.saturating_add(offset.columns));
         let mut stack = vec![symbol];
         let mut current_opening_symbol = symbol;
         matching_closing_symbols().get(&symbol)?;
         for y in initial_row_position..document.num_rows() {
-            let current_row = document.get_row(y).unwrap();
+            let current_row = document.get_row(RowIndex::new(y)).unwrap();
             let start_x = if y == initial_row_position {
                 initial_col_position.saturating_add(1)
             } else {
@@ -92,14 +92,14 @@ impl Navigator {
         let initial_col_position = current_position.x.saturating_add(offset.columns);
         let initial_row_position = current_position.y.saturating_add(offset.rows);
         let symbol = document
-            .get_row(initial_row_position)
+            .get_row(RowIndex::new(initial_row_position))
             .unwrap()
             .nth_grapheme(current_position.x.saturating_add(offset.columns));
         let mut stack = vec![symbol];
         let mut current_closing_symbol = symbol;
         matching_opening_symbols().get(&symbol)?;
         for y in (0..=initial_row_position).rev() {
-            let current_row = document.get_row(y).unwrap();
+            let current_row = document.get_row(RowIndex::new(y)).unwrap();
             let start_x = if y == initial_row_position {
                 initial_col_position
             } else {
@@ -128,19 +128,16 @@ impl Navigator {
     #[must_use]
     pub fn find_line_number_of_start_or_end_of_paragraph(
         document: &Document,
-        current_line_number: usize,
+        current_line_number: LineNumber,
         boundary: &Boundary,
-    ) -> usize {
+    ) -> LineNumber {
         let mut current_line_number = current_line_number;
         loop {
             current_line_number = match boundary {
-                Boundary::Start => cmp::max(1, current_line_number.saturating_sub(1)),
-                Boundary::End => cmp::min(
-                    document.last_line_number(),
-                    current_line_number.saturating_add(1),
-                ),
+                Boundary::Start => cmp::max(LineNumber::new(1), current_line_number.previous()),
+                Boundary::End => cmp::min(document.last_line_number(), current_line_number.next()),
             };
-            if (current_line_number == 1 && boundary == &Boundary::Start)
+            if (current_line_number == LineNumber::new(1) && boundary == &Boundary::Start)
                 || (current_line_number == document.last_line_number()
                     && boundary == &Boundary::End)
             {
@@ -148,7 +145,7 @@ impl Navigator {
             }
 
             let current_line = document.row_for_line_number(current_line_number);
-            let previous_line = document.row_for_line_number(current_line_number.saturating_sub(1));
+            let previous_line = document.row_for_line_number(current_line_number.previous());
 
             if let Some(previous_line) = previous_line {
                 if let Some(current_line) = current_line {

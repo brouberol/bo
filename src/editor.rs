@@ -1,5 +1,6 @@
 use crate::{
-    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Help, Mode, Navigator, Row,
+    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Help, LineNumber, Mode,
+    Navigator, Row, RowIndex,
 };
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
@@ -210,7 +211,7 @@ impl Editor {
                     // have text, to avoid breaking out of the document bounds.
                     let cursor_position = self.mouse_event_buffer.pop().unwrap();
                     if cursor_position.y.saturating_add(1) <= self.document.num_rows() {
-                        if let Some(target_row) = self.get_row(cursor_position.y) {
+                        if let Some(target_row) = self.get_row(RowIndex::new(cursor_position.y)) {
                             if cursor_position.x <= target_row.len() {
                                 self.cursor_position = cursor_position;
                             }
@@ -274,8 +275,8 @@ impl Editor {
                 if command.is_empty() {
                 } else if command.chars().all(char::is_numeric) {
                     // :n will get you to line n
-                    let line_index = command.parse::<usize>().unwrap();
-                    self.goto_line(line_index, 0);
+                    let line_number = command.parse::<usize>().unwrap();
+                    self.goto_line(LineNumber::new(line_number), 0);
                 } else if command.split(' ').count() > 1 {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
                     match *cmd_tokens.get(0).unwrap_or(&"") {
@@ -521,16 +522,11 @@ impl Editor {
                 // should append the current line with the previous one
                 if self.cursor_position.x == 0 {
                     if self.cursor_position.y > 0 {
-                        let previous_line_len = self
-                            .get_row(self.current_row_index().saturating_sub(1))
-                            .unwrap()
-                            .len();
+                        let previous_line_len =
+                            self.get_row(self.previous_row_index()).unwrap().len();
                         // Delete newline from previous row
                         self.document.delete(0, 0, self.current_row_index());
-                        self.goto_x_y(
-                            previous_line_len,
-                            self.current_row_index().saturating_sub(1),
-                        );
+                        self.goto_x_y(previous_line_len, self.previous_row_index());
                     }
                 } else {
                     // Delete previous character
@@ -545,7 +541,7 @@ impl Editor {
             Key::Char('\n') => {
                 self.document
                     .insert_newline(self.current_x_position(), self.current_row_index());
-                self.goto_x_y(0, self.current_row_index().saturating_add(1));
+                self.goto_x_y(0, self.next_row_index());
             }
             Key::Char('\t') => {
                 for _ in 0..SPACES_PER_TAB {
@@ -568,13 +564,28 @@ impl Editor {
     }
 
     /// Return the row located at the provide row index if it exists
-    fn get_row(&self, index: usize) -> Option<&Row> {
+    fn get_row(&self, index: RowIndex) -> Option<&Row> {
         self.document.get_row(index)
     }
 
+    /// Return the Row object associated to the current cursor position / vertical offset
+    fn current_row(&self) -> &Row {
+        self.get_row(self.current_row_index()).unwrap()
+    }
+
     /// Return the index of the row associated to the current cursor position / vertical offset
-    fn current_row_index(&self) -> usize {
-        self.cursor_position.y.saturating_add(self.offset.rows)
+    fn current_row_index(&self) -> RowIndex {
+        RowIndex::new(self.cursor_position.y.saturating_add(self.offset.rows))
+    }
+
+    // Return the RowIndex corresponding to the previous row, with respect to the current one
+    fn previous_row_index(&self) -> RowIndex {
+        self.current_row_index().previous()
+    }
+
+    // Return the RowIndex corresponding to the previous row, with respect to the current one
+    fn next_row_index(&self) -> RowIndex {
+        self.current_row_index().next()
     }
 
     fn current_x_position(&self) -> usize {
@@ -587,20 +598,20 @@ impl Editor {
     }
 
     /// Return the line number associated to the current cursor position / vertical offset
-    fn current_line_number(&self) -> usize {
-        self.current_row_index().saturating_add(1)
-    }
-
-    /// Return the Row object associated to the current cursor position / vertical offset
-    fn current_row(&self) -> &Row {
-        self.get_row(self.current_row_index()).unwrap()
+    fn current_line_number(&self) -> LineNumber {
+        LineNumber::from(self.current_row_index())
     }
 
     /// Delete the line currently under the cursor
     fn delete_current_line(&mut self) {
         self.document.delete_row(self.current_row_index());
+
+        // if we just deleted the last line in the document, move one line up
         if self.cursor_position.y >= self.document.num_rows().saturating_sub(1) {
-            self.goto_line(self.document.num_rows(), self.cursor_position.x);
+            self.goto_line(
+                LineNumber::new(self.document.num_rows()),
+                self.cursor_position.x,
+            );
         } else {
             self.cursor_position.reset_x();
         }
@@ -617,10 +628,9 @@ impl Editor {
 
     /// Insert a newline after the current one, move cursor to it in insert mode
     fn insert_newline_after_current_line(&mut self) {
-        let next_row_index = self.current_row_index().saturating_add(1);
         self.document
             .insert_newline(self.current_row().len(), self.current_row_index());
-        self.goto_x_y(0, next_row_index);
+        self.goto_x_y(0, self.next_row_index());
         self.enter_insert_mode();
     }
 
@@ -638,15 +648,11 @@ impl Editor {
     }
 
     fn join_current_line_with_next_one(&mut self) {
-        if self.current_line_number() < self.document.num_rows() {
-            let next_line_row_index = self.cursor_position.y.saturating_add(1);
+        if self.current_row_index().value < self.document.num_rows() {
+            // let next_line_row_index = self.cursor_position.y.saturating_add(1);
             self.document.join_row_with_previous_one(
-                self.document
-                    .get_row(self.cursor_position.y.saturating_add(1))
-                    .unwrap()
-                    .len()
-                    .saturating_sub(1),
-                next_line_row_index,
+                self.current_row().len().saturating_sub(1), // discard the \n
+                self.next_row_index(),
                 Some(' '),
             );
             self.goto_start_or_end_of_line(&Boundary::End);
@@ -669,7 +675,7 @@ impl Editor {
     /// Move the cursor either to the first or last line of the document
     fn goto_start_or_end_of_document(&mut self, boundary: &Boundary) {
         match boundary {
-            Boundary::Start => self.goto_line(1, 0),
+            Boundary::Start => self.goto_line(LineNumber::new(1), 0),
             Boundary::End => self.goto_line(self.document.last_line_number(), 0),
         }
     }
@@ -708,14 +714,14 @@ impl Editor {
         self.goto_line(
             self.terminal
                 .middle_of_screen_line_number()
-                .saturating_add(self.offset.rows),
+                .add(self.offset.rows),
             0,
         );
     }
 
     /// Move the cursor to the middle of the terminal
     fn goto_first_line_of_terminal(&mut self) {
-        self.goto_line(self.offset.rows.saturating_add(1), 0);
+        self.goto_line(LineNumber::new(self.offset.rows.saturating_add(1)), 0);
     }
 
     /// Move the cursor to the last line of the terminal
@@ -723,7 +729,7 @@ impl Editor {
         self.goto_line(
             self.terminal
                 .bottom_of_screen_line_number()
-                .saturating_add(self.offset.rows),
+                .add(self.offset.rows),
             0,
         );
     }
@@ -731,7 +737,7 @@ impl Editor {
     /// Move to {n}% in the file
     fn goto_percentage_in_document(&mut self, percent: usize) {
         let percent = cmp::min(percent, 100);
-        let line_number = (self.document.last_line_number() * percent) / 100;
+        let line_number = LineNumber::new(self.document.last_line_number().value * percent / 100);
         self.goto_line(line_number, 0);
     }
 
@@ -745,7 +751,7 @@ impl Editor {
                     &self.cursor_position,
                     &self.offset,
                 ) {
-                    self.goto_x_y(position.x, position.y);
+                    self.goto_x_y(position.x, RowIndex::new(position.y));
                 }
             }
             "}" | ">" | ")" | "]" => {
@@ -754,7 +760,7 @@ impl Editor {
                     &self.cursor_position,
                     &self.offset,
                 ) {
-                    self.goto_x_y(position.x, position.y);
+                    self.goto_x_y(position.x, RowIndex::new(position.y));
                 }
             }
             _ => (),
@@ -778,7 +784,7 @@ impl Editor {
         ));
         if let Some(search_match) = self.search_matches.get(self.current_search_match_index) {
             let x_position = search_match.0.x;
-            let line_number = search_match.0.y;
+            let line_number = LineNumber::new(search_match.0.y);
             self.goto_line(line_number, x_position);
         }
     }
@@ -799,20 +805,19 @@ impl Editor {
             self.search_matches.len()
         ));
         if let Some(search_match) = self.search_matches.get(self.current_search_match_index) {
-            let line_number = search_match.0.y;
+            let line_number = LineNumber::new(search_match.0.y);
             let x_position = search_match.0.x;
             self.goto_line(line_number, x_position);
         }
     }
 
     /// Move the cursor to the nth line in the file and adjust the viewport
-    fn goto_line(&mut self, line_number: usize, x_position: usize) {
-        let y = line_number.saturating_sub(1);
-        self.goto_x_y(x_position, y);
+    fn goto_line(&mut self, line_number: LineNumber, x_position: usize) {
+        self.goto_x_y(x_position, RowIndex::from(line_number));
     }
 
     /// Move the cursor to the first column of the nth line
-    fn goto_x_y(&mut self, x: usize, y: usize) {
+    fn goto_x_y(&mut self, x: usize, y: RowIndex) {
         self.move_cursor_to_position_x(x);
         self.move_cursor_to_position_y(y);
     }
@@ -840,9 +845,7 @@ impl Editor {
                     }
                 } // cannot be < 0
                 Direction::Down => {
-                    if y.saturating_add(offset_y)
-                        < self.document.last_line_number().saturating_sub(1)
-                    {
+                    if y.saturating_add(offset_y) < self.document.last_line_number().sub(1).value {
                         // don't scroll past the last line in the document
                         if y < term_height {
                             // don't scroll past the confine the of terminal itself
@@ -885,30 +888,32 @@ impl Editor {
         }
     }
 
-    fn move_cursor_to_position_y(&mut self, y: usize) {
+    fn move_cursor_to_position_y(&mut self, y: RowIndex) {
         let max_line_number = self.document.last_line_number(); // last line number in the document
-        let term_height = self.terminal.bottom_of_screen_line_number();
+        let term_height = self.terminal.bottom_of_screen_line_number().value;
         let middle_of_screen_line_number = self.terminal.middle_of_screen_line_number(); // number of the line in the middle of the terminal
 
-        let y = cmp::max(0, y);
-        let y = cmp::min(y, max_line_number);
+        let y = cmp::max(0, y.value);
+        let y = cmp::min(y, RowIndex::from(max_line_number).value);
 
         if self.offset.rows <= y && y <= self.offset.rows + term_height {
             // move around in the same view
             self.cursor_position.y = y.saturating_sub(self.offset.rows);
-        } else if y < middle_of_screen_line_number {
+        } else if y < RowIndex::from(middle_of_screen_line_number).value {
             // move to the first "half-view" of the document
             self.offset.rows = 0;
             self.cursor_position.y = y;
-        } else if y >= max_line_number.saturating_sub(middle_of_screen_line_number) {
+        } else if y >= RowIndex::from(max_line_number.sub(middle_of_screen_line_number.value)).value
+        {
             // move to the last "half view" of the document
-            self.offset.rows = max_line_number.saturating_sub(term_height);
-            self.cursor_position.y = y.saturating_sub(self.offset.rows);
+            self.offset.rows = max_line_number.sub(term_height).value;
+            self.cursor_position.y = RowIndex::new(y.saturating_sub(self.offset.rows)).value;
         } else {
             // move to another view in the document, and position the cursor at the
             // middle of the terminal/view.
-            self.offset.rows = y.saturating_sub(middle_of_screen_line_number);
-            self.cursor_position.y = middle_of_screen_line_number;
+            self.offset.rows =
+                RowIndex::new(y - RowIndex::from(middle_of_screen_line_number).value).value;
+            self.cursor_position.y = RowIndex::from(middle_of_screen_line_number).value;
         }
     }
 
@@ -983,7 +988,7 @@ impl Editor {
         let stats = if self.config.display_stats {
             format!(
                 "[{}L/{}W]",
-                self.document.last_line_number(),
+                self.document.last_line_number().value,
                 self.document.num_words()
             )
         } else {
@@ -991,7 +996,7 @@ impl Editor {
         };
         let position = format!(
             "Ln {}, Col {}",
-            self.current_line_number(),
+            self.current_line_number().value,
             self.cursor_position
                 .x
                 .saturating_add(self.offset.columns)
@@ -1073,14 +1078,18 @@ impl Editor {
 
     fn draw_rows(&self) {
         let term_height = self.terminal.size().restrict_to_text_area().height;
-        for terminal_row_idx in self.offset.rows..(term_height as usize + self.offset.rows) {
-            let line_number = terminal_row_idx.saturating_add(1);
+        for terminal_row_idx_val in self.offset.rows..(term_height as usize + self.offset.rows) {
+            let terminal_row_idx = RowIndex::new(terminal_row_idx_val);
+            let line_number = LineNumber::from(terminal_row_idx);
             self.terminal.clear_current_line();
             if let Some(row) = self.get_row(terminal_row_idx) {
                 self.draw_row(row, line_number);
-            } else if terminal_row_idx == self.terminal.middle_of_screen_line_number()
+            } else if line_number == self.terminal.middle_of_screen_line_number()
                 && self.document.filename.is_none()
-                && self.get_row(0).unwrap_or(&Row::default()).is_empty()
+                && self
+                    .get_row(RowIndex::new(0))
+                    .unwrap_or(&Row::default())
+                    .is_empty()
             {
                 self.display_welcome_message();
             } else {
@@ -1089,7 +1098,7 @@ impl Editor {
         }
     }
 
-    fn draw_row(&self, row: &Row, line_number: usize) {
+    fn draw_row(&self, row: &Row, line_number: LineNumber) {
         let row_visible_start = self.offset.columns;
         let mut row_visible_end = self.terminal.size().width as usize + self.offset.columns;
         if self.row_prefix_length > 0 {
@@ -1100,7 +1109,7 @@ impl Editor {
         let rendered_row = row.render(
             row_visible_start,
             row_visible_end,
-            line_number,
+            line_number.value,
             self.row_prefix_length as usize,
         );
         println!("{}\r", rendered_row);
