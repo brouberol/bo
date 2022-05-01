@@ -36,6 +36,15 @@ jobs:
         override: true
         profile: minimal
 
+    - name: Instal grcov
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: grcov
+
+    - name: Cache environment
+      uses: Swatinem/rust-cache@v1
+
     - name: Run tests
       uses: actions-rs/cargo@v1
       with:
