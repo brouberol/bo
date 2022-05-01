@@ -6,7 +6,7 @@ use std::fs;
 use std::io::Error;
 use std::io::Write;
 use std::path::PathBuf;
-use tempfile::NamedTempFile;
+use tempfile::{tempdir, NamedTempFile};
 use termion::color;
 use termion::event::{Event, Key, MouseEvent};
 
@@ -849,12 +849,15 @@ fn test_process_command_not_found() {
 
 #[test]
 fn test_save_and_quit() {
-    let mut editor = get_test_editor();
-    process_keystrokes(&mut editor, vec!['G', 'o', 'd', 'e', 'r', 'p']);
-    editor.process_keystroke(Key::Esc);
-    assert_eq!(editor.unsaved_edits, 4);
-    assert!(!editor.should_quit);
-    process_command(&mut editor, ":wq");
-    assert_eq!(editor.unsaved_edits, 0);
-    assert!(editor.should_quit);
+    let dir = tempdir().unwrap();
+    if std::env::set_current_dir(&dir).is_ok() {
+        let mut editor = get_test_editor();
+        process_keystrokes(&mut editor, vec!['G', 'o', 'd', 'e', 'r', 'p']);
+        editor.process_keystroke(Key::Esc);
+        assert_eq!(editor.unsaved_edits, 4);
+        assert!(!editor.should_quit);
+        process_command(&mut editor, ":wq");
+        assert_eq!(editor.unsaved_edits, 0);
+        assert!(editor.should_quit);
+    };
 }
