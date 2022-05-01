@@ -6,6 +6,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [0.3.3] - 2022/05/01
+
 ### Features
 - Introduce the `o` short command to open a file
 - Display cursor in the message bar while typing a command
@@ -87,7 +89,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
 - Many offset/insertion related bugs were fixed
 
 
-[Unreleased]: https://github.com/brouberol/bo/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/brouberol/bo/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/brouberol/bo/compare/v0.3.2...0.3.3
 [0.3.2]: https://github.com/brouberol/bo/compare/v0.3.1...0.3.2
 [0.3.1]: https://github.com/brouberol/bo/compare/v0.3.0...0.3.1
 [0.3.0]: https://github.com/brouberol/bo/compare/v0.2.0...v0.3.0
