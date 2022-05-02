@@ -72,6 +72,7 @@ jobs:
         RUN_ID: ${{ github.run_id }}
 
     - name: Add a comment to the PR mentioning the coverage change
+      if: github.ref_name != 'main'
       uses: thollander/actions-comment-pull-request@v1
       with:
         message: |
