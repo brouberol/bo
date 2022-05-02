@@ -50,20 +50,34 @@ jobs:
       id: coverage
       uses: actions-rs/grcov@v0.1
 
-    - name: Report coverage in PR status for the current commit
+    - name: Measure current and main coverage and craft a message to be inserted in the PR
+      id: measure_coverage
       if: github.ref_name != 'main'
       run: |
         set -eu
         main_cov=$(
           curl -s "http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/badges/flat.svg" | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
-        branch_cov=$(cat ${COV_REPORT_DIR}/badges/flat.svg | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
-        curl -s "https://brouberol:${GITHUB_TOKEN}@api.github.com/repos/brouberol/bo/statuses/${COMMIT_SHA}" -d "{\"state\": \"success\",\"target_url\": \"https://github.com/brouberol/bo/pull/${PULL_NUMBER}/checks?check_run_id=${RUN_ID}\",\"description\": \"${main_cov}% -> ${branch_cov}%\",\"context\": \"Measured coverage\"}"
+        pr_cov=$(cat ${COV_REPORT_DIR}/badges/flat.svg | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
+
+        if [[ ${main_cov} -eq ${pr_cov} ]]; then
+          message="Coverage: ${main_cov}% (no change)"
+        elif [[ ${main_cov} -lt ${pr_cov} ]]; then
+          message=":chart_with_upwards_trend: Coverage has gone up from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
+        else
+          message=":chart_with_downwards_trend: Coverage has gone down from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
+        fi
+        echo "::set-output name=cov_pr_message::${message}"
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
-        RUN_ID: ${{ github.run_id }}
-        PULL_NUMBER: ${{ github.event.pull_request.number }}
         COV_REPORT_DIR: ${{ steps.coverage.outputs.report }}
+        RUN_ID: ${{ github.run_id }}
+
+    - name: Add a comment to the PR mentioning the coverage change
+      uses: thollander/actions-comment-pull-request@v1
+      with:
+        message: |
+          ${{ steps.measure_coverage.outputs.cov_pr_message }}
+        comment_includes: 'Coverage'
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: "Upload the HTML coverage report to S3"
       if: github.ref_name == 'main'
