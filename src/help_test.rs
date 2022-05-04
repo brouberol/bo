@@ -5,7 +5,7 @@ use std::collections::HashMap;
 fn test_help_section_format() {
     let help_section = Section {
         title: String::from("Test section title"),
-        entries: HashMap::from([("x", "x doc"), ("yy", "yy doc")]),
+        entries: HashMap::from([("x".to_owned(), "x doc"), ("yy".to_owned(), "yy doc")]),
     };
     let expected_output = r#"[1mTest section title[m
   x  => x doc
@@ -17,11 +17,14 @@ fn test_help_section_format() {
 fn test_help_format() {
     let help_section_1 = Section {
         title: String::from("Test section title"),
-        entries: HashMap::from([("x", "x doc"), ("yy", "yy doc")]),
+        entries: HashMap::from([("x".to_owned(), "x doc"), ("yy".to_owned(), "yy doc")]),
     };
     let help_section_2 = Section {
         title: String::from("Other test section title"),
-        entries: HashMap::from([("blah", "blah doc"), ("derp", "derp doc")]),
+        entries: HashMap::from([
+            ("blah".to_owned(), "blah doc"),
+            ("derp".to_owned(), "derp doc"),
+        ]),
     };
     let help = Help {
         sections: vec![help_section_1, help_section_2],

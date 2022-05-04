@@ -16,6 +16,7 @@ mod utils;
 use editor::Editor;
 use structopt::StructOpt;
 
+pub use commands::Commands;
 pub use config::Config;
 pub use console::{Console, ConsoleSize};
 pub use document::Document;

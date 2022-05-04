@@ -1,5 +1,5 @@
 use crate::{
-    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Help, LineNumber, Mode,
+    utils, AnsiPosition, Boundary, Commands, Config, Console, Document, Help, LineNumber, Mode,
     Navigator, Row, RowIndex,
 };
 use serde::ser::{SerializeStruct, Serializer};
@@ -279,8 +279,8 @@ impl Editor {
                     self.goto_line(LineNumber::new(line_number), 0);
                 } else if command.split(' ').count() > 1 {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
-                    match *cmd_tokens.get(0).unwrap_or(&"") {
-                        commands::OPEN | commands::OPEN_SHORT => {
+                    match Commands::parse(cmd_tokens.get(0).unwrap_or(&"")) {
+                        Commands::Open | Commands::OpenShort => {
                             if let Ok(document) = Document::open(PathBuf::from(cmd_tokens[1])) {
                                 self.document = document;
                                 self.last_saved_hash = self.document.hashed();
@@ -293,12 +293,12 @@ impl Editor {
                                 )));
                             }
                         }
-                        commands::NEW => {
+                        Commands::New => {
                             self.document =
                                 Document::new_empty(PathBuf::from(cmd_tokens[1].to_string()));
                             self.enter_insert_mode();
                         }
-                        commands::SAVE => {
+                        Commands::Save => {
                             let new_name = cmd_tokens[1..].join(" ");
                             self.save(new_name.trim());
                         }
@@ -308,10 +308,10 @@ impl Editor {
                         ))),
                     }
                 } else {
-                    match command {
-                        commands::FORCE_QUIT => self.quit(true),
-                        commands::QUIT => self.quit(false),
-                        commands::LINE_NUMBERS => {
+                    match Commands::parse(command) {
+                        Commands::ForceQuit => self.quit(true),
+                        Commands::Quit => self.quit(false),
+                        Commands::LineNumbers => {
                             self.config.display_line_numbers =
                                 Config::toggle(self.config.display_line_numbers);
                             self.row_prefix_length = if self.config.display_line_numbers {
@@ -320,18 +320,18 @@ impl Editor {
                                 0
                             };
                         }
-                        commands::STATS => {
+                        Commands::Stats => {
                             self.config.display_stats = Config::toggle(self.config.display_stats);
                         }
-                        commands::HELP => {
+                        Commands::Help => {
                             self.alternate_screen = true;
                         }
-                        commands::SAVE => self.save(""),
-                        commands::SAVE_AND_QUIT => {
+                        Commands::Save => self.save(""),
+                        Commands::SaveAnQuit => {
                             self.save("");
                             self.quit(false);
                         }
-                        commands::DEBUG => {
+                        Commands::Debug => {
                             if let Ok(state) = serde_json::to_string_pretty(&self) {
                                 utils::log(state.as_str());
                             }

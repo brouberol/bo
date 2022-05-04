@@ -1,9 +1,9 @@
-use crate::utils;
+use crate::{utils, Commands};
 use std::collections::HashMap;
 
 pub struct Section {
     pub title: String,
-    pub entries: HashMap<&'static str, &'static str>,
+    pub entries: HashMap<String, &'static str>,
 }
 
 impl Section {
@@ -42,67 +42,85 @@ impl Help {
                 Section {
                     title: String::from("Normal commands"),
                     entries: HashMap::from([
-                        ("j", "move cursor down one row (<n>j moves it by n rows)"),
-                        ("k", "move cursor up one row (<n>k moves it by n rows)"),
-                        ("h", "move cursor left (<n>h moves it n times)"),
-                        ("l", "move cursor right (<n>l moves it n times)"),
                         (
-                            "}",
+                            "j".to_owned(),
+                            "move cursor down one row (<n>j moves it by n rows)",
+                        ),
+                        (
+                            "k".to_owned(),
+                            "move cursor up one row (<n>k moves it by n rows)",
+                        ),
+                        ("h".to_owned(), "move cursor left (<n>h moves it n times)"),
+                        ("l".to_owned(), "move cursor right (<n>l moves it n times)"),
+                        (
+                            "}".to_owned(),
                             "move to the end of the current paragraph (<n>} moves n times)",
                         ),
                         (
-                            "{",
+                            "{".to_owned(),
                             "move to the start of the current paragraph (<n>{ moves n times)",
                         ),
                         (
-                            "w",
+                            "w".to_owned(),
                             "move to the end of the current word (<n>w moves n times)",
                         ),
                         (
-                            "b",
+                            "b".to_owned(),
                             "move to the start of the current word (<n>b moves n times)",
                         ),
-                        ("i", "switch to insert mode"),
-                        ("g", "go to beginining of document"),
-                        ("G", "go to end of document"),
-                        ("0", "go to first character in line"),
-                        ("^", "go to first non-whitespace character in line"),
-                        ("$", "go to end of line"),
-                        ("H", "go to first line in screen"),
-                        ("M", "go to line in the middle of the screen"),
-                        ("L", "go to last line in screen"),
-                        ("n%", "move to n% in the file"),
-                        ("/", "open search prompt"),
-                        ("n", "go to next search match"),
-                        ("N", "go to previous search match"),
-                        ("d", "delete current line"),
-                        ("x", "delete current character"),
-                        ("o", "insert newline after current line & enter insert mode"),
+                        ("i".to_owned(), "switch to insert mode"),
+                        ("g".to_owned(), "go to beginining of document"),
+                        ("G".to_owned(), "go to end of document"),
+                        ("0".to_owned(), "go to first character in line"),
                         (
-                            "O",
+                            "^".to_owned(),
+                            "go to first non-whitespace character in line",
+                        ),
+                        ("$".to_owned(), "go to end of line"),
+                        ("H".to_owned(), "go to first line in screen"),
+                        ("M".to_owned(), "go to line in the middle of the screen"),
+                        ("L".to_owned(), "go to last line in screen"),
+                        ("n%".to_owned(), "move to n% in the file"),
+                        ("/".to_owned(), "open search prompt"),
+                        ("n".to_owned(), "go to next search match"),
+                        ("N".to_owned(), "go to previous search match"),
+                        ("d".to_owned(), "delete current line"),
+                        ("x".to_owned(), "delete current character"),
+                        (
+                            "o".to_owned(),
+                            "insert newline after current line & enter insert mode",
+                        ),
+                        (
+                            "O".to_owned(),
                             "insert newline before current line & enter insert mode",
                         ),
-                        ("A", "go to end of line & enter insert mode"),
-                        ("J", "join the current line with the next one"),
-                        (":", "open command prompt"),
+                        ("A".to_owned(), "go to end of line & enter insert mode"),
+                        ("J".to_owned(), "join the current line with the next one"),
+                        (":".to_owned(), "open command prompt"),
                     ]),
                 },
                 Section {
                     title: String::from("Prompt commands"),
                     entries: HashMap::from([
-                        ("help", "display this help screen"),
-                        ("ln", "toggle line numbers"),
-                        ("new <filename>", "open a new file"),
-                        ("open/o <filename>", "open a file"),
-                        ("q", "quit bo"),
-                        ("stats", "toggle line/word stats"),
-                        ("w <new_name>", "save"),
-                        ("wq", "save and quit"),
+                        (format!("{}", Commands::Help), "display this help screen"),
+                        (format!("{}", Commands::LineNumbers), "toggle line numbers"),
+                        (format!("{} <filename>", Commands::Open), "open a new file"),
+                        (
+                            format!("{}/{} <filename>", Commands::Open, Commands::OpenShort),
+                            "open a file",
+                        ),
+                        (format!("{}", Commands::Quit), "quit bo"),
+                        (
+                            format!("{}", Commands::LineNumbers),
+                            "toggle line/word stats",
+                        ),
+                        (format!("{} <new_name>", Commands::New), "save"),
+                        (format!("{}", Commands::SaveAnQuit), "save and quit"),
                     ]),
                 },
                 Section {
                     title: String::from("Insert commands"),
-                    entries: HashMap::from([("Esc", "go back to normal mode")]),
+                    entries: HashMap::from([("Esc".to_owned(), "go back to normal mode")]),
                 },
             ],
         }
