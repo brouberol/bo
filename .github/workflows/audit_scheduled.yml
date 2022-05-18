@@ -1,14 +1,14 @@
 name: Security audit
 on:
-  push:
-    paths:
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
+  schedule:
+    - cron: '0 0 * * *'
 jobs:
-  security_audit:
+  audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+
+      # This action is using cargo-audit to perform an audit for crates with security vulnerabilities.
       - uses: actions-rs/audit-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
