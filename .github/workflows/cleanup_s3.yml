@@ -18,5 +18,4 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
-        SOURCE_DIR: ${{ steps.coverage.outputs.report }}
-        DEST_DIR: 'bo/${{ env.GITHUB_HEAD_REF }}'
+        PATH_TO_DELETE: 'bo/${{ github.head_ref }}'
