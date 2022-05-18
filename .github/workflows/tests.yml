@@ -58,7 +58,7 @@ jobs:
         main_cov=$(
           curl -s "http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main/badges/flat.svg" | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
         pr_cov=$(cat ${COV_REPORT_DIR}/badges/flat.svg | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
-        report_url="http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/${GITHUB_REF}/"
+        report_url="http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/${GITHUB_HEAD_REF}/"
 
         if [[ ${main_cov} -eq ${pr_cov} ]]; then
           message="[Coverage](${report_url}): ${main_cov}% (no change)"
@@ -71,7 +71,8 @@ jobs:
       env:
         COV_REPORT_DIR: ${{ steps.coverage.outputs.report }}
         RUN_ID: ${{ github.run_id }}
-        GITHUB_REF: ${{ github.head_ref }}
+        GITHUB_HEAD_REF: ${{ github.head_ref }}
+        AWS_S3_BUCKET: ${{ secrets.AWS_BUCKET }}
 
     - name: Add a comment to the PR mentioning the coverage change
       if: github.ref_name != 'main'
