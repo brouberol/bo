@@ -920,3 +920,18 @@ fn test_process_command_autocompletions_and_keep_typing() {
     assert!(editor.command_suggestions.is_empty());
     assert_eq!(editor.command_buffer, ":wa");
 }
+
+#[test]
+fn test_autocompletion_single_suggestion() {
+    let mut editor = get_test_editor();
+    process_command_no_enter(&mut editor, ":deb"); // this could be expanded into :w or :wq
+    assert_eq!(editor.current_autocompletion_index, 0);
+    assert!(!editor.is_autocompleting_command());
+
+    // trigger an autocompletion
+    editor.process_keystroke(Key::Char('\t'));
+    assert!(!editor.is_autocompleting_command());
+    assert!(editor.command_suggestions.is_empty());
+    assert_eq!(editor.current_autocompletion_index, 0);
+    assert_eq!(editor.command_buffer, ":debug");
+}
