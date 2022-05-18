@@ -253,28 +253,34 @@ impl Editor {
         }
     }
 
+    /// Switch the Editor mode to Insert
     fn enter_insert_mode(&mut self) {
         self.mode = Mode::Insert;
         self.terminal.set_cursor_as_steady_bar();
     }
 
+    /// Switch the Editor mode to Normal
     fn enter_normal_mode(&mut self) {
         self.mode = Mode::Normal;
         self.terminal.set_cursor_as_steady_block();
     }
 
+    /// Make the Editor ready to receive a command
     fn start_receiving_command(&mut self) {
         self.command_buffer.push(COMMAND_PREFIX);
     }
 
+    /// Make the Editor ready to receive a search pattern
     fn start_receiving_search_pattern(&mut self) {
         self.command_buffer.push(SEARCH_PREFIX);
     }
 
+    /// Stop receiving a command
     fn stop_receiving_command(&mut self) {
         self.command_buffer = "".to_string();
     }
 
+    /// Return whether the Editor is currently receiving a command
     fn is_receiving_command(&self) -> bool {
         !self.command_buffer.is_empty()
     }
@@ -470,12 +476,18 @@ impl Editor {
         self.last_saved_hash = self.document.hashed();
     }
 
+    /// Save all current unsaved edits to a swap file, allowing a seamless
+    /// recovery in case of a crash.
     fn save_to_swap_file(&mut self) {
         if self.document.save_to_swap_file().is_ok() {
             self.unsaved_edits = 0;
         }
     }
 
+    /// Change the internal state of the Editor to mark it as ready to quit.
+    ///
+    /// If ``force`` is set to ``false`` and some unsaved edits were made, an
+    /// error will be displayed in the message bar.
     fn quit(&mut self, force: bool) {
         if self.is_dirty() && !force {
             self.display_message(utils::red("Unsaved changes! Run :q! to override"));
@@ -484,6 +496,8 @@ impl Editor {
         }
     }
 
+    /// Search for the user-provided pattern in the document text,
+    /// and move the cursor to the first occurence, if any.
     fn process_search_command(&mut self, search_pattern: &str) {
         self.reset_search();
         for (row_index, row) in self.document.iter().enumerate() {
@@ -508,11 +522,13 @@ impl Editor {
         self.goto_next_search_match();
     }
 
+    /// Reset all state related to text search back to the default values.
     fn reset_search(&mut self) {
         self.search_matches = vec![]; // erase previous search matches
         self.current_search_match_index = 0;
     }
 
+    /// Revert the editor back to the main screen, containing the document text.
     fn revert_to_main_screen(&mut self) {
         self.reset_message();
         self.alternate_screen = false;
@@ -662,16 +678,17 @@ impl Editor {
         RowIndex::new(self.cursor_position.y.saturating_add(self.offset.rows))
     }
 
-    // Return the RowIndex corresponding to the previous row, with respect to the current one
+    /// Return the ``RowIndex`` corresponding to the previous row, with respect to the current one
     fn previous_row_index(&self) -> RowIndex {
         self.current_row_index().previous()
     }
 
-    // Return the RowIndex corresponding to the previous row, with respect to the current one
+    /// Return the ``RowIndex`` corresponding to the previous row, with respect to the current one
     fn next_row_index(&self) -> RowIndex {
         self.current_row_index().next()
     }
 
+    /// Return the current x position, taking the offset into account
     fn current_x_position(&self) -> usize {
         self.cursor_position.x.saturating_add(self.offset.columns)
     }
@@ -725,12 +742,14 @@ impl Editor {
         self.enter_insert_mode();
     }
 
+    /// Move to the end of the line, and switch to Insert mode
     fn append_to_line(&mut self) {
         self.enter_insert_mode();
         self.goto_start_or_end_of_line(&Boundary::End);
         self.move_cursor(&Direction::Right, 1);
     }
 
+    /// Join the current line with the next one, using a space as a separator
     fn join_current_line_with_next_one(&mut self) {
         if self.current_row_index().value < self.document.num_rows() {
             // let next_line_row_index = self.cursor_position.y.saturating_add(1);
@@ -972,6 +991,16 @@ impl Editor {
         }
     }
 
+    /// Move the cursor to the given y ``RowIndex``.
+    ///
+    /// Depending on the both the current and destination cursor position, multiple scenarii can unfold:
+    /// * we move the cursor in the same view by simply changing the cursor y position
+    /// * we move the cursor to a different view, by changing both the cursor y position and the offset, and
+    ///   positioning the cursor at the middle of that new view
+    /// * we move the cursor to the first view in the document, by changing the cursor y position and
+    ///   setting the y offset to 0
+    /// * we move the cursor to the last view in the document, by changing the cursor y position and
+    ///   setting the y offset to (``len_doc - view_height``)
     fn move_cursor_to_position_y(&mut self, y: RowIndex) {
         let max_line_number = self.document.last_line_number(); // last line number in the document
         let term_height = self.terminal.bottom_of_screen_line_number().value;
@@ -1001,6 +1030,8 @@ impl Editor {
         }
     }
 
+    /// Move the cursor to the associated x non-negative position, adjusting the x offset
+    /// if that takes the cursor out of the current view.
     fn move_cursor_to_position_x(&mut self, x: usize) {
         let term_width = self.terminal.size().width as usize;
         let x = cmp::max(0, x);
@@ -1016,10 +1047,12 @@ impl Editor {
         }
     }
 
+    /// Return whether the document has seen some edits since the last save
     fn is_dirty(&self) -> bool {
         self.last_saved_hash != self.document.hashed()
     }
 
+    /// Refresh the screen by displaying all rows and bars
     fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
         self.terminal.hide_cursor();
         if !self.should_quit {
@@ -1056,6 +1089,7 @@ impl Editor {
         self.terminal.flush()
     }
 
+    /// Generate the content of the status bar
     fn generate_status(&self) -> String {
         let dirty_marker = if self.is_dirty() { " +" } else { "" };
         let left_status = format!(
@@ -1096,6 +1130,7 @@ impl Editor {
         format!("{}{}{}\r", left_status, spaces, right_status)
     }
 
+    /// Display the content of the status bar to the screen
     fn draw_status_bar(&self) {
         self.terminal.set_bg_color(STATUS_BG_COLOR);
         self.terminal.set_fg_color(STATUS_FG_COLOR);
@@ -1104,6 +1139,7 @@ impl Editor {
         self.terminal.reset_bg_color();
     }
 
+    /// Display the content of the message bar to the screen
     fn draw_message_bar(&self) {
         self.terminal.clear_current_line();
         if self.is_receiving_command() {
@@ -1130,14 +1166,17 @@ impl Editor {
         tokens.join("|")
     }
 
+    /// Make sure the provided message gets displayed in the message bar
     fn display_message(&mut self, message: String) {
         self.message = message;
     }
 
+    /// Erase the currently displayed message
     fn reset_message(&mut self) {
         self.message = String::from("");
     }
 
+    /// Display a welcome message, when no document has been opened
     fn display_welcome_message(&self) {
         let term_width = self.terminal.size().width as usize;
         let welcome_msg = format!("{} v{}", PKG, utils::bo_version());
@@ -1151,6 +1190,7 @@ impl Editor {
         println!("{}\r", padded_welcome_message);
     }
 
+    /// Display the automatically generated help panel on the screen
     #[allow(clippy::cast_possible_truncation)]
     fn draw_help_screen(&mut self) {
         let help_text_lines = self.help_message.split('\n');
@@ -1177,6 +1217,9 @@ impl Editor {
         self.display_message("Press q to quit".to_string());
     }
 
+    /// Iterate over each visible document rows and display it on the screen.
+    /// If no document is currently opened, display the welcome message.
+    /// If the document is shorter than the viewport height, display empty lines as ``~``.
     fn draw_rows(&self) {
         let term_height = self.terminal.size().restrict_to_text_area().height;
         for terminal_row_idx_val in self.offset.rows..(term_height as usize + self.offset.rows) {
@@ -1199,6 +1242,7 @@ impl Editor {
         }
     }
 
+    /// Display the content of a particular document row to the screen
     fn draw_row(&self, row: &Row, line_number: LineNumber) {
         let row_visible_start = self.offset.columns;
         let mut row_visible_end = self.terminal.size().width as usize + self.offset.columns;
