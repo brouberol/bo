@@ -9,3 +9,17 @@ pub const NEW: &str = "new";
 pub const SAVE: &str = "w";
 pub const SAVE_AND_QUIT: &str = "wq";
 pub const DEBUG: &str = "debug";
+
+pub const ALL_COMMANDS: [&str; 11] = [
+    QUIT,
+    FORCE_QUIT,
+    LINE_NUMBERS,
+    STATS,
+    HELP,
+    OPEN,
+    OPEN_SHORT,
+    NEW,
+    SAVE,
+    SAVE_AND_QUIT,
+    DEBUG,
+];

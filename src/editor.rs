@@ -1,3 +1,4 @@
+use crate::commands::ALL_COMMANDS;
 use crate::{
     commands, utils, AnsiPosition, Boundary, Config, Console, Document, Help, LineNumber, Mode,
     Navigator, Row, RowIndex,
@@ -69,6 +70,8 @@ pub struct Editor {
     message: String,
     mode: Mode,
     command_buffer: String,
+    command_suggestions: Vec<String>,
+    current_autocompletion_index: usize,
     config: Config,
     normal_command_buffer: Vec<String>,
     mouse_event_buffer: Vec<Position>,
@@ -107,6 +110,11 @@ impl Serialize for Editor {
         s.serialize_field("last_saved_hash", &self.last_saved_hash)?;
         s.serialize_field("row_prefix_length", &self.row_prefix_length)?;
         s.serialize_field("document", &self.document)?;
+        s.serialize_field("command_suggestions", &self.command_suggestions)?;
+        s.serialize_field(
+            "current_autocompletion_index",
+            &self.current_autocompletion_index,
+        )?;
         s.end()
     }
 }
@@ -129,6 +137,8 @@ impl Editor {
             message: "".to_string(),
             mode: Mode::Normal,
             command_buffer: "".to_string(),
+            command_suggestions: vec![],
+            current_autocompletion_index: 0,
             config: Config::default(),
             normal_command_buffer: vec![],
             mouse_event_buffer: vec![],
@@ -175,19 +185,39 @@ impl Editor {
     /// receiving a user input command (eg: ":q", etc).
     fn process_keystroke(&mut self, pressed_key: Key) {
         if self.is_receiving_command() {
-            // accumulate the command in the command buffer
-            match pressed_key {
-                Key::Esc => self.stop_receiving_command(),
-                Key::Char('\n') => {
-                    // Enter
-                    self.process_received_command();
-                    self.stop_receiving_command();
+            if self.is_autocompleting_command() {
+                match pressed_key {
+                    Key::Char('\t') => self.cycle_through_command_suggestions(),
+                    Key::Char('\n') => {
+                        self.command_buffer = format!(
+                            "{}{}",
+                            COMMAND_PREFIX,
+                            self.command_suggestions[self.current_autocompletion_index].clone()
+                        );
+                        self.reset_autocompletions();
+                        self.process_keystroke(pressed_key);
+                    }
+                    _ => {
+                        self.reset_autocompletions();
+                        self.process_keystroke(pressed_key);
+                    }
                 }
-                Key::Char(c) => self.command_buffer.push(c), // accumulate keystrokes into the buffer
-                Key::Backspace => self
-                    .command_buffer
-                    .truncate(self.command_buffer.len().saturating_sub(1)),
-                _ => (),
+            } else {
+                // accumulate the command in the command buffer
+                match pressed_key {
+                    Key::Esc => self.stop_receiving_command(),
+                    Key::Char('\n') => {
+                        // Enter
+                        self.process_received_command();
+                        self.stop_receiving_command();
+                    }
+                    Key::Char('\t') => self.autocomplete_command(),
+                    Key::Char(c) => self.command_buffer.push(c), // accumulate keystrokes into the buffer
+                    Key::Backspace => self
+                        .command_buffer
+                        .truncate(self.command_buffer.len().saturating_sub(1)),
+                    _ => (),
+                }
             }
         } else {
             match self.mode {
@@ -247,6 +277,17 @@ impl Editor {
 
     fn is_receiving_command(&self) -> bool {
         !self.command_buffer.is_empty()
+    }
+
+    /// Return whether the Editor is currently autosuggesting command based on the user input
+    fn is_autocompleting_command(&self) -> bool {
+        self.is_receiving_command() && !self.command_suggestions.is_empty()
+    }
+
+    /// Reset the state of the command autocompletion
+    fn reset_autocompletions(&mut self) {
+        self.command_suggestions = vec![];
+        self.current_autocompletion_index = 0;
     }
 
     fn pop_normal_command_repetitions(&mut self) -> usize {
@@ -345,12 +386,55 @@ impl Editor {
         }
     }
 
+    /// Determine which commands could be autocompleted into based on the current
+    /// state of the user provided command.
+    ///
+    /// If only one command suggestion is found, it will be automatically selected.
+    /// Else, the ``command_suggestions`` vector will be populated with the possible
+    /// commands.
+    fn autocomplete_command(&mut self) {
+        let mut matches: Vec<String> = vec![];
+        let current_command = self
+            .command_buffer
+            .strip_prefix(COMMAND_PREFIX)
+            .unwrap_or_default();
+        for command_str in ALL_COMMANDS {
+            if command_str.starts_with(&current_command) {
+                matches.push(command_str.to_owned());
+            }
+        }
+        match matches.len() {
+            0 => (),
+            1 => self.command_buffer = format!("{}{}", COMMAND_PREFIX, matches[0]),
+            _ => self.command_suggestions = matches,
+        }
+    }
+
+    /// Cycle through the possible command suggestions by incrementing (or resetting)
+    /// the ``current_autocompletion_index`` value.
+    fn cycle_through_command_suggestions(&mut self) {
+        let next_suggestion_index = if self.current_autocompletion_index
+            == self.command_suggestions.len().saturating_sub(1)
+        {
+            0
+        } else {
+            self.current_autocompletion_index.saturating_add(1)
+        };
+        self.current_autocompletion_index = next_suggestion_index;
+    }
+
+    /// Save the current document to the target file.
+    ///
+    /// If no filename is associated to the current document, an error message will be displayed.
+    ///
+    /// When the document is saved, all trailing spaces will automatically be deleted.
     fn save(&mut self, new_name: &str) {
         // this will trim trailing spaces, which might cause the cursor to get out of bounds
         self.document.trim_trailing_spaces();
         if self.cursor_position.x >= self.current_row().len() {
             self.cursor_position.x = self.current_row().len().saturating_sub(1);
         }
+
         let initial_filename = self.document.filename.clone();
         if new_name.is_empty() {
             if self.document.filename.is_none() {
@@ -1023,10 +1107,27 @@ impl Editor {
     fn draw_message_bar(&self) {
         self.terminal.clear_current_line();
         if self.is_receiving_command() {
-            print!("{}\r", self.command_buffer);
+            if self.is_autocompleting_command() {
+                print!(":{}\r", self.generate_command_autocompletion_message());
+            } else {
+                print!("{}\r", self.command_buffer);
+            }
         } else {
             print!("{}\r", self.message);
         }
+    }
+
+    /// Generate the command autocompletion message, that will be displayed in the message bar
+    fn generate_command_autocompletion_message(&self) -> String {
+        let mut tokens: Vec<String> = vec![];
+        for (i, suggestion) in self.command_suggestions.iter().enumerate() {
+            if i == self.current_autocompletion_index {
+                tokens.push(utils::red(utils::as_bold(suggestion).as_str()));
+            } else {
+                tokens.push(suggestion.to_string());
+            }
+        }
+        tokens.join("|")
     }
 
     fn display_message(&mut self, message: String) {
