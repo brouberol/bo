@@ -491,7 +491,7 @@ impl Editor {
                 if let Some(match_start_index) = row.find(search_pattern) {
                     let match_start = Position {
                         x: match_start_index,
-                        y: row_index.saturating_add(1), // terminal line number, 1-bases
+                        y: row_index.saturating_add(1), // terminal line number, 1-based
                     };
                     let match_end = Position {
                         x: match_start_index

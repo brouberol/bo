@@ -76,6 +76,6 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 
 ## Inspiration
 
-I got the inspiration for `bo` by reading about [antirez](https://github.com/antirez)'s editor [`kilo`](https://github.com/antirez/kilo), and am widly basing my work on the excellent [blogpost series](https://www.philippflenker.com/hecto-chapter-1) by Philipp Flenker.
+I got the inspiration for `bo` by reading about [antirez](https://github.com/antirez)'s editor [`kilo`](https://github.com/antirez/kilo), and am wildly basing my work on the excellent [blogpost series](https://www.philippflenker.com/hecto-chapter-1) by Philipp Flenker.
 
 It is called `bo` because I've recently [turned 30](https://www.youtube.com/watch?v=XrOa5hDzXIY).
