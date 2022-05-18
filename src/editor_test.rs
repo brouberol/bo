@@ -152,6 +152,13 @@ fn process_command(editor: &mut Editor, command: &str) {
     }
 }
 
+fn process_command_no_enter(editor: &mut Editor, command: &str) {
+    let command = String::from(command);
+    for c in command.chars() {
+        editor.process_keystroke(Key::Char(c));
+    }
+}
+
 #[test]
 fn test_editor_enter_mode() {
     let mut editor = get_test_editor();
@@ -685,7 +692,9 @@ fn test_editor_serialize() {
       }
     ],
     "filename": "test"
-  }
+  },
+  "command_suggestions": [],
+  "current_autocompletion_index": 0
 }"#
     );
 }
@@ -860,4 +869,54 @@ fn test_save_and_quit() {
         assert_eq!(editor.unsaved_edits, 0);
         assert!(editor.should_quit);
     };
+}
+
+#[test]
+fn test_process_command_autocompletions() {
+    let dir = tempdir().unwrap();
+    if std::env::set_current_dir(&dir).is_ok() {
+        let mut editor = get_test_editor();
+        process_command_no_enter(&mut editor, ":w"); // this could be expanded into :w or :wq
+        assert_eq!(editor.current_autocompletion_index, 0);
+        assert!(!editor.is_autocompleting_command());
+
+        // trigger an autocompletion
+        editor.process_keystroke(Key::Char('\t'));
+        assert!(editor.is_autocompleting_command());
+        assert_eq!(editor.command_suggestions, vec!["w", "wq"]);
+        assert_eq!(editor.current_autocompletion_index, 0);
+
+        // Cycle through the completion suggestions
+        editor.process_keystroke(Key::Char('\t'));
+        assert_eq!(editor.current_autocompletion_index, 1);
+        editor.process_keystroke(Key::Char('\t'));
+        assert_eq!(editor.current_autocompletion_index, 0);
+
+        // Hit Enter once the proper suggestion is selected
+        editor.process_keystroke(Key::Char('\n'));
+        assert_eq!(editor.command_buffer, "");
+        assert_eq!(editor.current_autocompletion_index, 0);
+        assert!(editor.command_suggestions.is_empty());
+        assert!(!editor.is_autocompleting_command());
+    }
+}
+
+#[test]
+fn test_process_command_autocompletions_and_keep_typing() {
+    let mut editor = get_test_editor();
+    process_command_no_enter(&mut editor, ":w"); // this could be expanded into :w or :wq
+    assert_eq!(editor.current_autocompletion_index, 0);
+    assert!(!editor.is_autocompleting_command());
+
+    // trigger an autocompletion
+    editor.process_keystroke(Key::Char('\t'));
+    assert!(editor.is_autocompleting_command());
+    assert_eq!(editor.command_suggestions, vec!["w", "wq"]);
+    assert_eq!(editor.current_autocompletion_index, 0);
+
+    // Ignore completions and keep typing
+    editor.process_keystroke(Key::Char('a'));
+    assert!(!editor.is_autocompleting_command());
+    assert!(editor.command_suggestions.is_empty());
+    assert_eq!(editor.command_buffer, ":wa");
 }
