@@ -52,24 +52,26 @@ jobs:
 
     - name: Measure current and main coverage and craft a message to be inserted in the PR
       id: measure_coverage
-      if: github.ref_name != 'main'
+      if: github.event_name == 'pull_request'
       run: |
         set -eu
         main_cov=$(
-          curl -s "http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/badges/flat.svg" | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
+          curl -s "http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main/badges/flat.svg" | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
         pr_cov=$(cat ${COV_REPORT_DIR}/badges/flat.svg | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
+        report_url="http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/${GITHUB_REF}/"
 
         if [[ ${main_cov} -eq ${pr_cov} ]]; then
-          message="Coverage: ${main_cov}% (no change)"
+          message="[Coverage](${report_url}): ${main_cov}% (no change)"
         elif [[ ${main_cov} -lt ${pr_cov} ]]; then
-          message=":chart_with_upwards_trend: Coverage has gone up from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
+          message=":chart_with_upwards_trend: [Coverage](${report_url}) has gone up from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
         else
-          message=":chart_with_downwards_trend: Coverage has gone down from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
+          message=":chart_with_downwards_trend: [Coverage](${report_url}) has gone down from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
         fi
         echo "::set-output name=cov_pr_message::${message}"
       env:
         COV_REPORT_DIR: ${{ steps.coverage.outputs.report }}
         RUN_ID: ${{ github.run_id }}
+        GITHUB_REF: ${{ github.head_ref }}
 
     - name: Add a comment to the PR mentioning the coverage change
       if: github.ref_name != 'main'
@@ -77,11 +79,11 @@ jobs:
       with:
         message: |
           ${{ steps.measure_coverage.outputs.cov_pr_message }}
-        comment_includes: 'Coverage'
+        comment_includes: '[Coverage]('
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: "Upload the HTML coverage report to S3"
-      if: github.ref_name == 'main'
+    - name: "Upload the Pull Request HTML coverage report to S3"
+      if: github.event_name == 'pull_request'
       uses: jakejarvis/s3-sync-action@master
       with:
         args: --acl public-read --follow-symlinks --delete
@@ -91,4 +93,17 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
         SOURCE_DIR: ${{ steps.coverage.outputs.report }}
-        DEST_DIR: 'bo'
+        DEST_DIR: 'bo/${{ github.head_ref }}'
+
+    - name: "Upload the HTML coverage report for the main branch to S3"
+      if: github.ref_type == 'branch' && github.ref_name == 'main'
+      uses: jakejarvis/s3-sync-action@master
+      with:
+        args: --acl public-read --follow-symlinks --delete
+      env:
+        AWS_S3_BUCKET: ${{ secrets.AWS_BUCKET }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+        SOURCE_DIR: ${{ steps.coverage.outputs.report }}
+        DEST_DIR: 'bo/main'
