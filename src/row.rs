@@ -45,6 +45,11 @@ impl Row {
     }
 
     #[must_use]
+    pub fn reversed(&self) -> String {
+        self.graphemes().rev().collect()
+    }
+
+    #[must_use]
     pub fn is_whitespace(&self) -> bool {
         !self.string.chars().any(|c| !c.is_whitespace())
     }
@@ -120,7 +125,11 @@ impl Row {
 
     /// Append a string at the end of the current one
     pub fn append(&mut self, other: &Self) {
-        self.string = format!("{}{}", self.string, other.string);
+        self.append_str(&other.string);
+    }
+
+    pub fn append_str(&mut self, s: &str) {
+        self.string = format!("{}{}", self.string, s);
     }
 
     #[must_use]

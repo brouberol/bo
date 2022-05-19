@@ -196,3 +196,27 @@ fn test_document_join_row_with_previous_one() {
     assert_eq!(doc.rows.get(0).unwrap().string, "Hello world!");
     assert_eq!(doc.num_rows(), 1);
 }
+
+#[test]
+fn test_document_insert_string() {
+    let mut doc = Document::new(
+        vec![Row::from("abcd"), Row::from("ef")],
+        PathBuf::from("test.rs"),
+    );
+    doc.insert_string("Ä\ngh", 3, RowIndex::new(1));
+    assert_eq!(doc.num_rows(), 3);
+    assert_eq!(doc.rows.get(1).unwrap().string, "efÄ");
+    assert_eq!(doc.rows.get(2).unwrap().string, "gh");
+}
+
+#[test]
+fn test_document_delete_string() {
+    let mut doc = Document::new(
+        vec![Row::from("abcd"), Row::from("efÄ"), Row::from("gh")],
+        PathBuf::from("test.rs"),
+    );
+    doc.delete_string("hg\nÄ", 1, RowIndex::new(2));
+    assert_eq!(doc.num_rows(), 2);
+    assert_eq!(doc.rows.get(0).unwrap().string, "abcd");
+    assert_eq!(doc.rows.get(1).unwrap().string, "ef");
+}

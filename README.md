@@ -70,7 +70,7 @@ So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-lik
 
 ### Long shot
 - [ ] Multiline edition support
-- [ ] undo/redo
+- [x] undo/redo
 - [ ] Tab navigation
 - [ ] Fuzzy file finder
 

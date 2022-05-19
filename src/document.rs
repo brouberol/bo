@@ -8,6 +8,7 @@ use std::hash::{Hash, Hasher};
 use std::io::{Error, Write};
 use std::path::{Path, PathBuf};
 use std::slice::{Iter, IterMut};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Serialize)]
 pub struct Document {
@@ -153,6 +154,11 @@ impl Document {
     }
 
     #[must_use]
+    pub fn row_lengths(&self) -> Vec<usize> {
+        self.rows.iter().map(Row::len).collect()
+    }
+
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.rows.len() == 0
     }
@@ -189,42 +195,18 @@ impl Document {
         self.rows.iter_mut()
     }
 
-    pub fn insert(&mut self, c: char, x: usize, y: RowIndex) {
-        match y.value.cmp(&self.num_rows()) {
-            Ordering::Equal | Ordering::Greater => {
-                let mut row = Row::default();
-                row.insert(0, c);
-                self.rows.push(row);
+    pub fn insert_string(&mut self, text: &str, x: usize, y: RowIndex) {
+        let mut delta_x: usize = 0;
+        let mut delta_y: usize = 0;
+        for c in text.graphemes(true) {
+            if c == "\n" {
+                self.insert_newline(x + delta_x, RowIndex::new(y.value + delta_y));
+                delta_x = 0;
+                delta_y += 1;
+            } else if let Some(current_row) = self.rows.get_mut(y.value + delta_y) {
+                current_row.append_str(c);
+                delta_x += 1;
             }
-            Ordering::Less => {
-                if let Some(row) = self.rows.get_mut(y.value) {
-                    row.insert(x, c);
-                }
-            }
-        }
-    }
-
-    pub fn delete(&mut self, x: usize, from_x: usize, y: RowIndex) {
-        if y.value >= self.num_rows() {
-            return;
-        }
-        if let Some(row) = self.rows.get_mut(y.value) {
-            // Deletion at the very start of a line means we append the current line to the previous one
-            if x == 0 && from_x == 0 && y.value > 0 {
-                self.join_row_with_previous_one(x, y, None);
-            } else {
-                row.delete(x);
-            }
-        }
-    }
-
-    pub fn join_row_with_previous_one(&mut self, x: usize, y: RowIndex, join_with: Option<char>) {
-        let current_row = self.remove_row(y);
-        if let Some(previous_row) = self.rows.get_mut(y.value.saturating_sub(1)) {
-            if let Some(join_char) = join_with {
-                previous_row.insert(x.saturating_add(1), join_char);
-            }
-            previous_row.append(&current_row);
         }
     }
 
@@ -249,6 +231,58 @@ impl Document {
         }
     }
 
+    pub fn insert(&mut self, c: char, x: usize, y: RowIndex) {
+        match y.value.cmp(&self.num_rows()) {
+            Ordering::Equal | Ordering::Greater => {
+                let mut row = Row::default();
+                row.insert(0, c);
+                self.rows.push(row);
+            }
+            Ordering::Less => {
+                if let Some(row) = self.rows.get_mut(y.value) {
+                    row.insert(x, c);
+                }
+            }
+        }
+    }
+
+    pub fn delete_string(&mut self, text: &str, x: usize, y: RowIndex) {
+        let mut x = x;
+        let mut delta_x: usize = 0;
+        let mut delta_y: usize = 0;
+        for c in text.chars() {
+            if c == '\n' {
+                self.join_row_with_previous_one(0, RowIndex::new(y.value - delta_y), None);
+                delta_y += 1;
+                delta_x = 0;
+                if let Some(prev_row) = self.rows.get(y.value - delta_y) {
+                    x = prev_row.len() - 1;
+                };
+            } else {
+                self.delete(
+                    x - delta_x,
+                    x - delta_x + 1,
+                    RowIndex::new(y.value - delta_y),
+                );
+                delta_x += 1;
+            }
+        }
+    }
+
+    pub fn delete(&mut self, x: usize, from_x: usize, y: RowIndex) {
+        if y.value >= self.num_rows() {
+            return;
+        }
+        if let Some(row) = self.rows.get_mut(y.value) {
+            // Deletion at the very start of a line means we append the current line to the previous one
+            if x == 0 && from_x == 0 && y.value > 0 {
+                self.join_row_with_previous_one(x, y, None);
+            } else {
+                row.delete(x);
+            }
+        }
+    }
+
     pub fn delete_row(&mut self, index: RowIndex) {
         if index.value > self.num_rows() {
         } else if self.num_rows() == 1 {
@@ -257,6 +291,16 @@ impl Document {
             }
         } else if self.get_row(index).is_some() {
             self.remove_row(index);
+        }
+    }
+
+    pub fn join_row_with_previous_one(&mut self, x: usize, y: RowIndex, join_with: Option<char>) {
+        let current_row = self.remove_row(y);
+        if let Some(previous_row) = self.rows.get_mut(y.value.saturating_sub(1)) {
+            if let Some(join_char) = join_with {
+                previous_row.insert(x.saturating_add(1), join_char);
+            }
+            previous_row.append(&current_row);
         }
     }
 
