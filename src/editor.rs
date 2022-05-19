@@ -17,6 +17,7 @@ const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const PKG: &str = env!("CARGO_PKG_NAME");
 const COMMAND_PREFIX: char = ':';
 const SEARCH_PREFIX: char = '/';
+const AUTOCOMPLETION_SUGGESTIONS_SEPARATOR: char = '|';
 const LINE_NUMBER_OFFSET: u8 = 4; // number of chars
 const START_X: u8 = LINE_NUMBER_OFFSET as u8; // index, so that's actually an offset of 5 chars
 const SPACES_PER_TAB: usize = 4;
@@ -1052,6 +1053,19 @@ impl Editor {
         self.last_saved_hash != self.document.hashed()
     }
 
+    /// Return the x index of the first character of the currently selected autocompletion suggestion
+    fn get_x_index_of_currently_selected_suggestion(&self) -> usize {
+        let mut x_index_of_currently_selected_suggestion = SEARCH_PREFIX.to_string().len();
+        let sep_len = AUTOCOMPLETION_SUGGESTIONS_SEPARATOR.to_string().len();
+        for (i, suggestion) in self.command_suggestions.iter().enumerate() {
+            if i >= self.current_autocompletion_index {
+                break;
+            }
+            x_index_of_currently_selected_suggestion += suggestion.len() + sep_len;
+        }
+        x_index_of_currently_selected_suggestion
+    }
+
     /// Refresh the screen by displaying all rows and bars
     fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
         self.terminal.hide_cursor();
@@ -1071,13 +1085,22 @@ impl Editor {
                     &Position::top_left(),
                     self.row_prefix_length,
                 );
-            }
-            // if a command is being typed, put the cursor in the bottom bar
-            else if self.is_receiving_command() {
-                self.terminal.set_cursor_position_anywhere(&Position {
-                    x: self.command_buffer.len(),
-                    y: self.terminal.size().height as usize,
-                });
+            } else if self.is_receiving_command() {
+                if self.is_autocompleting_command() {
+                    // if we're currently auto-completing the user-provided command,
+                    // we move the cursor on the first character of the currently selected
+                    // suggestion.
+                    self.terminal.set_cursor_position_anywhere(&Position {
+                        x: self.get_x_index_of_currently_selected_suggestion(),
+                        y: self.terminal.size().height as usize,
+                    });
+                } else {
+                    // if a command is being typed, put the cursor in the bottom bar
+                    self.terminal.set_cursor_position_anywhere(&Position {
+                        x: self.command_buffer.len(),
+                        y: self.terminal.size().height as usize,
+                    });
+                }
             } else {
                 self.terminal.set_cursor_position_in_text_area(
                     &self.cursor_position,
@@ -1163,7 +1186,7 @@ impl Editor {
                 tokens.push(suggestion.to_string());
             }
         }
-        tokens.join("|")
+        tokens.join(AUTOCOMPLETION_SUGGESTIONS_SEPARATOR.to_string().as_str())
     }
 
     /// Make sure the provided message gets displayed in the message bar

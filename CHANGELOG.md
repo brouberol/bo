@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](https://semver.org).
 ### Features
 - Implement autocompletion based on user provided commands (ex: `:deb<TAB>` autocompletes to `:debug`). Multiple completion suggestions can be cycled through, accepted or ignored.
 
+### Improvements
+- Move the cursor on the first character of the currently selected autocompletion suggestion, to highlight it
+
 ## [0.3.3] - 2022/05/01
 
 ### Features
