@@ -1,6 +1,9 @@
 use super::SPACES_PER_TAB;
 use crate::LineNumber;
-use crate::{AnsiPosition, Console, ConsoleSize, Document, Editor, Mode, Position, Row, RowIndex};
+use crate::{
+    AnsiPosition, Console, ConsoleSize, Document, Editor, Mode, Operation, OperationType, Position,
+    Row, RowIndex,
+};
 use std::fmt;
 use std::fs;
 use std::io::Error;
@@ -91,7 +94,7 @@ impl fmt::Debug for MockConsole {
 }
 
 fn get_short_document() -> Document {
-    let lines: Vec<&str> = vec!["Hello world", "Hello world!", "Hello world!!"];
+    let lines: Vec<&str> = vec!["Hellö world", "Hello world!", "Hello world!!"];
     let mut rows: Vec<Row> = vec![];
     for line in lines {
         rows.push(Row::from(line));
@@ -269,7 +272,7 @@ fn test_editor_search() {
     assert_eq!(
         editor.search_matches,
         vec![
-            (Position { x: 6, y: 1 }, Position { x: 12, y: 1 }),
+            (Position { x: 7, y: 1 }, Position { x: 13, y: 1 }),
             (Position { x: 6, y: 2 }, Position { x: 12, y: 2 }),
             (Position { x: 6, y: 3 }, Position { x: 12, y: 3 })
         ]
@@ -287,7 +290,7 @@ fn test_editor_search() {
 
     editor.process_keystroke(Key::Char('n'));
     assert_eq!(editor.current_search_match_index, 0);
-    assert_position_is(&editor, 6, 0);
+    assert_position_is(&editor, 7, 0);
 
     editor.process_keystroke(Key::Char('N'));
     assert_eq!(editor.current_search_match_index, 2);
@@ -357,7 +360,7 @@ fn test_editor_deletion() {
     assert_eq!(editor.document.num_rows(), 2);
     assert_eq!(
         editor.document.get_row(RowIndex::new(0)).unwrap().string,
-        "Hello worldello world!"
+        "Hellö worldello world!"
     );
     assert_eq!(
         editor.document.get_row(RowIndex::new(1)).unwrap().string,
@@ -402,21 +405,21 @@ fn test_editor_edition() {
     assert_eq!(editor.document.num_rows(), 4);
     editor.process_keystroke(Key::Backspace);
     assert_eq!(editor.document.num_rows(), 3);
-    assert_nth_row_is(&editor, 0, "Hello worldboo");
+    assert_nth_row_is(&editor, 0, "Hellö worldboo");
 
     editor.goto_x_y(11, RowIndex::new(0));
     assert_position_is(&editor, 11, 0);
     assert_eq!(editor.document.num_rows(), 3);
     editor.process_keystroke(Key::Char('\n'));
     assert_eq!(editor.document.num_rows(), 4);
-    assert_nth_row_is(&editor, 0, "Hello world");
+    assert_nth_row_is(&editor, 0, "Hellö world");
     assert_nth_row_is(&editor, 1, "boo");
     assert_position_is(&editor, 0, 1);
 
     editor.goto_x_y(0, RowIndex::new(0));
     editor.process_keystroke(Key::Esc);
     editor.process_keystroke(Key::Char('x'));
-    assert_nth_row_is(&editor, 0, "ello world");
+    assert_nth_row_is(&editor, 0, "ellö world");
 
     editor.process_keystroke(Key::Char('A'));
     assert_eq!(editor.mode, Mode::Insert);
@@ -429,7 +432,7 @@ fn test_editor_insert_spaces_for_tab() {
 
     process_keystrokes(&mut editor, vec!['i', '\t']);
     assert_position_is(&editor, SPACES_PER_TAB, 0);
-    assert_nth_row_is(&editor, 0, "    Hello world");
+    assert_nth_row_is(&editor, 0, "    Hellö world");
 }
 
 #[test]
@@ -533,7 +536,7 @@ fn test_editor_simple_utilities() {
     assert_eq!(editor.current_line_number(), LineNumber::new(1));
     assert_eq!(editor.current_x_position(), 0);
     assert_eq!(editor.current_grapheme(), "H");
-    assert_eq!(editor.current_row().string, "Hello world");
+    assert_eq!(editor.current_row().string, "Hellö world");
 }
 
 #[test]
@@ -605,7 +608,7 @@ fn test_editor_join_lines() {
     let mut editor = get_test_editor();
     // Go to end of line and join it with the next one
     process_keystrokes(&mut editor, vec!['$', 'J']);
-    assert_nth_row_is(&editor, 0, "Hello world Hello world!");
+    assert_nth_row_is(&editor, 0, "Hellö world Hello world!");
     assert_eq!(editor.document.num_rows(), 2);
 }
 
@@ -677,12 +680,12 @@ fn test_editor_serialize() {
   "search_matches": [],
   "current_search_match_index": 0,
   "unsaved_edits": 0,
-  "last_saved_hash": 6894519061004685273,
+  "last_saved_hash": 6051608862860543045,
   "row_prefix_length": 0,
   "document": {
     "rows": [
       {
-        "string": "Hello world"
+        "string": "Hellö world"
       },
       {
         "string": "Hello world!"
@@ -934,4 +937,69 @@ fn test_autocompletion_single_suggestion() {
     assert!(editor.command_suggestions.is_empty());
     assert_eq!(editor.current_autocompletion_index, 0);
     assert_eq!(editor.command_buffer, ":debug");
+}
+
+#[test]
+fn test_undo_insert() {
+    let mut editor = get_test_editor();
+
+    // We simulate that the 3 lines were written in 2 separate operations
+    editor.history.operations.push_back(Operation {
+        op_type: OperationType::Insert,
+        content: String::from("Hello world\n"),
+        start_position: Position { x: 0, y: 0 },
+    });
+    editor.history.operations.push_back(Operation {
+        op_type: OperationType::Insert,
+        content: String::from("Hello world!\nHello world!!"),
+        start_position: Position { x: 0, y: 1 },
+    });
+    assert_eq!(editor.document.num_rows(), 3);
+    assert_eq!(editor.history.operations.len(), 2);
+
+    // undo last insertion
+    editor.process_keystroke(Key::Char('u'));
+    assert_eq!(editor.history.operations.len(), 1);
+    assert_eq!(editor.document.num_rows(), 2); // L1 = "Hello world" and L2 = ""
+    assert_position_is(&editor, 0, 1);
+}
+
+#[test]
+fn test_undo_delete() {
+    let mut editor = get_test_editor();
+
+    // We simulate that the 3 lines were written in 2 separate operations
+    editor.history.operations.push_back(Operation {
+        op_type: OperationType::Insert,
+        content: String::from("Hello world\n"),
+        start_position: Position { x: 0, y: 0 },
+    });
+    editor.history.operations.push_back(Operation {
+        op_type: OperationType::Insert,
+        content: String::from("Hello world!\nHello world!!"),
+        start_position: Position { x: 0, y: 1 },
+    });
+
+    // We now simulate that we deleted the " world!!" at the end of the last line
+    editor.history.operations.push_back(Operation {
+        op_type: OperationType::Delete,
+        content: String::from("!!dlrow "),
+        start_position: Position { x: 14, y: 2 },
+    });
+    editor.document.delete_row(RowIndex::new(2));
+    editor
+        .document
+        .insert_string("\nHello", 11, RowIndex::new(1));
+    // at that point the 3rd row contains the string "Hello"
+
+    assert_eq!(editor.document.num_rows(), 3);
+    assert_eq!(editor.history.operations.len(), 3);
+
+    // undo last deletion
+    editor.process_keystroke(Key::Char('u'));
+    assert_eq!(editor.history.operations.len(), 2);
+    assert_eq!(
+        editor.document.get_row(RowIndex::new(2)).unwrap().string,
+        "Hello world!!"
+    );
 }

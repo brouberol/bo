@@ -1,7 +1,7 @@
 use crate::commands::ALL_COMMANDS;
 use crate::{
-    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Help, LineNumber, Mode,
-    Navigator, Row, RowIndex,
+    commands, utils, AnsiPosition, Boundary, Config, Console, Document, Help, History, LineNumber,
+    Mode, Navigator, OperationType, Row, RowIndex,
 };
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
@@ -84,6 +84,7 @@ pub struct Editor {
     unsaved_edits: u8,
     row_prefix_length: u8,
     help_message: String,
+    history: History,
 }
 
 fn die(e: &io::Error) {
@@ -151,6 +152,7 @@ impl Editor {
             last_saved_hash,
             row_prefix_length: 0,
             help_message,
+            history: History::default(),
         }
     }
 
@@ -582,6 +584,7 @@ impl Editor {
                 'O' => self.insert_newline_before_current_line(),
                 'A' => self.append_to_line(),
                 'J' => self.join_current_line_with_next_one(),
+                'u' => self.undo_last_operation(),
                 _ => {
                     // at that point, we've iterated over all non accumulative commands
                     // meaning the command we're processing is an accumulative one.
@@ -626,11 +629,15 @@ impl Editor {
                         let previous_line_len =
                             self.get_row(self.previous_row_index()).unwrap().len();
                         // Delete newline from previous row
+                        self.history.register_deletion("\n", self.cursor_position);
                         self.document.delete(0, 0, self.current_row_index());
                         self.goto_x_y(previous_line_len, self.previous_row_index());
                     }
                 } else {
                     // Delete previous character
+                    let previous_grapheme = self.previous_grapheme().to_string();
+                    self.history
+                        .register_deletion(previous_grapheme.as_str(), self.cursor_position);
                     self.document.delete(
                         self.current_x_position().saturating_sub(1),
                         self.current_x_position(),
@@ -640,18 +647,22 @@ impl Editor {
                 }
             }
             Key::Char('\n') => {
+                self.history.register_insertion("\n", self.cursor_position);
                 self.document
                     .insert_newline(self.current_x_position(), self.current_row_index());
                 self.goto_x_y(0, self.next_row_index());
             }
             Key::Char('\t') => {
                 for _ in 0..SPACES_PER_TAB {
+                    self.history.register_insertion(" ", self.cursor_position);
                     self.document
                         .insert(' ', self.current_x_position(), self.current_row_index());
+                    self.move_cursor(&Direction::Right, 1);
                 }
-                self.move_cursor(&Direction::Right, SPACES_PER_TAB);
             }
             Key::Char(c) => {
+                self.history
+                    .register_insertion(c.to_string().as_str(), self.cursor_position);
                 self.document
                     .insert(c, self.current_x_position(), self.current_row_index());
                 self.move_cursor(&Direction::Right, 1);
@@ -699,6 +710,12 @@ impl Editor {
         self.current_row().nth_grapheme(self.current_x_position())
     }
 
+    /// Return the character currently at the left of the cursor
+    fn previous_grapheme(&self) -> &str {
+        self.current_row()
+            .nth_grapheme(self.current_x_position().saturating_sub(1))
+    }
+
     /// Return the line number associated to the current cursor position / vertical offset
     fn current_line_number(&self) -> LineNumber {
         LineNumber::from(self.current_row_index())
@@ -706,6 +723,9 @@ impl Editor {
 
     /// Delete the line currently under the cursor
     fn delete_current_line(&mut self) {
+        let current_row_str = self.current_row().reversed();
+        self.history
+            .register_deletion(&current_row_str, self.cursor_position);
         self.document.delete_row(self.current_row_index());
 
         // if we just deleted the last line in the document, move one line up
@@ -721,6 +741,9 @@ impl Editor {
 
     /// Delete the grapheme currently under the cursor
     fn delete_current_grapheme(&mut self) {
+        let current_grapheme = self.current_grapheme().to_string();
+        self.history
+            .register_deletion(&current_grapheme, self.cursor_position);
         self.document.delete(
             self.current_x_position(),
             self.current_x_position(),
@@ -730,15 +753,26 @@ impl Editor {
 
     /// Insert a newline after the current one, move cursor to it in insert mode
     fn insert_newline_after_current_line(&mut self) {
+        let eol_position = Position {
+            x: self.current_row().len(),
+            y: self.current_row_index().value,
+        };
         self.document
-            .insert_newline(self.current_row().len(), self.current_row_index());
+            .insert_newline(eol_position.x, RowIndex::new(eol_position.y));
+        self.history.register_insertion("\n", eol_position);
         self.goto_x_y(0, self.next_row_index());
         self.enter_insert_mode();
     }
 
     /// Insert a newline before the current one, move cursor to it in insert mode
     fn insert_newline_before_current_line(&mut self) {
-        self.document.insert_newline(0, self.current_row_index());
+        let sol_position = Position {
+            x: 0,
+            y: self.current_row_index().value,
+        };
+        self.document
+            .insert_newline(sol_position.x, RowIndex::new(sol_position.y));
+        self.history.register_insertion("\n", sol_position);
         self.goto_x_y(0, self.current_row_index());
         self.enter_insert_mode();
     }
@@ -855,7 +889,7 @@ impl Editor {
                     &self.cursor_position,
                     &self.offset,
                 ) {
-                    self.goto_x_y(position.x, RowIndex::new(position.y));
+                    self.goto_position(position);
                 }
             }
             "}" | ">" | ")" | "]" => {
@@ -864,7 +898,7 @@ impl Editor {
                     &self.cursor_position,
                     &self.offset,
                 ) {
-                    self.goto_x_y(position.x, RowIndex::new(position.y));
+                    self.goto_position(position);
                 }
             }
             _ => (),
@@ -918,6 +952,10 @@ impl Editor {
     /// Move the cursor to the nth line in the file and adjust the viewport
     fn goto_line(&mut self, line_number: LineNumber, x_position: usize) {
         self.goto_x_y(x_position, RowIndex::from(line_number));
+    }
+
+    fn goto_position(&mut self, pos: Position) {
+        self.goto_x_y(pos.x, RowIndex::new(pos.y));
     }
 
     /// Move the cursor to the first column of the nth line
@@ -1051,6 +1089,28 @@ impl Editor {
     /// Return whether the document has seen some edits since the last save
     fn is_dirty(&self) -> bool {
         self.last_saved_hash != self.document.hashed()
+    }
+
+    /// Undo the last registered operation in history
+    fn undo_last_operation(&mut self) {
+        if let Some(last_op_undone) = self
+            .history
+            .last_operation_reversed(&self.document.row_lengths())
+        {
+            match last_op_undone.op_type {
+                OperationType::Delete => self.document.delete_string(
+                    last_op_undone.content.as_str(),
+                    last_op_undone.start_position.x,
+                    RowIndex::new(last_op_undone.start_position.y),
+                ),
+                OperationType::Insert => self.document.insert_string(
+                    last_op_undone.content.as_str(),
+                    last_op_undone.start_position.x,
+                    RowIndex::new(last_op_undone.start_position.y),
+                ),
+            }
+            self.goto_position(last_op_undone.end_position(&self.document.row_lengths()));
+        }
     }
 
     /// Return the x index of the first character of the currently selected autocompletion suggestion
