@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ### Improvements
 - Move the cursor on the first character of the currently selected autocompletion suggestion, to highlight it
+- Allow multiple search occurences to be found in the same line
 
 ### Fixes
 - Move to the last available character when deleting a line that is longer that the previous one, with `d`

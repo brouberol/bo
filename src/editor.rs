@@ -505,7 +505,7 @@ impl Editor {
         self.reset_search();
         for (row_index, row) in self.document.iter().enumerate() {
             if row.contains(search_pattern) {
-                if let Some(match_start_index) = row.find(search_pattern) {
+                for match_start_index in row.find_all(search_pattern) {
                     let match_start = Position {
                         x: match_start_index,
                         y: row_index.saturating_add(1), // terminal line number, 1-based
