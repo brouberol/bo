@@ -10,6 +10,7 @@ use std::io;
 use std::path::PathBuf;
 use termion::color;
 use termion::event::{Event, Key, MouseButton, MouseEvent};
+use unicode_segmentation::UnicodeSegmentation;
 
 const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
@@ -728,10 +729,20 @@ impl Editor {
         self.document.delete_row(self.current_row_index());
 
         // if we just deleted the last line in the document, move one line up
-        if self.cursor_position.y >= self.document.num_rows().saturating_sub(1) {
+        if self.cursor_position.y > self.document.num_rows().saturating_sub(1) {
             self.goto_line(
                 LineNumber::new(self.document.num_rows()),
-                self.cursor_position.x,
+                // Move to the same x index if the previous line is longer/as long as the current one.
+                // If not, move to the last character.
+                cmp::min(
+                    self.cursor_position.x,
+                    self.document
+                        .get_row(RowIndex::new(self.cursor_position.y.saturating_sub(1)))
+                        .unwrap_or(&Row::from(""))
+                        .string
+                        .graphemes(true)
+                        .count(),
+                ),
             );
         } else {
             self.cursor_position.reset_x();

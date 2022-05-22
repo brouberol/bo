@@ -853,6 +853,18 @@ fn test_delete_last_line() {
 }
 
 #[test]
+fn test_delete_line_longer_than_previous_one() {
+    let mut editor = get_test_editor();
+    editor.process_keystroke(Key::Char('j')); // go down a line
+    editor.process_keystroke(Key::Char('j')); // go down a line
+    editor.process_keystroke(Key::Char('A')); // go to last character
+    editor.process_keystroke(Key::Esc); // go to last character
+    assert_position_is(&editor, 13, 2);
+    editor.process_keystroke(Key::Char('d'));
+    assert_position_is(&editor, 12, 1);
+}
+
+#[test]
 fn test_process_command_not_found() {
     let mut editor = get_test_editor();
     process_command(&mut editor, ":nope");
