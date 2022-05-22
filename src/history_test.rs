@@ -42,6 +42,19 @@ fn test_insert_operation_end_position() {
 }
 
 #[test]
+fn test_insert_operation_with_multiple_adjacent_newlines_end_position() {
+    let op_starting_with_adjacent_newlines = Operation {
+        op_type: OperationType::Insert,
+        content: String::from("hello\n\n\nplop"),
+        start_position: Position { x: 0, y: 0 },
+    };
+    assert_eq!(
+        op_starting_with_adjacent_newlines.end_position(&[5, 0, 0, 4]),
+        Position { x: 3, y: 3 }
+    );
+}
+
+#[test]
 fn test_delete_operation_end_position() {
     let op = Operation {
         op_type: OperationType::Delete,
