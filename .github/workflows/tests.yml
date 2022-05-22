@@ -58,14 +58,15 @@ jobs:
         main_cov=$(
           curl -s "http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main/badges/flat.svg" | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
         pr_cov=$(cat ${COV_REPORT_DIR}/badges/flat.svg | egrep '<title>coverage: ' | cut -d: -f 2 | cut -d% -f 1 | sed 's/ //g')
-        report_url="http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/${GITHUB_HEAD_REF}/"
+        main_report_url="http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main/"
+        pr_report_url="http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/${GITHUB_HEAD_REF}/"
 
         if [[ ${main_cov} -eq ${pr_cov} ]]; then
           message="[Coverage](${report_url}): ${main_cov}% (no change)"
         elif [[ ${main_cov} -lt ${pr_cov} ]]; then
-          message=":chart_with_upwards_trend: [Coverage](${report_url}) has gone up from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
+          message=":chart_with_upwards_trend: [Coverage](${report_url}) has gone up from [${main_cov}%](${main_report_url}) to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
         else
-          message=":chart_with_downwards_trend: [Coverage](${report_url}) has gone down from ${main_cov}% to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
+          message=":chart_with_downwards_trend: [Coverage](${report_url}) has gone down from [${main_cov}%](${main_report_url}) to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
         fi
         echo "::set-output name=cov_pr_message::${message}"
       env:
