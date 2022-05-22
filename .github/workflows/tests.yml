@@ -48,7 +48,12 @@ jobs:
 
     - name: Gather coverage data
       id: coverage
-      uses: actions-rs/grcov@v0.1
+      uses: actions-rs/grcov@d7fbf3f45736014e4361af190e8a5269060ace07
+      with:
+        args: >
+          --output-type html
+          --output-path ./coverage/
+          ./target/debug
 
     - name: Measure current and main coverage and craft a message to be inserted in the PR
       id: measure_coverage
