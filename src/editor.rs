@@ -723,9 +723,14 @@ impl Editor {
 
     /// Delete the line currently under the cursor
     fn delete_current_line(&mut self) {
-        let current_row_str = self.current_row().reversed();
-        self.history
-            .register_deletion(&current_row_str, self.cursor_position);
+        let current_row_str = format!("{}\n", self.current_row().reversed());
+        self.history.register_deletion(
+            &current_row_str,
+            Position {
+                x: 0,
+                y: self.cursor_position.y,
+            },
+        );
         self.document.delete_row(self.current_row_index());
 
         // if we just deleted the last line in the document, move one line up

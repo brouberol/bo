@@ -78,7 +78,7 @@ fn test_delete_operation_end_position() {
 fn test_operation_reversed() {
     let op = Operation {
         op_type: OperationType::Insert,
-        content: String::from("Hello"),
+        content: String::from("Hello\n"),
         start_position: Position { x: 0, y: 0 },
     };
     let op_rev = op.reversed(&[5]);
@@ -86,11 +86,11 @@ fn test_operation_reversed() {
         op_rev,
         Operation {
             op_type: OperationType::Delete,
-            content: String::from("olleH"),
-            start_position: Position { x: 4, y: 0 },
+            content: String::from("\nolleH"),
+            start_position: Position { x: 0, y: 1 },
         }
     );
-    let op_rev_rev = op_rev.reversed(&[5]);
+    let op_rev_rev = op_rev.reversed(&[5, 0]);
     assert_eq!(op_rev_rev, op);
 }
 

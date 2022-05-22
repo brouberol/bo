@@ -1015,3 +1015,18 @@ fn test_undo_delete() {
         "Hello world!!"
     );
 }
+
+#[test]
+fn test_delete_line_then_undo() {
+    let mut editor = get_test_editor();
+    editor.process_keystroke(Key::Char('j'));
+    assert_nth_row_is(&editor, 1, "Hello world!");
+    editor.process_keystroke(Key::Char('d'));
+    assert_nth_row_is(&editor, 1, "Hello world!!");
+    assert_eq!(
+        editor.history.operations.back().unwrap().content,
+        "!dlrow olleH\n"
+    );
+    editor.process_keystroke(Key::Char('u'));
+    assert_nth_row_is(&editor, 1, "Hello world!");
+}
