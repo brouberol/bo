@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ### Features
 - Implement autocompletion based on user provided commands (ex: `:deb<TAB>` autocompletes to `:debug`). Multiple completion suggestions can be cycled through, accepted or ignored.
+- Add support for Undo last operation, via the `u` command
 
 ### Improvements
 - Move the cursor on the first character of the currently selected autocompletion suggestion, to highlight it
