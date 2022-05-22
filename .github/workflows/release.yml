@@ -20,7 +20,7 @@ jobs:
         env:
           # (required) GitHub token for creating GitHub Releases.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  
+
   # Cross compile the binary to a matrix of targets and
   # upload the artefacts to the release.
   upload-assets:
@@ -48,3 +48,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_PROFILE_RELEASE_LTO: true
+
+  # Publish the released crate to crates.io
+  publish-to-crates.io:
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+          toolchain: stable
+          override: true
+    - uses: katyo/publish-crates@v1
+      with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
