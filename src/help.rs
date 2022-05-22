@@ -85,6 +85,7 @@ impl Help {
                         ("A", "go to end of line & enter insert mode"),
                         ("J", "join the current line with the next one"),
                         (":", "open command prompt"),
+                        ("u", "undo last operation"),
                     ]),
                 },
                 Section {
