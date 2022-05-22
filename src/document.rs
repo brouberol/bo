@@ -254,7 +254,7 @@ impl Document {
                 delta_y += 1;
                 delta_x = 0;
                 if let Some(prev_row) = self.rows.get(y.value - delta_y) {
-                    x = prev_row.len() - 1;
+                    x = prev_row.len().saturating_sub(1);
                 };
             } else {
                 self.delete(
