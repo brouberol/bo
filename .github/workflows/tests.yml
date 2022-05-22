@@ -36,6 +36,13 @@ jobs:
         override: true
         profile: minimal
 
+    - name: Pre-install grcov from cache
+      uses: actions-rs/install@v0.1.2
+      with:
+        crate: grcov
+        version: 0.8.9
+        use-tool-cache: true
+
     - name: Run tests
       uses: actions-rs/cargo@v1
       with:
