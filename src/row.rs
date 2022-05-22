@@ -85,8 +85,11 @@ impl Row {
     }
 
     #[must_use]
-    pub fn find(&self, pattern: &str) -> Option<usize> {
-        self.string.find(pattern)
+    pub fn find_all(&self, pattern: &str) -> Vec<usize> {
+        self.string
+            .match_indices(pattern)
+            .map(|item| item.0)
+            .collect()
     }
 
     #[must_use]

@@ -61,10 +61,13 @@ fn test_row_contains() {
 }
 
 #[test]
-fn test_row_find() {
-    assert_eq!(Row::from("Hello world!").find("world"), Some(6));
-    assert_eq!(Row::from("Hello world!").find("\u{2764}"), None);
-    assert_eq!(Row::from("Hello \u{2764} world!").find("\u{2764}"), Some(6));
+fn test_row_find_all() {
+    assert_eq!(Row::from("Hello hello world!").find_all("ello"), vec![1, 7]);
+    assert!(Row::from("Hello world!").find_all("\u{2764}").is_empty());
+    assert_eq!(
+        Row::from("Hello \u{2764} world!").find_all("\u{2764}"),
+        vec![6]
+    );
 }
 
 #[test]
