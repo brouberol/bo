@@ -185,12 +185,10 @@ impl Document {
         LineNumber::new(self.num_rows())
     }
 
-    #[must_use]
     pub fn iter(&self) -> Iter<Row> {
         self.rows.iter()
     }
 
-    #[must_use]
     pub fn iter_mut(&mut self) -> IterMut<Row> {
         self.rows.iter_mut()
     }
