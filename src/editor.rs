@@ -6,7 +6,6 @@ use crate::{
 use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 use std::cmp;
-use std::env;
 use std::io;
 use std::path::PathBuf;
 use termion::color;
@@ -14,7 +13,7 @@ use termion::event::{Event, Key, MouseButton, MouseEvent};
 
 const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
-const PKG: &str = env!("CARGO_PKG_NAME");
+const PKG: &str = "bo";
 const COMMAND_PREFIX: char = ':';
 const SEARCH_PREFIX: char = '/';
 const AUTOCOMPLETION_SUGGESTIONS_SEPARATOR: char = '|';
