@@ -1,4 +1,4 @@
-name: Cleanup S3
+name: Cleanup S3 on PR merge
 
 # only trigger on pull request closed events
 on:
