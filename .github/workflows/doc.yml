@@ -27,6 +27,8 @@ jobs:
       run: |
         echo "<meta http-equiv=\"refresh\" content=\"0; url=/bo/doc\">" > target/doc/index.html
         mv target/doc/bo target/doc/doc
+        cd target/doc/doc
+        for file in $(grep -r -l 'href="../bo/index.html"'); do  sed -i 's#\.\./bo/index\.html#\.\./doc/index\.html#' $file; done
 
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
