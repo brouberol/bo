@@ -84,6 +84,10 @@ $ cargo install bo-bin
 - [ ] Tab navigation
 - [ ] Fuzzy file finder
 
+## Development documentation
+
+The `rustdoc` documentation is hosted on [Github Pages](https://brouberol.github.io/bo/doc/).
+
 ## Inspiration
 
 I got the inspiration for `bo` by reading about [antirez](https://github.com/antirez)'s editor [`kilo`](https://github.com/antirez/kilo), and am wildly basing my work on the excellent [blogpost series](https://www.philippflenker.com/hecto-chapter-1) by Philipp Flenker.
