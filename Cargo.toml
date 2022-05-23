@@ -1,6 +1,6 @@
 [package]
 name = "bo-bin"
-version = "0.3.3"
+version = "0.4.0"
 description = "A minimalistic text editor with vim-like navigation capabilities"
 authors = [ "Balthazar Rouberol <br@imap.cc>" ]
 repository = "https://github.com/brouberol/bo"

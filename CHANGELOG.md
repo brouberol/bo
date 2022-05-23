@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [0.4.0] - 2022/05/23
 ### Features
 - Implement autocompletion based on user provided commands (ex: `:deb<TAB>` autocompletes to `:debug`). Multiple completion suggestions can be cycled through, accepted or ignored.
 - Add support for Undo last operation, via the `u` command
@@ -101,7 +102,8 @@ This project adheres to [Semantic Versioning](https://semver.org).
 - Many offset/insertion related bugs were fixed
 
 
-[Unreleased]: https://github.com/brouberol/bo/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/brouberol/bo/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/brouberol/bo/compare/v0.3.2...0.4.0
 [0.3.3]: https://github.com/brouberol/bo/compare/v0.3.2...0.3.3
 [0.3.2]: https://github.com/brouberol/bo/compare/v0.3.1...0.3.2
 [0.3.1]: https://github.com/brouberol/bo/compare/v0.3.0...0.3.1
