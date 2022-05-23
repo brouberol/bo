@@ -1,4 +1,6 @@
-name: Cleanup S3 on PR merge
+# This workflow removes the coverage report from s3 for a given branch once the associated PR was closed
+
+name: Cleanup S3 on PR close
 
 # only trigger on pull request closed events
 on:

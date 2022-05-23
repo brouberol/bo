@@ -1,3 +1,5 @@
+# This workflow releases new tagged versions of bo, on both Github Releases and crates.io
+
 name: Release
 
 on:

@@ -1,3 +1,5 @@
+# This workflow regularly performs a security audit of the bo dependencies
+
 name: Scheduled security audit
 on:
   schedule:

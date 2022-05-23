@@ -1,3 +1,6 @@
+# This workflow runs lints, unit tests as well as coverage measurement jobs every time a rust source file
+# was changed.
+
 name: CI
 
 on:

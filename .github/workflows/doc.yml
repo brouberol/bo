@@ -1,3 +1,5 @@
+# This workflow generates the rustdoc documentation for bo and hosts it on Github Pages
+
 name: Doc
 
 on:
