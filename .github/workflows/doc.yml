@@ -1,0 +1,33 @@
+name: Doc
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+
+    - name: Build Documentation
+      uses: actions-rs/cargo@v1
+      with:
+        command: doc
+        args: --all --no-deps --document-private-items
+
+    - name: Insert top-level index.html
+      run: |
+        echo "<meta http-equiv=\"refresh\" content=\"0; url=/bo/doc\">" > target/doc/index.html
+        mv target/doc/bo target/doc/doc
+
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./target/doc
