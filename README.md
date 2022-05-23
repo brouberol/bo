@@ -1,6 +1,6 @@
 # bo
 
-[![crates.io](https://img.shields.io/crates/v/bo-bin.svg)](https://crates.io/crates/bo-bin) [![Tests](https://github.com/brouberol/bo/actions/workflows/tests.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/tests.yml) [![Coverage](https://github-brouberol-coverage.s3.eu-west-3.amazonaws.com/bo/main/badges/flat.svg)](http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main)
+[![crates.io](https://img.shields.io/crates/v/bo-bin.svg)](https://crates.io/crates/bo-bin) [![Tests](https://github.com/brouberol/bo/actions/workflows/tests.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/tests.yml) [![Coverage](https://github-brouberol-coverage.s3.eu-west-3.amazonaws.com/bo/main/badges/flat.svg)](http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main) [![rustdoc](https://img.shields.io/badge/rustdoc--d6782e)](https://brouberol.github.io/bo/doc/)
 
 My (WIP) personal text editor for prose.
 
