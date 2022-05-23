@@ -1,6 +1,6 @@
 # bo
 
-[![Tests](https://github.com/brouberol/bo/actions/workflows/tests.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/tests.yml) [![Coverage](https://github-brouberol-coverage.s3.eu-west-3.amazonaws.com/bo/main/badges/flat.svg)](http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main)
+[![crates.io](https://img.shields.io/crates/v/bo-bin.svg)](https://crates.io/crates/bo-bin) [![Tests](https://github.com/brouberol/bo/actions/workflows/tests.yml/badge.svg)](https://github.com/brouberol/bo/actions/workflows/tests.yml) [![Coverage](https://github-brouberol-coverage.s3.eu-west-3.amazonaws.com/bo/main/badges/flat.svg)](http://github-brouberol-coverage.s3-website.eu-west-3.amazonaws.com/bo/main)
 
 My (WIP) personal text editor for prose.
 
@@ -18,6 +18,16 @@ I do enjoy Visual Studio for its rich ecosystem, I enjoy Sublime Text for its ex
 I tend to favour an editor with plugins/linters/autocompletion when I'm developing code, but when I'm writing prose (blogposts, book chapters...), I would like to use an editor that is as simple as possible and "works" for me, without giving me the opportunity of getting lost in configuration options.
 
 So, something like [Left](https://hundredrabbits.itch.io/left), but with vim-like navigation commands.
+
+## Installation
+
+You can fetch the latest `bo` release from the [Github release page](https://github.com/brouberol/bo/releases), or compile and install it by running
+
+```console
+$ cargo install bo-bin
+```
+
+**Note**: While the crates is named `bo-bin` (as [`bo`](https://crates.io/crates/bo) was already taken), the binary name is `bo`.
 
 ## Roadmap
 
