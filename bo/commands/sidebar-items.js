@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["ALL_COMMANDS",""],["DEBUG",""],["FORCE_QUIT",""],["HELP",""],["LINE_NUMBERS",""],["NEW",""],["OPEN",""],["OPEN_SHORT",""],["QUIT",""],["SAVE",""],["SAVE_AND_QUIT",""],["STATS",""]]});

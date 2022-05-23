@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["as_bold",""],["bo_version",""],["expand_tilde",""],["git_head_short_ref",""],["log","Panics"],["red",""],["zfill",""]]});

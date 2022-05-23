@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ConsoleSize",""]],"trait":[["Console",""]]});

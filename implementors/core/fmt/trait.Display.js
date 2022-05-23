@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["bo"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.61.0/core/fmt/trait.Display.html\" title=\"trait core::fmt::Display\">Display</a> for <a class=\"enum\" href=\"bo/mode/enum.Mode.html\" title=\"enum bo::mode::Mode\">Mode</a>","synthetic":false,"types":["bo::mode::Mode"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
