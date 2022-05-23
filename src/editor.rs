@@ -331,11 +331,18 @@ impl Editor {
                     let cmd_tokens: Vec<&str> = command.split(' ').collect();
                     match *cmd_tokens.get(0).unwrap_or(&"") {
                         commands::OPEN | commands::OPEN_SHORT => {
-                            if let Ok(document) = Document::open(PathBuf::from(cmd_tokens[1])) {
+                            let filename = PathBuf::from(cmd_tokens[1]);
+                            if self.document.filename == Some(filename.clone()) {
+                                self.display_message(format!(
+                                    "{} is already opened",
+                                    cmd_tokens[1]
+                                ));
+                            } else if let Ok(document) = Document::open(filename) {
                                 self.document = document;
                                 self.last_saved_hash = self.document.hashed();
                                 self.reset_message();
                                 self.cursor_position = Position::default();
+                                self.history = History::default();
                             } else {
                                 self.display_message(utils::red(&format!(
                                     "{} not found",

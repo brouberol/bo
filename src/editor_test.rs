@@ -1030,3 +1030,24 @@ fn test_delete_line_then_undo() {
     editor.process_keystroke(Key::Char('u'));
     assert_nth_row_is(&editor, 1, "Hello world!");
 }
+
+#[test]
+fn test_repoen_same_file() {
+    let mut editor = get_test_editor();
+    process_command(&mut editor, ":open test");
+    assert_eq!(editor.message, "test is already opened");
+}
+
+#[test]
+fn test_reset_history_at_open() {
+    let mut editor = get_test_editor();
+
+    // We simulate that the 3 lines were written in one operation
+    editor.history.operations.push_back(Operation {
+        op_type: OperationType::Insert,
+        content: String::from("Hello world\nHello world!\nHello world!!"),
+        start_position: Position { x: 0, y: 0 },
+    });
+    process_command(&mut editor, ":open newfile");
+    assert!(editor.history.operations.is_empty());
+}

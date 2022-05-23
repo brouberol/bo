@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](https://semver.org).
 
 ### Fixes
 - Move to the last available character when deleting a line that is longer that the previous one, with `d`
+- Reset the history when opening a new file
 
 ## [0.3.3] - 2022/05/01
 
