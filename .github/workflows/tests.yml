@@ -5,8 +5,9 @@ name: CI
 
 on:
   push:
-    paths:
-    - 'src/**'
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -39,10 +40,11 @@ jobs:
         profile: minimal
 
     - name: Run tests
-      uses: actions-rs/cargo@v1
-      with:
-        command: test
-        args: --all-features --no-fail-fast  # Customize args for your own needs
+      run: |
+        echo '## Tests' >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cargo test --quiet --all-features --no-fail-fast | tee >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
       env:
         CARGO_INCREMENTAL: '0'
         RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests -Cinstrument-coverage'
@@ -76,6 +78,9 @@ jobs:
           message=":chart_with_downwards_trend: [Coverage](${pr_report_url}) has gone down from [${main_cov}%](${main_report_url}) to [${pr_cov}](https://github.com/brouberol/bo/runs/${RUN_ID}?check_suite_focus=true)%."
         fi
         echo "::set-output name=cov_pr_message::${message}"
+
+        echo "## Coverage" >> $GITHUB_STEP_SUMMARY
+        echo "${message}" >> $GITHUB_STEP_SUMMARY
       env:
         COV_REPORT_DIR: ${{ steps.coverage.outputs.output-path }}
         RUN_ID: ${{ github.run_id }}
@@ -83,7 +88,7 @@ jobs:
         AWS_S3_BUCKET: ${{ secrets.AWS_BUCKET }}
 
     - name: Add a comment to the PR mentioning the coverage change
-      if: github.ref_name != 'main'
+      if: github.event_name == 'pull_request'
       uses: thollander/actions-comment-pull-request@v1
       with:
         message: |
