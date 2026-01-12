@@ -14,7 +14,7 @@ name = "bo"
 path = "src/main.rs"
 
 [dependencies]
-termion = "1"
+termion = "2"
 unicode-segmentation = "1"
 structopt = "~0.3.22"
 serde = { version = "1.0", features = ["derive"] }
